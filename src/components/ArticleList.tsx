@@ -1,4 +1,4 @@
-import type { Article } from '../data/mockData';
+import type { Article } from '../lib/database';
 
 interface Props {
   articles: Article[];

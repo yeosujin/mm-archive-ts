@@ -1,28 +1,70 @@
-import { useState } from 'react';
-import { videos } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { getVideos, createVideo, deleteVideo } from '../../lib/database';
+import type { Video } from '../../lib/database';
 
 export default function AdminVideos() {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: '',
     url: '',
     date: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadVideos();
+  }, []);
+
+  const loadVideos = async () => {
+    try {
+      const data = await getVideos();
+      setVideos(data);
+    } catch (error) {
+      console.error('Error loading videos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newVideo = {
-      id: String(Date.now()),
-      title: formData.title,
-      url: formData.url,
-      date: formData.date,
-    };
-    
-    console.log('새 영상 추가:', newVideo);
-    alert('콘솔에 데이터가 출력되었어요!\n실제 저장은 Supabase 연동 후 가능해요.');
-    
-    setFormData({ title: '', url: '', date: '' });
+    try {
+      await createVideo({
+        title: formData.title,
+        url: formData.url,
+        date: formData.date,
+      });
+      
+      alert('영상이 추가되었어요!');
+      setFormData({ title: '', url: '', date: '' });
+      loadVideos(); // 목록 새로고침
+    } catch (error) {
+      console.error('Error creating video:', error);
+      alert('영상 추가 중 오류가 발생했어요.');
+    }
   };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('정말 삭제하시겠어요?')) return;
+    
+    try {
+      await deleteVideo(id);
+      alert('삭제되었어요!');
+      loadVideos();
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      alert('삭제 중 오류가 발생했어요.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="admin-page">
+        <div className="loading">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page">
@@ -32,8 +74,9 @@ export default function AdminVideos() {
         <h2>새 영상 추가</h2>
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-group">
-            <label>제목 *</label>
+            <label htmlFor="video-title">제목 *</label>
             <input
+              id="video-title"
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -43,8 +86,9 @@ export default function AdminVideos() {
           </div>
           
           <div className="form-group">
-            <label>영상 URL *</label>
+            <label htmlFor="video-url">영상 URL *</label>
             <input
+              id="video-url"
               type="url"
               value={formData.url}
               onChange={(e) => setFormData({ ...formData, url: e.target.value })}
@@ -55,8 +99,9 @@ export default function AdminVideos() {
           </div>
           
           <div className="form-group">
-            <label>날짜 *</label>
+            <label htmlFor="video-date">날짜 *</label>
             <input
+              id="video-date"
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -83,8 +128,7 @@ export default function AdminVideos() {
                 </a>
               </div>
               <div className="admin-list-actions">
-                <button className="edit-btn">수정</button>
-                <button className="delete-btn">삭제</button>
+                <button className="delete-btn" onClick={() => handleDelete(video.id)}>삭제</button>
               </div>
             </div>
           ))}

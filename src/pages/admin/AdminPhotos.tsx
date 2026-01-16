@@ -1,28 +1,70 @@
-import { useState } from 'react';
-import { photos } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { getPhotos, createPhoto, deletePhoto } from '../../lib/database';
+import type { Photo } from '../../lib/database';
 
 export default function AdminPhotos() {
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: '',
-    imageUrl: '',
+    image_url: '',
     date: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadPhotos();
+  }, []);
+
+  const loadPhotos = async () => {
+    try {
+      const data = await getPhotos();
+      setPhotos(data);
+    } catch (error) {
+      console.error('Error loading photos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newPhoto = {
-      id: String(Date.now()),
-      title: formData.title,
-      imageUrl: formData.imageUrl,
-      date: formData.date,
-    };
-    
-    console.log('새 사진 추가:', newPhoto);
-    alert('콘솔에 데이터가 출력되었어요!\n실제 저장은 Supabase 연동 후 가능해요.');
-    
-    setFormData({ title: '', imageUrl: '', date: '' });
+    try {
+      await createPhoto({
+        title: formData.title,
+        image_url: formData.image_url,
+        date: formData.date,
+      });
+      
+      alert('사진이 추가되었어요!');
+      setFormData({ title: '', image_url: '', date: '' });
+      loadPhotos();
+    } catch (error) {
+      console.error('Error creating photo:', error);
+      alert('사진 추가 중 오류가 발생했어요.');
+    }
   };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('정말 삭제하시겠어요?')) return;
+    
+    try {
+      await deletePhoto(id);
+      alert('삭제되었어요!');
+      loadPhotos();
+    } catch (error) {
+      console.error('Error deleting photo:', error);
+      alert('삭제 중 오류가 발생했어요.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="admin-page">
+        <div className="loading">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page">
@@ -32,8 +74,9 @@ export default function AdminPhotos() {
         <h2>새 사진 추가</h2>
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-group">
-            <label>제목 *</label>
+            <label htmlFor="photo-title">제목 *</label>
             <input
+              id="photo-title"
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -43,11 +86,12 @@ export default function AdminPhotos() {
           </div>
           
           <div className="form-group">
-            <label>이미지 URL *</label>
+            <label htmlFor="photo-url">이미지 URL *</label>
             <input
+              id="photo-url"
               type="url"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              value={formData.image_url}
+              onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
               placeholder="https://example.com/image.jpg"
               required
             />
@@ -55,8 +99,9 @@ export default function AdminPhotos() {
           </div>
           
           <div className="form-group">
-            <label>날짜 *</label>
+            <label htmlFor="photo-date">날짜 *</label>
             <input
+              id="photo-date"
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -75,14 +120,13 @@ export default function AdminPhotos() {
         <div className="admin-list">
           {photos.map((photo) => (
             <div key={photo.id} className="admin-list-item">
-              <img src={photo.imageUrl} alt={photo.title} className="admin-list-thumb" />
+              <img src={photo.image_url} alt={photo.title} className="admin-list-thumb" />
               <div className="admin-list-info">
                 <h3>{photo.title}</h3>
                 <p>{photo.date}</p>
               </div>
               <div className="admin-list-actions">
-                <button className="edit-btn">수정</button>
-                <button className="delete-btn">삭제</button>
+                <button className="delete-btn" onClick={() => handleDelete(photo.id)}>삭제</button>
               </div>
             </div>
           ))}

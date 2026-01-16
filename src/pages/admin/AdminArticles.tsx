@@ -1,7 +1,10 @@
-import { useState } from 'react';
-import { articles } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { getArticles, createArticle, deleteArticle } from '../../lib/database';
+import type { Article } from '../../lib/database';
 
 export default function AdminArticles() {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: '',
     author: '',
@@ -10,25 +13,62 @@ export default function AdminArticles() {
     tags: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadArticles();
+  }, []);
+
+  const loadArticles = async () => {
+    try {
+      const data = await getArticles();
+      setArticles(data);
+    } catch (error) {
+      console.error('Error loading articles:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 현재는 콘솔에만 출력 (나중에 Supabase 연동)
-    const newArticle = {
-      id: String(Date.now()),
-      title: formData.title,
-      author: formData.author,
-      url: formData.url,
-      date: formData.date,
-      tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-    };
-    
-    console.log('새 글 추가:', newArticle);
-    alert('콘솔에 데이터가 출력되었어요!\n실제 저장은 Supabase 연동 후 가능해요.');
-    
-    // 폼 초기화
-    setFormData({ title: '', author: '', url: '', date: '', tags: '' });
+    try {
+      await createArticle({
+        title: formData.title,
+        author: formData.author,
+        url: formData.url,
+        date: formData.date,
+        tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
+      });
+      
+      alert('글이 추가되었어요!');
+      setFormData({ title: '', author: '', url: '', date: '', tags: '' });
+      loadArticles();
+    } catch (error) {
+      console.error('Error creating article:', error);
+      alert('글 추가 중 오류가 발생했어요.');
+    }
   };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('정말 삭제하시겠어요?')) return;
+    
+    try {
+      await deleteArticle(id);
+      alert('삭제되었어요!');
+      loadArticles();
+    } catch (error) {
+      console.error('Error deleting article:', error);
+      alert('삭제 중 오류가 발생했어요.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="admin-page">
+        <div className="loading">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page">
@@ -38,8 +78,9 @@ export default function AdminArticles() {
         <h2>새 글 추가</h2>
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-group">
-            <label>제목 *</label>
+            <label htmlFor="article-title">제목 *</label>
             <input
+              id="article-title"
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -49,8 +90,9 @@ export default function AdminArticles() {
           </div>
           
           <div className="form-group">
-            <label>글쓴이 *</label>
+            <label htmlFor="article-author">글쓴이 *</label>
             <input
+              id="article-author"
               type="text"
               value={formData.author}
               onChange={(e) => setFormData({ ...formData, author: e.target.value })}
@@ -60,8 +102,9 @@ export default function AdminArticles() {
           </div>
           
           <div className="form-group">
-            <label>링크 URL *</label>
+            <label htmlFor="article-url">링크 URL *</label>
             <input
+              id="article-url"
               type="url"
               value={formData.url}
               onChange={(e) => setFormData({ ...formData, url: e.target.value })}
@@ -71,8 +114,9 @@ export default function AdminArticles() {
           </div>
           
           <div className="form-group">
-            <label>날짜 *</label>
+            <label htmlFor="article-date">날짜 *</label>
             <input
+              id="article-date"
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -81,12 +125,13 @@ export default function AdminArticles() {
           </div>
           
           <div className="form-group">
-            <label>태그 (쉼표로 구분)</label>
+            <label htmlFor="article-tags">태그 (쉼표로 구분)</label>
             <input
+              id="article-tags"
               type="text"
               value={formData.tags}
               onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-              placeholder="인터뷰, 기사, 뉴스"
+              placeholder="소설, 팬픽, 로맨스"
             />
           </div>
           
@@ -114,8 +159,7 @@ export default function AdminArticles() {
                 </div>
               </div>
               <div className="admin-list-actions">
-                <button className="edit-btn">수정</button>
-                <button className="delete-btn">삭제</button>
+                <button className="delete-btn" onClick={() => handleDelete(article.id)}>삭제</button>
               </div>
             </div>
           ))}

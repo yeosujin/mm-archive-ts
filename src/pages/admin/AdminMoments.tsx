@@ -1,29 +1,68 @@
-import { useState } from 'react';
-import { moments, videos } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { getMoments, getVideos, createMoment, deleteMoment } from '../../lib/database';
+import type { Moment, Video } from '../../lib/database';
 
 export default function AdminMoments() {
+  const [moments, setMoments] = useState<Moment[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: '',
-    tweetUrl: '',
+    tweet_url: '',
     date: '',
-    videoId: '',
+    video_id: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [momentsData, videosData] = await Promise.all([
+        getMoments(),
+        getVideos()
+      ]);
+      setMoments(momentsData);
+      setVideos(videosData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newMoment = {
-      id: String(Date.now()),
-      title: formData.title,
-      tweetUrl: formData.tweetUrl,
-      date: formData.date,
-      videoId: formData.videoId || undefined,
-    };
+    try {
+      await createMoment({
+        title: formData.title,
+        tweet_url: formData.tweet_url,
+        date: formData.date,
+        video_id: formData.video_id || undefined,
+      });
+      
+      alert('모먼트가 추가되었어요!');
+      setFormData({ title: '', tweet_url: '', date: '', video_id: '' });
+      loadData();
+    } catch (error) {
+      console.error('Error creating moment:', error);
+      alert('모먼트 추가 중 오류가 발생했어요.');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('정말 삭제하시겠어요?')) return;
     
-    console.log('새 모먼트 추가:', newMoment);
-    alert('콘솔에 데이터가 출력되었어요!\n실제 저장은 Supabase 연동 후 가능해요.');
-    
-    setFormData({ title: '', tweetUrl: '', date: '', videoId: '' });
+    try {
+      await deleteMoment(id);
+      alert('삭제되었어요!');
+      loadData();
+    } catch (error) {
+      console.error('Error deleting moment:', error);
+      alert('삭제 중 오류가 발생했어요.');
+    }
   };
 
   // 선택된 영상 정보 가져오기
@@ -38,10 +77,18 @@ export default function AdminMoments() {
     const selectedVideo = videos.find(v => v.id === videoId);
     setFormData({
       ...formData,
-      videoId,
+      video_id: videoId,
       date: selectedVideo ? selectedVideo.date : formData.date,
     });
   };
+
+  if (loading) {
+    return (
+      <div className="admin-page">
+        <div className="loading">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page">
@@ -51,8 +98,9 @@ export default function AdminMoments() {
         <h2>새 모먼트 추가</h2>
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-group">
-            <label>제목 *</label>
+            <label htmlFor="moment-title">제목 *</label>
             <input
+              id="moment-title"
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -62,11 +110,12 @@ export default function AdminMoments() {
           </div>
           
           <div className="form-group">
-            <label>트윗 URL *</label>
+            <label htmlFor="moment-url">트윗 URL *</label>
             <input
+              id="moment-url"
               type="url"
-              value={formData.tweetUrl}
-              onChange={(e) => setFormData({ ...formData, tweetUrl: e.target.value })}
+              value={formData.tweet_url}
+              onChange={(e) => setFormData({ ...formData, tweet_url: e.target.value })}
               placeholder="https://x.com/.../status/..."
               required
             />
@@ -74,9 +123,10 @@ export default function AdminMoments() {
           </div>
 
           <div className="form-group">
-            <label>연결할 영상</label>
+            <label htmlFor="moment-video">연결할 영상</label>
             <select
-              value={formData.videoId}
+              id="moment-video"
+              value={formData.video_id}
               onChange={(e) => handleVideoSelect(e.target.value)}
               className="form-select"
             >
@@ -91,8 +141,9 @@ export default function AdminMoments() {
           </div>
           
           <div className="form-group">
-            <label>날짜 *</label>
+            <label htmlFor="moment-date">날짜 *</label>
             <input
+              id="moment-date"
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -115,16 +166,15 @@ export default function AdminMoments() {
               <div className="admin-list-info">
                 <h3>{moment.title}</h3>
                 <p>{moment.date}</p>
-                {moment.videoId && (
-                  <p className="linked-video">🎬 {getVideoTitle(moment.videoId)}</p>
+                {moment.video_id && (
+                  <p className="linked-video">🎬 {getVideoTitle(moment.video_id)}</p>
                 )}
-                <a href={moment.tweetUrl} target="_blank" rel="noopener noreferrer" className="item-link">
-                  {moment.tweetUrl}
+                <a href={moment.tweet_url} target="_blank" rel="noopener noreferrer" className="item-link">
+                  {moment.tweet_url}
                 </a>
               </div>
               <div className="admin-list-actions">
-                <button className="edit-btn">수정</button>
-                <button className="delete-btn">삭제</button>
+                <button className="delete-btn" onClick={() => handleDelete(moment.id)}>삭제</button>
               </div>
             </div>
           ))}

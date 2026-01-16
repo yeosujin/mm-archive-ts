@@ -1,23 +1,47 @@
-import { useState } from 'react';
-import { photos } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import { getPhotos } from '../lib/database';
+import type { Photo } from '../lib/database';
 
 export default function Photos() {
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPhotos();
+  }, []);
+
+  const loadPhotos = async () => {
+    try {
+      const data = await getPhotos();
+      setPhotos(data);
+    } catch (error) {
+      console.error('Error loading photos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredPhotos = photos.filter((photo) =>
     photo.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handlePhotoClick = (photoId: string) => {
-    setSelectedPhoto(photoId);
+  const handlePhotoClick = (photo: Photo) => {
+    setSelectedPhoto(photo);
   };
 
   const closeModal = () => {
     setSelectedPhoto(null);
   };
 
-  const selectedPhotoData = photos.find((p) => p.id === selectedPhoto);
+  if (loading) {
+    return (
+      <div className="page photos-page">
+        <div className="loading">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="page photos-page">
@@ -48,10 +72,10 @@ export default function Photos() {
             <article 
               key={photo.id} 
               className="photo-card"
-              onClick={() => handlePhotoClick(photo.id)}
+              onClick={() => handlePhotoClick(photo)}
             >
               <div className="photo-image">
-                <img src={photo.imageUrl} alt={photo.title} loading="lazy" />
+                <img src={photo.image_url} alt={photo.title} loading="lazy" />
               </div>
               <div className="photo-info">
                 <h3 className="photo-title">{photo.title}</h3>
@@ -63,14 +87,14 @@ export default function Photos() {
       )}
 
       {/* 이미지 모달 */}
-      {selectedPhotoData && (
+      {selectedPhoto && (
         <div className="photo-modal" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={closeModal}>✕</button>
-            <img src={selectedPhotoData.imageUrl} alt={selectedPhotoData.title} />
+            <img src={selectedPhoto.image_url} alt={selectedPhoto.title} />
             <div className="modal-info">
-              <h3>{selectedPhotoData.title}</h3>
-              <time>{selectedPhotoData.date}</time>
+              <h3>{selectedPhoto.title}</h3>
+              <time>{selectedPhoto.date}</time>
             </div>
           </div>
         </div>

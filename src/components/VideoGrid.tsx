@@ -1,4 +1,4 @@
-import type { Video } from '../data/mockData';
+import type { Video } from '../lib/database';
 
 interface Props {
   videos: Video[];

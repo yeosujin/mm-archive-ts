@@ -1,17 +1,42 @@
-import { useState } from 'react';
-import { videos, moments } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import { getVideos, getMomentsByVideoId } from '../lib/database';
+import type { Video, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import TweetEmbed from '../components/TweetEmbed';
 
-// 특정 영상에 연결된 모먼트 가져오기
-function getMomentsForVideo(videoId: string) {
-  return moments.filter((moment) => moment.videoId === videoId);
-}
-
 export default function Videos() {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [videoMoments, setVideoMoments] = useState<Record<string, Moment[]>>({});
   const [expandedVideo, setExpandedVideo] = useState<string | null>(null);
   const [expandedMoments, setExpandedMoments] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadVideos();
+  }, []);
+
+  const loadVideos = async () => {
+    try {
+      const data = await getVideos();
+      setVideos(data);
+    } catch (error) {
+      console.error('Error loading videos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMomentsForVideo = async (videoId: string) => {
+    if (videoMoments[videoId]) return; // 이미 로드됨
+    
+    try {
+      const moments = await getMomentsByVideoId(videoId);
+      setVideoMoments(prev => ({ ...prev, [videoId]: moments }));
+    } catch (error) {
+      console.error('Error loading moments:', error);
+    }
+  };
   
   // 검색 필터링
   const filteredVideos = searchQuery
@@ -22,7 +47,7 @@ export default function Videos() {
 
   // 필터링된 영상으로 그룹화
   const groupedVideos = (() => {
-    const groups: Record<string, typeof videos> = {};
+    const groups: Record<string, Video[]> = {};
     filteredVideos.forEach((video) => {
       if (!groups[video.date]) {
         groups[video.date] = [];
@@ -32,17 +57,27 @@ export default function Videos() {
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
   })();
 
-  const toggleVideo = (videoId: string) => {
-    setExpandedVideo(expandedVideo === videoId ? null : videoId);
-    // 영상 닫으면 모먼트도 닫기
+  const toggleVideo = async (videoId: string) => {
     if (expandedVideo === videoId) {
+      setExpandedVideo(null);
       setExpandedMoments(null);
+    } else {
+      setExpandedVideo(videoId);
+      await loadMomentsForVideo(videoId);
     }
   };
 
   const toggleMoments = (videoId: string) => {
     setExpandedMoments(expandedMoments === videoId ? null : videoId);
   };
+
+  if (loading) {
+    return (
+      <div className="page videos-page">
+        <div className="loading">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="page videos-page">
@@ -76,51 +111,49 @@ export default function Videos() {
               </div>
 
               <div className="thread-content">
-                {/* 공식 영상 */}
                 {dateVideos.map((video) => {
-                  const videoMoments = getMomentsForVideo(video.id);
+                  const moments = videoMoments[video.id] || [];
                   
                   return (
                     <div key={video.id} className="thread-video-item">
-                      <div 
+                      <button 
                         className="thread-item-header"
                         onClick={() => toggleVideo(video.id)}
                       >
                         <span className="item-icon">📹</span>
                         <span className="item-title">
                           {video.title}
-                          {videoMoments.length > 0 && (
-                            <span className="moment-badge">✨ {videoMoments.length}</span>
+                          {moments.length > 0 && (
+                            <span className="moment-badge">✨ {moments.length}</span>
                           )}
                         </span>
                         <span className={`expand-arrow ${expandedVideo === video.id ? 'open' : ''}`}>
                           ▼
                         </span>
-                      </div>
+                      </button>
                       
                       {expandedVideo === video.id && (
                         <div className="thread-item-content">
                           <VideoEmbed url={video.url} title={video.title} />
                           
-                          {/* 이 영상에 연결된 모먼트들 - 별도 토글 */}
-                          {videoMoments.length > 0 && (
+                          {moments.length > 0 && (
                             <div className="video-moments-section">
-                              <div 
+                              <button 
                                 className="video-moments-header"
                                 onClick={() => toggleMoments(video.id)}
                               >
                                 <span className="item-icon">✨</span>
-                                <span className="item-title">모먼트 ({videoMoments.length})</span>
+                                <span className="item-title">모먼트 ({moments.length})</span>
                                 <span className={`expand-arrow ${expandedMoments === video.id ? 'open' : ''}`}>
                                   ▼
                                 </span>
-                              </div>
+                              </button>
                               
                               {expandedMoments === video.id && (
                                 <div className="video-moments-grid">
-                                  {videoMoments.map((moment) => (
+                                  {moments.map((moment) => (
                                     <div key={moment.id} className="moment-embed-item">
-                                      <TweetEmbed tweetUrl={moment.tweetUrl} />
+                                      <TweetEmbed tweetUrl={moment.tweet_url} />
                                     </div>
                                   ))}
                                 </div>

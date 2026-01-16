@@ -1,29 +1,53 @@
-import { useState } from 'react';
-import { moments } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import { getMoments } from '../lib/database';
+import type { Moment } from '../lib/database';
 import TweetEmbed from '../components/TweetEmbed';
 
-// 날짜별로 그룹화
-function groupByDate(items: typeof moments) {
-  const groups: Record<string, typeof moments> = {};
-  
-  items.forEach((item) => {
-    if (!groups[item.date]) {
-      groups[item.date] = [];
-    }
-    groups[item.date].push(item);
-  });
-
-  // 날짜 내림차순 정렬
-  return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-}
-
 export default function Moments() {
+  const [moments, setMoments] = useState<Moment[]>([]);
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
-  const groupedMoments = groupByDate(moments);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadMoments();
+  }, []);
+
+  const loadMoments = async () => {
+    try {
+      const data = await getMoments();
+      setMoments(data);
+    } catch (error) {
+      console.error('Error loading moments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 날짜별로 그룹화
+  const groupedMoments = (() => {
+    const groups: Record<string, Moment[]> = {};
+    
+    moments.forEach((item) => {
+      if (!groups[item.date]) {
+        groups[item.date] = [];
+      }
+      groups[item.date].push(item);
+    });
+
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  })();
 
   const toggleDate = (date: string) => {
     setExpandedDate(expandedDate === date ? null : date);
   };
+
+  if (loading) {
+    return (
+      <div className="page moments-page">
+        <div className="loading">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="page moments-page">
@@ -46,7 +70,7 @@ export default function Moments() {
               </div>
               <div className="thread-items">
                 <div className="moment-accordion-item">
-                  <div 
+                  <button 
                     className="moment-item-header"
                     onClick={() => toggleDate(date)}
                   >
@@ -55,16 +79,16 @@ export default function Moments() {
                     <span className={`expand-arrow ${expandedDate === date ? 'open' : ''}`}>
                       ▼
                     </span>
-                  </div>
+                  </button>
                   
                   {expandedDate === date && (
                     <div className="moment-item-content">
                       <div className="moment-tweets-list">
                         {dateMoments.map((moment) => (
                           <div key={moment.id} className="moment-tweet-item">
-                    <TweetEmbed tweetUrl={moment.tweetUrl} />
-                  </div>
-                ))}
+                            <TweetEmbed tweetUrl={moment.tweet_url} />
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

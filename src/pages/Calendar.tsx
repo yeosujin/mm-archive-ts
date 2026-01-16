@@ -1,42 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { videos, moments, photos, episodes, articles } from '../data/mockData';
+import { getVideos, getMoments, getPhotos, getEpisodes, getArticles } from '../lib/database';
+import type { Video, Moment, Photo, Episode, Article } from '../lib/database';
 
-// 모든 아카이브를 날짜별로 그룹화
-function getAllArchivesByDate() {
-  const archives: Record<string, Array<{
-    id: string;
-    type: 'video' | 'moment' | 'photo' | 'episode' | 'article';
-    title: string;
-    path: string;
-  }>> = {};
-
-  videos.forEach((v) => {
-    if (!archives[v.date]) archives[v.date] = [];
-    archives[v.date].push({ id: v.id, type: 'video', title: v.title, path: '/videos' });
-  });
-
-  moments.forEach((m) => {
-    if (!archives[m.date]) archives[m.date] = [];
-    archives[m.date].push({ id: m.id, type: 'moment', title: m.title, path: '/videos' });
-  });
-
-  photos.forEach((p) => {
-    if (!archives[p.date]) archives[p.date] = [];
-    archives[p.date].push({ id: p.id, type: 'photo', title: p.title, path: '/photos' });
-  });
-
-  episodes.forEach((e) => {
-    if (!archives[e.date]) archives[e.date] = [];
-    archives[e.date].push({ id: e.id, type: 'episode', title: e.title, path: '/episodes' });
-  });
-
-  articles.forEach((a) => {
-    if (!archives[a.date]) archives[a.date] = [];
-    archives[a.date].push({ id: a.id, type: 'article', title: a.title, path: '/articles' });
-  });
-
-  return archives;
+interface ArchiveItem {
+  id: string;
+  type: 'video' | 'moment' | 'photo' | 'episode' | 'article';
+  title: string;
+  path: string;
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -44,15 +15,64 @@ const TYPE_ICONS: Record<string, string> = {
   video: '📹',
   moment: '✨',
   photo: '📷',
-  episode: '🎬',
-  article: '📰',
+  episode: '💬',
+  article: '📝',
 };
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  
-  const archives = getAllArchivesByDate();
+  const [archives, setArchives] = useState<Record<string, ArchiveItem[]>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  const loadAllData = async () => {
+    try {
+      const [videos, moments, photos, episodes, articles] = await Promise.all([
+        getVideos(),
+        getMoments(),
+        getPhotos(),
+        getEpisodes(),
+        getArticles()
+      ]);
+
+      const archivesByDate: Record<string, ArchiveItem[]> = {};
+
+      videos.forEach((v: Video) => {
+        if (!archivesByDate[v.date]) archivesByDate[v.date] = [];
+        archivesByDate[v.date].push({ id: v.id, type: 'video', title: v.title, path: '/videos' });
+      });
+
+      moments.forEach((m: Moment) => {
+        if (!archivesByDate[m.date]) archivesByDate[m.date] = [];
+        archivesByDate[m.date].push({ id: m.id, type: 'moment', title: m.title, path: '/moments' });
+      });
+
+      photos.forEach((p: Photo) => {
+        if (!archivesByDate[p.date]) archivesByDate[p.date] = [];
+        archivesByDate[p.date].push({ id: p.id, type: 'photo', title: p.title, path: '/photos' });
+      });
+
+      episodes.forEach((e: Episode) => {
+        if (!archivesByDate[e.date]) archivesByDate[e.date] = [];
+        archivesByDate[e.date].push({ id: e.id, type: 'episode', title: e.title || e.date, path: '/episodes' });
+      });
+
+      articles.forEach((a: Article) => {
+        if (!archivesByDate[a.date]) archivesByDate[a.date] = [];
+        archivesByDate[a.date].push({ id: a.id, type: 'article', title: a.title, path: '/articles' });
+      });
+
+      setArchives(archivesByDate);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -95,6 +115,14 @@ export default function Calendar() {
 
   const selectedArchives = selectedDate ? archives[selectedDate] : null;
 
+  if (loading) {
+    return (
+      <div className="page calendar-page">
+        <div className="loading">로딩 중...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="page calendar-page">
       <div className="page-header">
@@ -127,10 +155,11 @@ export default function Calendar() {
             const isToday = new Date().toISOString().split('T')[0] === dateStr;
 
             return (
-              <div
+              <button
                 key={day}
                 className={`cal-day ${hasArchive ? 'has-archive' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
                 onClick={() => hasArchive && handleDateClick(day)}
+                disabled={!hasArchive}
               >
                 <span className="day-number">{day}</span>
                 {hasArchive && (
@@ -143,7 +172,7 @@ export default function Calendar() {
                     )}
                   </div>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>

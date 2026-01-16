@@ -1,12 +1,81 @@
-import { useState } from 'react';
-import { videos, moments, photos, episodes, articles, featuredContent } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { 
+  getVideos, getMoments, getPhotos, getEpisodes, getArticles,
+  getFeaturedContent, setFeaturedContent
+} from '../../lib/database';
+import type { Video, Moment, Photo, Episode, Article } from '../../lib/database';
 
 export default function Dashboard() {
-  const [selectedType, setSelectedType] = useState<string>(featuredContent.type || '');
-  const [selectedId, setSelectedId] = useState<string>(featuredContent.id || '');
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [moments, setMoments] = useState<Moment[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [episodes, setEpisodes] = useState<Episode[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
+  
+  const [selectedType, setSelectedType] = useState<string>('');
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [currentFeatured, setCurrentFeatured] = useState<string>('없음');
+  const [loading, setLoading] = useState(true);
 
-  // 선택된 타입에 따른 아이템 목록 (에피소드 제외 - DM 형식)
-  const getItemsForType = () => {
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  const loadAllData = async () => {
+    try {
+      const [videosData, momentsData, photosData, episodesData, articlesData, featured] = await Promise.all([
+        getVideos(),
+        getMoments(),
+        getPhotos(),
+        getEpisodes(),
+        getArticles(),
+        getFeaturedContent()
+      ]);
+      
+      setVideos(videosData);
+      setMoments(momentsData);
+      setPhotos(photosData);
+      setEpisodes(episodesData);
+      setArticles(articlesData);
+      
+      // 현재 메인 걸기 정보 설정
+      if (featured.type && featured.content_id) {
+        setSelectedType(featured.type);
+        setSelectedId(featured.content_id);
+        updateCurrentFeaturedLabel(featured.type, featured.content_id, videosData, momentsData, photosData);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateCurrentFeaturedLabel = (
+    type: string, 
+    contentId: string, 
+    videosData: Video[], 
+    momentsData: Moment[], 
+    photosData: Photo[]
+  ) => {
+    const typeLabel: Record<string, string> = { video: '영상', moment: '모먼트', photo: '사진' };
+    let itemTitle = '';
+    
+    if (type === 'video') {
+      const item = videosData.find(v => v.id === contentId);
+      itemTitle = item?.title || '';
+    } else if (type === 'moment') {
+      const item = momentsData.find(m => m.id === contentId);
+      itemTitle = item?.title || '';
+    } else if (type === 'photo') {
+      const item = photosData.find(p => p.id === contentId);
+      itemTitle = item?.title || '';
+    }
+    
+    setCurrentFeatured(itemTitle ? `${typeLabel[type]}: ${itemTitle}` : '없음');
+  };
+
+  const getItemsForType = (): (Video | Moment | Photo)[] => {
     switch (selectedType) {
       case 'video': return videos;
       case 'moment': return moments;
@@ -15,41 +84,39 @@ export default function Dashboard() {
     }
   };
 
-  // 현재 메인 걸기 정보
-  const getCurrentFeatured = () => {
-    if (!featuredContent.type || !featuredContent.id) return '없음';
-    const typeLabel: Record<string, string> = { video: '영상', moment: '모먼트', photo: '사진' };
-    let itemTitle = '';
-    
-    if (featuredContent.type === 'video') {
-      const item = videos.find(v => v.id === featuredContent.id);
-      itemTitle = item?.title || '';
-    } else if (featuredContent.type === 'moment') {
-      const item = moments.find(m => m.id === featuredContent.id);
-      itemTitle = item?.title || '';
-    } else if (featuredContent.type === 'photo') {
-      const item = photos.find(p => p.id === featuredContent.id);
-      itemTitle = item?.title || '';
-    }
-    
-    return itemTitle ? `${typeLabel[featuredContent.type]}: ${itemTitle}` : '없음';
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (selectedType && selectedId) {
-      featuredContent.type = selectedType as 'video' | 'photo' | 'moment';
-      featuredContent.id = selectedId;
-      alert('메인 걸기가 저장되었어요!\n(새로고침하면 홈에서 확인 가능)');
+      try {
+        await setFeaturedContent(selectedType, selectedId);
+        updateCurrentFeaturedLabel(selectedType, selectedId, videos, moments, photos);
+        alert('메인 걸기가 저장되었어요!');
+      } catch (error) {
+        console.error('Error saving featured content:', error);
+        alert('저장 중 오류가 발생했어요.');
+      }
     }
   };
 
-  const handleClear = () => {
-    featuredContent.type = null;
-    featuredContent.id = null;
-    setSelectedType('');
-    setSelectedId('');
-    alert('메인 걸기가 해제되었어요!');
+  const handleClear = async () => {
+    try {
+      await setFeaturedContent(null, null);
+      setSelectedType('');
+      setSelectedId('');
+      setCurrentFeatured('없음');
+      alert('메인 걸기가 해제되었어요!');
+    } catch (error) {
+      console.error('Error clearing featured content:', error);
+      alert('해제 중 오류가 발생했어요.');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="admin-page">
+        <div className="loading">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page">
@@ -101,14 +168,15 @@ export default function Dashboard() {
       <div className="admin-section">
         <h2>⭐ 홈 메인 걸기</h2>
         <p className="admin-hint" style={{ marginBottom: '1rem' }}>
-          현재: <strong>{getCurrentFeatured()}</strong>
+          현재: <strong>{currentFeatured}</strong>
         </p>
         
         <div className="admin-form" style={{ maxWidth: '100%' }}>
           <div className="featured-select-row">
             <div className="form-group">
-              <label>종류</label>
+              <label htmlFor="featured-type">종류</label>
               <select 
+                id="featured-type"
                 value={selectedType} 
                 onChange={(e) => {
                   setSelectedType(e.target.value);
@@ -125,8 +193,9 @@ export default function Dashboard() {
 
             {selectedType && (
               <div className="form-group">
-                <label>항목</label>
+                <label htmlFor="featured-item">항목</label>
                 <select 
+                  id="featured-item"
                   value={selectedId} 
                   onChange={(e) => setSelectedId(e.target.value)}
                   className="form-select"

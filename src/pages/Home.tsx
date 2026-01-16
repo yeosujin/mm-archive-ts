@@ -1,30 +1,48 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { videos, photos, moments, featuredContent } from '../data/mockData';
+import { getVideos, getPhotos, getMoments, getFeaturedContent } from '../lib/database';
+import type { Video, Photo, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import TweetEmbed from '../components/TweetEmbed';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [featuredItem, setFeaturedItem] = useState<{ type: string; item: Video | Photo | Moment } | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // 메인 걸기된 컨텐츠 찾기 (에피소드 제외 - DM 형식이라 메인 걸기 X)
-  const getFeaturedItem = () => {
-    if (!featuredContent.type || !featuredContent.id) return null;
-    
-    switch (featuredContent.type) {
-      case 'video':
-        return { type: 'video', item: videos.find(v => v.id === featuredContent.id) };
-      case 'photo':
-        return { type: 'photo', item: photos.find(p => p.id === featuredContent.id) };
-      case 'moment':
-        return { type: 'moment', item: moments.find(m => m.id === featuredContent.id) };
-      default:
-        return null;
+  useEffect(() => {
+    loadFeaturedContent();
+  }, []);
+
+  const loadFeaturedContent = async () => {
+    try {
+      const featured = await getFeaturedContent();
+      
+      if (featured.type && featured.content_id) {
+        let item: Video | Photo | Moment | undefined;
+        
+        if (featured.type === 'video') {
+          const videos = await getVideos();
+          item = videos.find(v => v.id === featured.content_id);
+        } else if (featured.type === 'photo') {
+          const photos = await getPhotos();
+          item = photos.find(p => p.id === featured.content_id);
+        } else if (featured.type === 'moment') {
+          const moments = await getMoments();
+          item = moments.find(m => m.id === featured.content_id);
+        }
+        
+        if (item) {
+          setFeaturedItem({ type: featured.type, item });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading featured content:', error);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const featured = getFeaturedItem();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,23 +93,23 @@ export default function Home() {
       </div>
 
       {/* 메인 걸기 (하나만) */}
-      {featured?.item && (
+      {!loading && featuredItem?.item && (
         <div className="featured-section">
-          {featured.type === 'video' && (
+          {featuredItem.type === 'video' && (
             <div className="featured-content">
-              <VideoEmbed url={(featured.item as typeof videos[0]).url} title={featured.item.title} />
+              <VideoEmbed url={(featuredItem.item as Video).url} title={featuredItem.item.title} />
             </div>
           )}
           
-          {featured.type === 'photo' && (
+          {featuredItem.type === 'photo' && (
             <Link to="/photos" className="featured-content featured-photo">
-              <img src={(featured.item as typeof photos[0]).imageUrl} alt={featured.item.title} />
+              <img src={(featuredItem.item as Photo).image_url} alt={featuredItem.item.title} />
             </Link>
           )}
           
-          {featured.type === 'moment' && (
+          {featuredItem.type === 'moment' && (
             <div className="featured-content">
-              <TweetEmbed tweetUrl={(featured.item as typeof moments[0]).tweetUrl} />
+              <TweetEmbed tweetUrl={(featuredItem.item as Moment).tweet_url} />
             </div>
           )}
         </div>
