@@ -111,7 +111,7 @@ export default function AdminEpisodes() {
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="오늘 ㅇㅇ이랑 뭐했냐면요 (선택)"
+              placeholder="뭐했냐면요 (선택)"
             />
           </div>
           

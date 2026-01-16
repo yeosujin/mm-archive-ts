@@ -6,6 +6,7 @@ import TweetEmbed from '../components/TweetEmbed';
 export default function Moments() {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,11 +24,19 @@ export default function Moments() {
     }
   };
 
+  // 검색 필터링 (제목, 날짜)
+  const filteredMoments = searchQuery
+    ? moments.filter(moment => 
+        moment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        moment.date.includes(searchQuery)
+      )
+    : moments;
+
   // 날짜별로 그룹화
   const groupedMoments = (() => {
     const groups: Record<string, Moment[]> = {};
     
-    moments.forEach((item) => {
+    filteredMoments.forEach((item) => {
       if (!groups[item.date]) {
         groups[item.date] = [];
       }
@@ -53,7 +62,18 @@ export default function Moments() {
     <div className="page moments-page">
       <div className="page-header">
         <h1>모먼트</h1>
-        <p className="page-desc">좋았던 순간들 ✨</p>
+        <p className="page-desc">둘만의 순간</p>
+        <div className="page-controls">
+          <div className="search-box">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="제목 또는 날짜로 검색... (예: 2025-01-01)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
       {moments.length === 0 ? (

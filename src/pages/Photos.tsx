@@ -24,7 +24,8 @@ export default function Photos() {
   };
 
   const filteredPhotos = photos.filter((photo) =>
-    photo.title.toLowerCase().includes(searchTerm.toLowerCase())
+    photo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    photo.date.includes(searchTerm)
   );
 
   const handlePhotoClick = (photo: Photo) => {
@@ -47,13 +48,13 @@ export default function Photos() {
     <div className="page photos-page">
       <div className="page-header">
         <h1>사진</h1>
-        <p className="page-desc">포토카드, 화보, 출근길 등</p>
+        <p className="page-desc">시선</p>
         
         <div className="page-controls">
           <div className="search-box">
             <input
               type="text"
-              placeholder="제목으로 검색..."
+              placeholder="제목 또는 날짜로 검색... (예: 2025-01-01)"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"

@@ -22,11 +22,12 @@ export default function Articles() {
     }
   };
 
-  // 검색 필터링
+  // 검색 필터링 (제목, 글쓴이, 태그, 날짜)
   const filteredArticles = articles.filter((article) =>
     article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     article.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    article.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    article.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    article.date.includes(searchTerm)
   );
 
   if (loading) {
@@ -46,7 +47,7 @@ export default function Articles() {
           <div className="search-box">
             <input
               type="text"
-              placeholder="제목, 글쓴이, 태그로 검색..."
+              placeholder="제목, 글쓴이, 태그, 날짜로 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"

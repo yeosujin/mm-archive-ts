@@ -5,6 +5,7 @@ import type { Episode } from '../lib/database';
 export default function Episodes() {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [expandedEpisode, setExpandedEpisode] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,6 +23,16 @@ export default function Episodes() {
     }
   };
 
+  // 검색 필터링 (날짜, 메시지 내용)
+  const filteredEpisodes = searchQuery
+    ? episodes.filter(episode => 
+        episode.date.includes(searchQuery) ||
+        episode.messages.some(msg => 
+          msg.type === 'text' && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      )
+    : episodes;
+
   const toggleEpisode = (episodeId: string) => {
     setExpandedEpisode(expandedEpisode === episodeId ? null : episodeId);
   };
@@ -38,16 +49,27 @@ export default function Episodes() {
     <div className="page episodes-page">
       <div className="page-header">
         <h1>에피소드</h1>
-        <p className="page-desc">오늘 ㅇㅇ이랑 뭐했냐면요 💬</p>
+        <p className="page-desc">뭐했냐면요 💬</p>
+        <div className="page-controls">
+          <div className="search-box">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="날짜 또는 내용으로 검색... (예: 2025-01-01)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
-      {episodes.length === 0 ? (
+      {filteredEpisodes.length === 0 ? (
         <div className="empty-state">
-          <p>아직 에피소드가 없어요 😢</p>
+          <p>{searchQuery ? '검색 결과가 없어요 😢' : '아직 에피소드가 없어요 😢'}</p>
         </div>
       ) : (
         <div className="dm-timeline">
-          {episodes.map((episode) => (
+          {filteredEpisodes.map((episode) => (
             <div key={episode.id} className="dm-thread">
               <button 
                 className="dm-thread-header"

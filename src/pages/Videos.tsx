@@ -38,10 +38,11 @@ export default function Videos() {
     }
   };
   
-  // 검색 필터링
+  // 검색 필터링 (제목, 날짜)
   const filteredVideos = searchQuery
     ? videos.filter(video => 
-        video.title.toLowerCase().includes(searchQuery.toLowerCase())
+        video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        video.date.includes(searchQuery)
       )
     : videos;
 
@@ -83,13 +84,13 @@ export default function Videos() {
     <div className="page videos-page">
       <div className="page-header">
         <h1>영상</h1>
-        <p className="page-desc">공식 영상 & 모먼트</p>
+        <p className="page-desc">영상 콘텐츠</p>
         <div className="page-controls">
           <div className="search-box">
             <input
               type="text"
               className="search-input"
-              placeholder="영상 검색..."
+              placeholder="제목 또는 날짜로 검색... (예: 2025-01-01)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
