@@ -5,6 +5,7 @@ export default function Layout() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -12,18 +13,24 @@ export default function Layout() {
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setShowSearch(false);
+      setShowMobileMenu(false);
     }
+  };
+
+  const handleNavClick = () => {
+    setShowMobileMenu(false);
   };
 
   return (
     <div className={`app ${isDarkMode ? 'dark' : 'light'}`}>
       <header className="header">
         <div className="header-content">
-          <NavLink to="/" className="logo">
+          <NavLink to="/" className="logo" onClick={handleNavClick}>
             Archive
           </NavLink>
           
-          <nav className="nav">
+          {/* Desktop Navigation */}
+          <nav className="nav desktop-nav">
             <NavLink 
               to="/videos" 
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
@@ -79,6 +86,15 @@ export default function Layout() {
               {isDarkMode ? '☀️' : '🌙'}
             </button>
 
+            {/* Mobile Menu Toggle */}
+            <button 
+              className="mobile-menu-toggle"
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              aria-label="메뉴"
+            >
+              {showMobileMenu ? '✕' : '☰'}
+            </button>
+
             {showSearch && (
               <form onSubmit={handleSearch} className="header-search">
                 <input
@@ -96,6 +112,54 @@ export default function Layout() {
             )}
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {showMobileMenu && (
+          <nav className="mobile-nav">
+            <NavLink 
+              to="/videos" 
+              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              📹 영상
+            </NavLink>
+            <NavLink 
+              to="/moments" 
+              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              ✨ 모먼트
+            </NavLink>
+            <NavLink 
+              to="/photos" 
+              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              📷 사진
+            </NavLink>
+            <NavLink 
+              to="/episodes" 
+              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              💬 에피소드
+            </NavLink>
+            <NavLink 
+              to="/articles" 
+              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              📝 글
+            </NavLink>
+            <NavLink 
+              to="/calendar" 
+              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              📅 캘린더
+            </NavLink>
+          </nav>
+        )}
       </header>
 
       <main className="main">
@@ -103,7 +167,7 @@ export default function Layout() {
       </main>
 
       <footer className="footer">
-        <p>© 2024 Archive. Made with I</p>
+        <p>© 2024 Archive. Made with 💙</p>
       </footer>
     </div>
   );
