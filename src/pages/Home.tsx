@@ -55,9 +55,9 @@ export default function Home() {
     <div className="page home-page">
       <div className="hero">
         <h1 className="hero-title">
-          <span className="gradient-text">Archive</span>
+          <span className="gradient-text">mmemory</span>
         </h1>
-        <p className="hero-subtitle">모아두는 곳</p>
+        <p className="hero-subtitle">우리의 기억을 모아두는 곳</p>
         
         <form onSubmit={handleSearch} className="home-search">
           <input

@@ -26,7 +26,7 @@ export default function Layout() {
       <header className="header">
         <div className="header-content">
           <NavLink to="/" className="logo" onClick={handleNavClick}>
-            Archive
+            mmemory
           </NavLink>
           
           {/* Desktop Navigation */}
@@ -167,7 +167,7 @@ export default function Layout() {
       </main>
 
       <footer className="footer">
-        <p>© 2024 Archive. Made with 💙</p>
+        <p>© 2025 mmemory. Made with 💙</p>
       </footer>
     </div>
   );
