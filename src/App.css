@@ -1424,6 +1424,72 @@
   word-break: break-all;
 }
 
+/* ===== Twitter Video Embed ===== */
+.twitter-video-embed {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.twitter-video-embed video {
+  width: 100%;
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.twitter-video-embed .video-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.twitter-video-embed.error {
+  padding: 2rem;
+  text-align: center;
+  background: var(--bg-card);
+  border-radius: 12px;
+  color: var(--text-secondary);
+}
+
+.twitter-video-embed.error p {
+  margin-bottom: 0.5rem;
+}
+
+.twitter-video-embed.error a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.twitter-video-embed.error a:hover {
+  text-decoration: underline;
+}
+
+.twitter-video-embed .video-source-link {
+  display: block;
+  text-align: center;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.twitter-video-embed .video-source-link:hover {
+  color: var(--accent);
+}
+
+.moment-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
 /* ===== Video Embed ===== */
 .video-embed {
   width: 100%;

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getVideos, getMomentsByVideoId } from '../lib/database';
 import type { Video, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
-import TweetEmbed from '../components/TweetEmbed';
+import TwitterVideoEmbed from '../components/TwitterVideoEmbed';
 
 export default function Videos() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -154,7 +154,8 @@ export default function Videos() {
                                 <div className="video-moments-grid">
                                   {moments.map((moment) => (
                                     <div key={moment.id} className="moment-embed-item">
-                                      <TweetEmbed tweetUrl={moment.tweet_url} />
+                                      <h4 className="moment-title">{moment.title}</h4>
+                                      <TwitterVideoEmbed tweetUrl={moment.tweet_url} />
                                     </div>
                                   ))}
                                 </div>

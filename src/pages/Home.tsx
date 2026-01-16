@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getVideos, getPhotos, getMoments, getFeaturedContent } from '../lib/database';
 import type { Video, Photo, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
-import TweetEmbed from '../components/TweetEmbed';
+import TwitterVideoEmbed from '../components/TwitterVideoEmbed';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,7 +57,7 @@ export default function Home() {
         <h1 className="hero-title">
           <span className="gradient-text">mmemory</span>
         </h1>
-        <p className="hero-subtitle">우리의 기억을 모아두는 곳</p>
+        <p className="hero-subtitle">지나간 시간을 모아두는 곳</p>
         
         <form onSubmit={handleSearch} className="home-search">
           <input
@@ -109,7 +109,7 @@ export default function Home() {
           
           {featuredItem.type === 'moment' && (
             <div className="featured-content">
-              <TweetEmbed tweetUrl={(featuredItem.item as Moment).tweet_url} />
+              <TwitterVideoEmbed tweetUrl={(featuredItem.item as Moment).tweet_url} />
             </div>
           )}
         </div>
