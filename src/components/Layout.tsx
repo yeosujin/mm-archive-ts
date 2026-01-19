@@ -167,7 +167,7 @@ export default function Layout() {
       </main>
 
       <footer className="footer">
-        <p>© 2025 mmemory. Made with 💙</p>
+        <p>© 2025 mmemory. Made with jam</p>
       </footer>
     </div>
   );

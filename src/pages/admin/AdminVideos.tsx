@@ -30,10 +30,20 @@ function extractYouTubeId(url: string): string | null {
 // YouTube 영상 정보 가져오기
 async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date: string } | null> {
   try {
+    console.log('Fetching YouTube info for:', videoId);
+    console.log('API Key exists:', !!YOUTUBE_API_KEY);
+    
     const response = await fetch(
       `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`
     );
     const data = await response.json();
+    
+    console.log('YouTube API response:', data);
+    
+    if (data.error) {
+      console.error('YouTube API error:', data.error);
+      return null;
+    }
     
     if (data.items && data.items.length > 0) {
       const snippet = data.items[0].snippet;
