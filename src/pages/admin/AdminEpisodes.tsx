@@ -148,18 +148,15 @@ export default function AdminEpisodes() {
     }
     
     try {
-      const episodeData: any = {
+      const episodeData: Omit<Episode, 'id'> = {
         date: commentData.date,
         sender: commentData.sender,
         episode_type: 'comment',
         comment_text: commentData.comment_text,
+        messages: [],
+        linked_content_type: commentData.linked_content_id ? commentData.linked_content_type : undefined,
+        linked_content_id: commentData.linked_content_id || undefined,
       };
-      
-      // 연결 콘텐츠가 선택된 경우에만 추가
-      if (commentData.linked_content_id) {
-        episodeData.linked_content_type = commentData.linked_content_type;
-        episodeData.linked_content_id = commentData.linked_content_id;
-      }
       
       if (editingId) {
         await updateEpisode(editingId, episodeData);

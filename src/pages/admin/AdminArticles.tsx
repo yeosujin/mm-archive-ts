@@ -51,7 +51,7 @@ export default function AdminArticles() {
 
       if (data) {
         // 따옴표나 불필요한 문자 제거
-        const cleanString = (str: string) => str?.replace(/["']/g, '').trim() || '';
+        const cleanString = (str: string) => str?.replaceAll(/["']/g, '').trim() || '';
         // 제목에서 맨 뒤의 " : 채널명" 또는 " - 채널명" 제거 (채널명이 짧을 때만)
         const cleanTitle = (str: string) => {
           const cleaned = cleanString(str);
