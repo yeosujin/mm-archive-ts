@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getPosts, createPost, updatePost, deletePost } from '../../lib/database';
 import type { Post } from '../../lib/database';
-import { detectPlatform } from '../../components/PostEmbed';
-import PlatformIcon, { getPlatformName } from '../../components/PlatformIcon';
+import { detectPlatform } from '../../lib/platformUtils';
+import PlatformIcon from '../../components/PlatformIcon';
+import { getPlatformName } from '../../lib/platformUtils';
 
 export default function AdminPosts() {
   const [posts, setPosts] = useState<Post[]>([]);

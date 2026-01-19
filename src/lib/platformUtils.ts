@@ -30,3 +30,17 @@ export function detectVideoPlatform(url: string): 'youtube' | 'twitter' | 'wever
   
   return 'other';
 }
+
+// URL에서 플랫폼 자동 감지
+export function detectPlatform(url: string): 'twitter' | 'instagram' | 'weverse' | 'other' {
+  if (url.includes('twitter.com') || url.includes('x.com')) {
+    return 'twitter';
+  }
+  if (url.includes('instagram.com')) {
+    return 'instagram';
+  }
+  if (url.includes('weverse.io')) {
+    return 'weverse';
+  }
+  return 'other';
+}

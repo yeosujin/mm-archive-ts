@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import PlatformIcon, { getPlatformName } from './PlatformIcon';
+import PlatformIcon from './PlatformIcon';
+import { getPlatformName } from '../lib/platformUtils';
 
 interface Props {
   url: string;
@@ -27,19 +28,7 @@ declare global {
   }
 }
 
-// URL에서 플랫폼 자동 감지
-export function detectPlatform(url: string): 'twitter' | 'instagram' | 'weverse' | 'other' {
-  if (url.includes('twitter.com') || url.includes('x.com')) {
-    return 'twitter';
-  }
-  if (url.includes('instagram.com')) {
-    return 'instagram';
-  }
-  if (url.includes('weverse.io')) {
-    return 'weverse';
-  }
-  return 'other';
-}
+
 
 // 트윗 URL에서 ID 추출
 function getTweetId(url: string): string | null {

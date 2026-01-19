@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { getPosts } from '../lib/database';
 import type { Post } from '../lib/database';
 import PostEmbed from '../components/PostEmbed';
-import PlatformIcon, { getPlatformName } from '../components/PlatformIcon';
+import PlatformIcon from '../components/PlatformIcon';
+import { getPlatformName } from '../lib/platformUtils';
 
 export default function Posts() {
   const [posts, setPosts] = useState<Post[]>([]);
