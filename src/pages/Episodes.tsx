@@ -113,7 +113,7 @@ export default function Episodes() {
     <div className="page episodes-page">
       <div className="page-header">
         <h1>에피소드</h1>
-        <p className="page-desc">케미 모먼트 💬</p>
+        <p className="page-desc">💬</p>
         <div className="page-controls">
           <div className="search-box">
             <input
@@ -143,7 +143,7 @@ export default function Episodes() {
                 <button 
                   className="dm-thread-header"
                   onClick={() => toggleEpisode(episode.id)}
-                >
+            >
                   <span className="dm-type-badge">
                     {isComment ? '💬' : '📱'}
                   </span>
@@ -183,11 +183,11 @@ export default function Episodes() {
                           <div className="dm-bubble-row">
                             <div className={`dm-bubble ${bubbleClass} dm-bubble-last`}>
                               <p className="dm-text">{episode.comment_text}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                </div>
+              </div>
+              </div>
+        </div>
+      )}
 
                     {/* DM 타입 */}
                     {!isComment && episode.messages?.map((msg, idx) => {
@@ -222,8 +222,8 @@ export default function Episodes() {
                             {isLastInGroup && msg.time && (
                               <span className="dm-time">{msg.time}</span>
                             )}
-                          </div>
-                        </div>
+            </div>
+          </div>
                       );
                     })}
                   </div>

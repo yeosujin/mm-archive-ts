@@ -3,6 +3,7 @@ import { getVideos, getMomentsByVideoId } from '../lib/database';
 import type { Video, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import TwitterVideoEmbed from '../components/TwitterVideoEmbed';
+import PlatformIcon, { detectVideoPlatform } from '../components/PlatformIcon';
 
 export default function Videos() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -116,25 +117,27 @@ export default function Videos() {
                   const moments = videoMoments[video.id] || [];
                   
                   return (
-                    <div key={video.id} className="thread-video-item">
+                  <div key={video.id} className="thread-video-item">
                       <button 
-                        className="thread-item-header"
-                        onClick={() => toggleVideo(video.id)}
-                      >
-                        <span className="item-icon">📹</span>
+                      className="thread-item-header"
+                      onClick={() => toggleVideo(video.id)}
+                    >
+                        <span className="item-icon">
+                          <PlatformIcon platform={detectVideoPlatform(video.url)} size={18} />
+                        </span>
                         <span className="item-title">
                           {video.title}
                           {moments.length > 0 && (
                             <span className="moment-badge">✨ {moments.length}</span>
                           )}
                         </span>
-                        <span className={`expand-arrow ${expandedVideo === video.id ? 'open' : ''}`}>
-                          ▼
-                        </span>
+                      <span className={`expand-arrow ${expandedVideo === video.id ? 'open' : ''}`}>
+                        ▼
+                      </span>
                       </button>
-                      
-                      {expandedVideo === video.id && (
-                        <div className="thread-item-content">
+                    
+                    {expandedVideo === video.id && (
+                      <div className="thread-item-content">
                           <VideoEmbed url={video.url} title={video.title} icon={video.icon} />
                           
                           {moments.length > 0 && (
@@ -142,26 +145,26 @@ export default function Videos() {
                               <button 
                                 className="video-moments-header"
                                 onClick={() => toggleMoments(video.id)}
-                              >
-                                <span className="item-icon">✨</span>
+                    >
+                      <span className="item-icon">✨</span>
                                 <span className="item-title">모먼트 ({moments.length})</span>
                                 <span className={`expand-arrow ${expandedMoments === video.id ? 'open' : ''}`}>
-                                  ▼
-                                </span>
+                        ▼
+                      </span>
                               </button>
-                              
+
                               {expandedMoments === video.id && (
                                 <div className="video-moments-grid">
                                   {moments.map((moment) => (
-                                    <div key={moment.id} className="moment-embed-item">
+                          <div key={moment.id} className="moment-embed-item">
                                       <h4 className="moment-title">{moment.title}</h4>
                                       <TwitterVideoEmbed tweetUrl={moment.tweet_url} />
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                         </div>
                       )}
                     </div>

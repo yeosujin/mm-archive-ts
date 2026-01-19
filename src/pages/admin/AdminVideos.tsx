@@ -134,9 +134,9 @@ export default function AdminVideos() {
         setEditingId(null);
       } else {
         await createVideo({
-          title: formData.title,
-          url: formData.url,
-          date: formData.date,
+      title: formData.title,
+      url: formData.url,
+      date: formData.date,
           ...(isWeverseUrl && { icon: formData.icon }),
         });
         alert('영상이 추가되었어요!');
@@ -246,7 +246,7 @@ export default function AdminVideos() {
               required
             />
           </div>
-
+          
           {isWeverseUrl && (
             <div className="form-group">
               <label htmlFor="video-icon">아이콘 선택</label>
@@ -265,13 +265,13 @@ export default function AdminVideos() {
           )}
           
           <div className="form-buttons">
-            <button type="submit" className="admin-submit-btn">
+          <button type="submit" className="admin-submit-btn">
               {editingId ? '수정하기' : '추가하기'}
             </button>
             {editingId && (
               <button type="button" className="admin-clear-btn" onClick={handleCancelEdit}>
                 취소
-              </button>
+          </button>
             )}
           </div>
         </form>

@@ -70,7 +70,7 @@ export default function Home() {
           />
           <button type="submit" className="home-search-btn">🔍</button>
         </form>
-
+        
         <div className="hero-links">
           <Link to="/videos" className="hero-btn primary">
             📹 영상
@@ -103,7 +103,7 @@ export default function Home() {
                 title={featuredItem.item.title} 
                 icon={(featuredItem.item as Video).icon}
               />
-            </div>
+        </div>
           )}
           
           {featuredItem.type === 'post' && (
@@ -112,13 +112,13 @@ export default function Home() {
                 url={(featuredItem.item as Post).url} 
                 platform={(featuredItem.item as Post).platform}
               />
-            </div>
+        </div>
           )}
           
           {featuredItem.type === 'moment' && (
             <div className="featured-content">
               <TwitterVideoEmbed tweetUrl={(featuredItem.item as Moment).tweet_url} />
-            </div>
+        </div>
           )}
         </div>
       )}

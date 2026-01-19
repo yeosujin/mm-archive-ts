@@ -1,11 +1,25 @@
 interface Props {
-  platform: 'twitter' | 'instagram' | 'weverse' | 'other';
+  platform: 'twitter' | 'instagram' | 'weverse' | 'youtube' | 'other';
   size?: number;
   className?: string;
 }
 
 export default function PlatformIcon({ platform, size = 24, className = '' }: Props) {
   const style = { width: size, height: size };
+
+  // YouTube 로고
+  if (platform === 'youtube') {
+    return (
+      <svg 
+        viewBox="0 0 24 24" 
+        style={style} 
+        className={`platform-icon youtube-icon ${className}`}
+        fill="currentColor"
+      >
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+      </svg>
+    );
+  }
 
   // X (Twitter) 로고
   if (platform === 'twitter') {
@@ -35,7 +49,7 @@ export default function PlatformIcon({ platform, size = 24, className = '' }: Pr
     );
   }
 
-  // Weverse 로고 (W 심볼)
+  // Weverse 로고
   if (platform === 'weverse') {
     return (
       <svg 
@@ -44,7 +58,7 @@ export default function PlatformIcon({ platform, size = 24, className = '' }: Pr
         className={`platform-icon weverse-icon ${className}`}
         fill="currentColor"
       >
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 14.5L12 10l-3.5 6.5h-2L12 6l5.5 10.5h-2z" />
+        <path d="M3.5 6L7.5 18H9.5L12 10.5L14.5 18H16.5L20.5 6H18L15.5 14.5L13 6H11L8.5 14.5L6 6H3.5Z" />
       </svg>
     );
   }
@@ -68,9 +82,34 @@ export default function PlatformIcon({ platform, size = 24, className = '' }: Pr
 // 플랫폼 이름
 export function getPlatformName(platform: string): string {
   switch (platform) {
+    case 'youtube': return 'YouTube';
     case 'twitter': return 'X';
     case 'instagram': return 'Instagram';
     case 'weverse': return 'Weverse';
     default: return '링크';
   }
+}
+
+// URL에서 비디오 플랫폼 감지
+export function detectVideoPlatform(url: string): 'youtube' | 'twitter' | 'weverse' | 'other' {
+  if (!url) return 'other';
+  
+  const lowerUrl = url.toLowerCase();
+  
+  // YouTube (일반 영상, Shorts 포함)
+  if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
+    return 'youtube';
+  }
+  
+  // Weverse (weverse.io, weverseweb 등)
+  if (lowerUrl.includes('weverse')) {
+    return 'weverse';
+  }
+  
+  // X/Twitter
+  if (lowerUrl.includes('twitter.com') || lowerUrl.includes('x.com')) {
+    return 'twitter';
+  }
+  
+  return 'other';
 }

@@ -99,7 +99,7 @@ export default function VideoEmbed({ url, title, icon, className = '' }: Props) 
         </div>
         <a href={url} target="_blank" rel="noopener noreferrer" className="external-btn">
           보러가기 →
-        </a>
+      </a>
       </div>
     </div>
   );

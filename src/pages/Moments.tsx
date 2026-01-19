@@ -98,12 +98,12 @@ export default function Moments() {
               
               {expandedDate === date && (
                 <div className="moment-list">
-                  {dateMoments.map((moment) => (
+                {dateMoments.map((moment) => (
                     <div key={moment.id} className="moment-item">
                       <TwitterVideoEmbed tweetUrl={moment.tweet_url} />
-                    </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+              </div>
               )}
             </div>
           ))}

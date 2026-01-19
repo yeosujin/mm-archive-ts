@@ -48,9 +48,9 @@ export default function AdminMoments() {
         setEditingId(null);
       } else {
         await createMoment({
-          title: formData.title,
+      title: formData.title,
           tweet_url: formData.tweet_url,
-          date: formData.date,
+      date: formData.date,
           video_id: formData.video_id || undefined,
         });
         alert('모먼트가 추가되었어요!');
@@ -147,7 +147,7 @@ export default function AdminMoments() {
             />
             <span className="form-hint">트위터(X)에 영상을 올린 후 트윗 URL을 복사해서 붙여넣으세요</span>
           </div>
-
+          
           <div className="form-group">
             <label htmlFor="moment-video">연결할 영상</label>
             <select
@@ -179,13 +179,13 @@ export default function AdminMoments() {
           </div>
           
           <div className="form-buttons">
-            <button type="submit" className="admin-submit-btn">
+          <button type="submit" className="admin-submit-btn">
               {editingId ? '수정하기' : '추가하기'}
             </button>
             {editingId && (
               <button type="button" className="admin-clear-btn" onClick={handleCancelEdit}>
                 취소
-              </button>
+          </button>
             )}
           </div>
         </form>

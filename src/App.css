@@ -2660,6 +2660,10 @@
   vertical-align: middle;
 }
 
+.platform-icon.youtube-icon {
+  color: #FF0000;
+}
+
 .platform-icon.x-icon {
   color: var(--text-primary);
 }
@@ -2669,7 +2673,7 @@
 }
 
 .platform-icon.weverse-icon {
-  color: #00C73C;
+  color: var(--text-primary);
 }
 
 .platform-icon.other-icon {
