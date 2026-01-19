@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { getVideos, getMoments, getPhotos, getEpisodes, getArticles } from '../lib/database';
-import type { Video, Moment, Photo, Episode, Article } from '../lib/database';
+import { getVideos, getMoments, getPosts, getEpisodes, getArticles } from '../lib/database';
+import type { Video, Moment, Post, Episode, Article } from '../lib/database';
 
 export default function Search() {
   const [searchParams] = useSearchParams();
@@ -9,7 +9,7 @@ export default function Search() {
   
   const [videos, setVideos] = useState<Video[]>([]);
   const [moments, setMoments] = useState<Moment[]>([]);
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,16 +20,16 @@ export default function Search() {
 
   const loadAllData = async () => {
     try {
-      const [videosData, momentsData, photosData, episodesData, articlesData] = await Promise.all([
+      const [videosData, momentsData, postsData, episodesData, articlesData] = await Promise.all([
         getVideos(),
         getMoments(),
-        getPhotos(),
+        getPosts(),
         getEpisodes(),
         getArticles()
       ]);
       setVideos(videosData);
       setMoments(momentsData);
-      setPhotos(photosData);
+      setPosts(postsData);
       setEpisodes(episodesData);
       setArticles(articlesData);
     } catch (error) {
@@ -43,26 +43,27 @@ export default function Search() {
 
   // 각 카테고리에서 검색
   const matchedVideos = videos.filter(v => 
-    v.title.toLowerCase().includes(searchLower)
+    v.title.toLowerCase().includes(searchLower) || v.date.includes(query)
   );
   const matchedMoments = moments.filter(m => 
-    m.title.toLowerCase().includes(searchLower)
+    m.title.toLowerCase().includes(searchLower) || m.date.includes(query)
   );
-  const matchedPhotos = photos.filter(p => 
-    p.title.toLowerCase().includes(searchLower)
+  const matchedPosts = posts.filter(p => 
+    p.title.toLowerCase().includes(searchLower) || p.date.includes(query)
   );
   const matchedEpisodes = episodes.filter(e => 
-    e.title?.toLowerCase().includes(searchLower)
+    e.title?.toLowerCase().includes(searchLower) || e.date.includes(query)
   );
   const matchedArticles = articles.filter(a => 
     a.title.toLowerCase().includes(searchLower) ||
-    a.tags.some(tag => tag.toLowerCase().includes(searchLower))
+    a.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
+    a.date.includes(query)
   );
 
   const totalResults = 
     matchedVideos.length + 
     matchedMoments.length + 
-    matchedPhotos.length + 
+    matchedPosts.length + 
     matchedEpisodes.length + 
     matchedArticles.length;
 
@@ -120,15 +121,15 @@ export default function Search() {
             </div>
           )}
 
-          {/* 사진 결과 */}
-          {matchedPhotos.length > 0 && (
+          {/* 포스트 결과 */}
+          {matchedPosts.length > 0 && (
             <div className="search-section">
-              <h2>📷 사진 ({matchedPhotos.length})</h2>
+              <h2>📱 포스트 ({matchedPosts.length})</h2>
               <div className="search-list">
-                {matchedPhotos.map(photo => (
-                  <Link to="/photos" key={photo.id} className="search-item">
-                    <span className="search-item-title">{photo.title}</span>
-                    <span className="search-item-date">{photo.date}</span>
+                {matchedPosts.map(post => (
+                  <Link to="/posts" key={post.id} className="search-item">
+                    <span className="search-item-title">{post.title || post.platform}</span>
+                    <span className="search-item-date">{post.date}</span>
                   </Link>
                 ))}
               </div>

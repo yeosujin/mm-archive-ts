@@ -6,9 +6,19 @@
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>mmemory</title>
+    
+    <!-- 외부 임베드 스크립트 미리 연결 -->
+    <link rel="preconnect" href="https://platform.twitter.com" />
+    <link rel="preconnect" href="https://syndication.twitter.com" />
+    <link rel="preconnect" href="https://www.instagram.com" />
+    <link rel="dns-prefetch" href="https://platform.twitter.com" />
+    <link rel="dns-prefetch" href="https://pbs.twimg.com" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Twitter 위젯 미리 로드 -->
+    <script async src="https://platform.twitter.com/widgets.js"></script>
   </body>
 </html>

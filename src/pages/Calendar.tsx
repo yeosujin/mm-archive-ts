@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getVideos, getMoments, getPhotos, getEpisodes, getArticles } from '../lib/database';
-import type { Video, Moment, Photo, Episode, Article } from '../lib/database';
+import { getVideos, getMoments, getPosts, getEpisodes, getArticles } from '../lib/database';
+import type { Video, Moment, Post, Episode, Article } from '../lib/database';
 
 interface ArchiveItem {
     id: string;
-    type: 'video' | 'moment' | 'photo' | 'episode' | 'article';
+    type: 'video' | 'moment' | 'post' | 'episode' | 'article';
     title: string;
     path: string;
 }
@@ -14,7 +14,7 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const TYPE_ICONS: Record<string, string> = {
   video: '📹',
   moment: '✨',
-  photo: '📷',
+  post: '𝕏',
   episode: '💬',
   article: '📝',
 };
@@ -31,10 +31,10 @@ export default function Calendar() {
 
   const loadAllData = async () => {
     try {
-      const [videos, moments, photos, episodes, articles] = await Promise.all([
+      const [videos, moments, posts, episodes, articles] = await Promise.all([
         getVideos(),
         getMoments(),
-        getPhotos(),
+        getPosts(),
         getEpisodes(),
         getArticles()
       ]);
@@ -51,9 +51,9 @@ export default function Calendar() {
         archivesByDate[m.date].push({ id: m.id, type: 'moment', title: m.title, path: '/moments' });
       });
 
-      photos.forEach((p: Photo) => {
+      posts.forEach((p: Post) => {
         if (!archivesByDate[p.date]) archivesByDate[p.date] = [];
-        archivesByDate[p.date].push({ id: p.id, type: 'photo', title: p.title, path: '/photos' });
+        archivesByDate[p.date].push({ id: p.id, type: 'post', title: p.title || p.platform, path: '/posts' });
       });
 
       episodes.forEach((e: Episode) => {

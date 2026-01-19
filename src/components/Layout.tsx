@@ -44,10 +44,10 @@ export default function Layout() {
               모먼트
             </NavLink>
             <NavLink 
-              to="/photos" 
+              to="/posts" 
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
-              사진
+              포스트
             </NavLink>
             <NavLink 
               to="/episodes" 
@@ -131,11 +131,11 @@ export default function Layout() {
               ✨ 모먼트
             </NavLink>
             <NavLink 
-              to="/photos" 
+              to="/posts" 
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              📷 사진
+              📱 포스트
             </NavLink>
             <NavLink 
               to="/episodes" 

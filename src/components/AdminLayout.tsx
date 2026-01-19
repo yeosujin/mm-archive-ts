@@ -30,10 +30,10 @@ export default function AdminLayout() {
               ✨ 모먼트
             </NavLink>
             <NavLink 
-              to="/admin/photos" 
+              to="/admin/posts" 
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
             >
-              📷 사진
+              📱 포스트
             </NavLink>
             <NavLink 
               to="/admin/episodes" 

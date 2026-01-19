@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import Home from '../pages/Home';
 import Videos from '../pages/Videos';
 import Moments from '../pages/Moments';
-import Photos from '../pages/Photos';
+import Posts from '../pages/Posts';
 import Episodes from '../pages/Episodes';
 import Articles from '../pages/Articles';
 import Calendar from '../pages/Calendar';
@@ -14,7 +14,7 @@ import AdminLayout from '../components/AdminLayout';
 import Dashboard from '../pages/admin/Dashboard';
 import AdminVideos from '../pages/admin/AdminVideos';
 import AdminMoments from '../pages/admin/AdminMoments';
-import AdminPhotos from '../pages/admin/AdminPhotos';
+import AdminPosts from '../pages/admin/AdminPosts';
 import AdminEpisodes from '../pages/admin/AdminEpisodes';
 import AdminArticles from '../pages/admin/AdminArticles';
 
@@ -37,8 +37,8 @@ export const router = createBrowserRouter([
         element: <Moments />,
       },
       {
-        path: 'photos',
-        element: <Photos />,
+        path: 'posts',
+        element: <Posts />,
       },
       {
         path: 'search',
@@ -77,8 +77,8 @@ export const router = createBrowserRouter([
         element: <AdminMoments />,
       },
       {
-        path: 'photos',
-        element: <AdminPhotos />,
+        path: 'posts',
+        element: <AdminPosts />,
       },
       {
         path: 'episodes',

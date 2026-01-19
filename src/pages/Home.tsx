@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getVideos, getPhotos, getMoments, getFeaturedContent } from '../lib/database';
-import type { Video, Photo, Moment } from '../lib/database';
+import { getVideos, getPosts, getMoments, getFeaturedContent } from '../lib/database';
+import type { Video, Post, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import TwitterVideoEmbed from '../components/TwitterVideoEmbed';
+import PostEmbed from '../components/PostEmbed';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [featuredItem, setFeaturedItem] = useState<{ type: string; item: Video | Photo | Moment } | null>(null);
+  const [featuredItem, setFeaturedItem] = useState<{ type: string; item: Video | Post | Moment } | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -20,14 +21,14 @@ export default function Home() {
       const featured = await getFeaturedContent();
       
       if (featured.type && featured.content_id) {
-        let item: Video | Photo | Moment | undefined;
+        let item: Video | Post | Moment | undefined;
         
         if (featured.type === 'video') {
           const videos = await getVideos();
           item = videos.find(v => v.id === featured.content_id);
-        } else if (featured.type === 'photo') {
-          const photos = await getPhotos();
-          item = photos.find(p => p.id === featured.content_id);
+        } else if (featured.type === 'post') {
+          const posts = await getPosts();
+          item = posts.find(p => p.id === featured.content_id);
         } else if (featured.type === 'moment') {
           const moments = await getMoments();
           item = moments.find(m => m.id === featured.content_id);
@@ -77,8 +78,8 @@ export default function Home() {
           <Link to="/moments" className="hero-btn primary">
             ✨ 모먼트
           </Link>
-          <Link to="/photos" className="hero-btn primary">
-            📷 사진
+          <Link to="/posts" className="hero-btn primary">
+            📱 포스트
           </Link>
           <Link to="/episodes" className="hero-btn primary">
             💬 에피소드
@@ -105,10 +106,13 @@ export default function Home() {
             </div>
           )}
           
-          {featuredItem.type === 'photo' && (
-            <Link to="/photos" className="featured-content featured-photo">
-              <img src={(featuredItem.item as Photo).image_url} alt={featuredItem.item.title} />
-            </Link>
+          {featuredItem.type === 'post' && (
+            <div className="featured-content">
+              <PostEmbed 
+                url={(featuredItem.item as Post).url} 
+                platform={(featuredItem.item as Post).platform}
+              />
+            </div>
           )}
           
           {featuredItem.type === 'moment' && (

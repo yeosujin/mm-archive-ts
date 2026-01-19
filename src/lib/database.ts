@@ -17,10 +17,11 @@ export interface Moment {
   video_id?: string;
 }
 
-export interface Photo {
+export interface Post {
   id: string;
   title: string;
-  image_url: string;
+  url: string;
+  platform: 'twitter' | 'instagram' | 'weverse' | 'other';
   date: string;
 }
 
@@ -52,7 +53,7 @@ export interface Article {
 }
 
 export interface FeaturedContent {
-  type: 'video' | 'photo' | 'moment' | 'episode' | null;
+  type: 'video' | 'post' | 'moment' | 'episode' | null;
   content_id: string | null;
 }
 
@@ -164,10 +165,10 @@ export async function deleteMoment(id: string): Promise<void> {
   if (error) throw error;
 }
 
-// ============ Photos ============
-export async function getPhotos(): Promise<Photo[]> {
+// ============ Posts ============
+export async function getPosts(): Promise<Post[]> {
   const { data, error } = await supabase
-    .from('photos')
+    .from('posts')
     .select('*')
     .order('date', { ascending: false });
   
@@ -175,10 +176,10 @@ export async function getPhotos(): Promise<Photo[]> {
   return data || [];
 }
 
-export async function createPhoto(photo: Omit<Photo, 'id'>): Promise<Photo> {
+export async function createPost(post: Omit<Post, 'id'>): Promise<Post> {
   const { data, error } = await supabase
-    .from('photos')
-    .insert(photo)
+    .from('posts')
+    .insert(post)
     .select()
     .single();
   
@@ -186,10 +187,10 @@ export async function createPhoto(photo: Omit<Photo, 'id'>): Promise<Photo> {
   return data;
 }
 
-export async function updatePhoto(id: string, photo: Partial<Omit<Photo, 'id'>>): Promise<Photo> {
+export async function updatePost(id: string, post: Partial<Omit<Post, 'id'>>): Promise<Post> {
   const { data, error } = await supabase
-    .from('photos')
-    .update(photo)
+    .from('posts')
+    .update(post)
     .eq('id', id)
     .select()
     .single();
@@ -198,9 +199,9 @@ export async function updatePhoto(id: string, photo: Partial<Omit<Photo, 'id'>>)
   return data;
 }
 
-export async function deletePhoto(id: string): Promise<void> {
+export async function deletePost(id: string): Promise<void> {
   const { error } = await supabase
-    .from('photos')
+    .from('posts')
     .delete()
     .eq('id', id);
   

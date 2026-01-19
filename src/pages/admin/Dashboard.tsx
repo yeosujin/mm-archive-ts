@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { 
-  getVideos, getMoments, getPhotos, getEpisodes, getArticles,
+  getVideos, getMoments, getPosts, getEpisodes, getArticles,
   getFeaturedContent, setFeaturedContent
 } from '../../lib/database';
-import type { Video, Moment, Photo, Episode, Article } from '../../lib/database';
+import type { Video, Moment, Post, Episode, Article } from '../../lib/database';
 
 export default function Dashboard() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [moments, setMoments] = useState<Moment[]>([]);
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   
@@ -23,10 +23,10 @@ export default function Dashboard() {
 
   const loadAllData = async () => {
     try {
-      const [videosData, momentsData, photosData, episodesData, articlesData, featured] = await Promise.all([
+      const [videosData, momentsData, postsData, episodesData, articlesData, featured] = await Promise.all([
         getVideos(),
         getMoments(),
-        getPhotos(),
+        getPosts(),
         getEpisodes(),
         getArticles(),
         getFeaturedContent()
@@ -34,7 +34,7 @@ export default function Dashboard() {
       
       setVideos(videosData);
       setMoments(momentsData);
-      setPhotos(photosData);
+      setPosts(postsData);
       setEpisodes(episodesData);
       setArticles(articlesData);
       
@@ -42,7 +42,7 @@ export default function Dashboard() {
       if (featured.type && featured.content_id) {
         setSelectedType(featured.type);
         setSelectedId(featured.content_id);
-        updateCurrentFeaturedLabel(featured.type, featured.content_id, videosData, momentsData, photosData);
+        updateCurrentFeaturedLabel(featured.type, featured.content_id, videosData, momentsData, postsData);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -56,9 +56,9 @@ export default function Dashboard() {
     contentId: string, 
     videosData: Video[], 
     momentsData: Moment[], 
-    photosData: Photo[]
+    postsData: Post[]
   ) => {
-    const typeLabel: Record<string, string> = { video: '영상', moment: '모먼트', photo: '사진' };
+    const typeLabel: Record<string, string> = { video: '영상', moment: '모먼트', post: '포스트' };
     let itemTitle = '';
     
     if (type === 'video') {
@@ -67,28 +67,35 @@ export default function Dashboard() {
     } else if (type === 'moment') {
       const item = momentsData.find(m => m.id === contentId);
       itemTitle = item?.title || '';
-    } else if (type === 'photo') {
-      const item = photosData.find(p => p.id === contentId);
-      itemTitle = item?.title || '';
+    } else if (type === 'post') {
+      const item = postsData.find(p => p.id === contentId);
+      itemTitle = item?.title || item?.platform || '';
     }
     
     setCurrentFeatured(itemTitle ? `${typeLabel[type]}: ${itemTitle}` : '없음');
   };
 
-  const getItemsForType = (): (Video | Moment | Photo)[] => {
+  const getItemsForType = (): (Video | Moment | Post)[] => {
     switch (selectedType) {
       case 'video': return videos;
       case 'moment': return moments;
-      case 'photo': return photos;
+      case 'post': return posts;
       default: return [];
     }
+  };
+
+  const getItemTitle = (item: Video | Moment | Post) => {
+    if ('platform' in item) {
+      return item.title || item.platform;
+    }
+    return item.title;
   };
 
   const handleSave = async () => {
     if (selectedType && selectedId) {
       try {
         await setFeaturedContent(selectedType, selectedId);
-        updateCurrentFeaturedLabel(selectedType, selectedId, videos, moments, photos);
+        updateCurrentFeaturedLabel(selectedType, selectedId, videos, moments, posts);
         alert('메인 걸기가 저장되었어요!');
       } catch (error) {
         console.error('Error saving featured content:', error);
@@ -140,15 +147,15 @@ export default function Dashboard() {
         </div>
 
         <div className="admin-stat-card">
-          <span className="admin-stat-icon">📷</span>
+          <span className="admin-stat-icon">📱</span>
           <div className="admin-stat-info">
-            <span className="admin-stat-number">{photos.length}</span>
-            <span className="admin-stat-label">사진</span>
+            <span className="admin-stat-number">{posts.length}</span>
+            <span className="admin-stat-label">포스트</span>
           </div>
         </div>
 
         <div className="admin-stat-card">
-          <span className="admin-stat-icon">🎬</span>
+          <span className="admin-stat-icon">💬</span>
           <div className="admin-stat-info">
             <span className="admin-stat-number">{episodes.length}</span>
             <span className="admin-stat-label">에피소드</span>
@@ -156,7 +163,7 @@ export default function Dashboard() {
         </div>
         
         <div className="admin-stat-card">
-          <span className="admin-stat-icon">📰</span>
+          <span className="admin-stat-icon">📝</span>
           <div className="admin-stat-info">
             <span className="admin-stat-number">{articles.length}</span>
             <span className="admin-stat-label">글</span>
@@ -187,7 +194,7 @@ export default function Dashboard() {
                 <option value="">선택하세요</option>
                 <option value="video">📹 영상</option>
                 <option value="moment">✨ 모먼트</option>
-                <option value="photo">📷 사진</option>
+                <option value="post">📱 포스트</option>
               </select>
             </div>
 
@@ -203,7 +210,7 @@ export default function Dashboard() {
                   <option value="">선택하세요</option>
                   {getItemsForType().map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.title}
+                      {getItemTitle(item)}
                     </option>
                   ))}
                 </select>
@@ -240,8 +247,8 @@ export default function Dashboard() {
           <a href="/admin/moments" className="quick-action-btn">
             ➕ 모먼트
           </a>
-          <a href="/admin/photos" className="quick-action-btn">
-            ➕ 사진
+          <a href="/admin/posts" className="quick-action-btn">
+            ➕ 포스트
           </a>
           <a href="/admin/episodes" className="quick-action-btn">
             ➕ 에피소드
