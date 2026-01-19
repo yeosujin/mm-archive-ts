@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   getEpisodes, createEpisode, updateEpisode, deleteEpisode, 
   getMemberSettings, updateMemberSettings,
   getVideos, getMoments, getPosts
 } from '../../lib/database';
 import type { Episode, MemberSettings, Video, Moment, Post } from '../../lib/database';
+import Tesseract from 'tesseract.js';
 
 interface MessageInput {
   type: 'text' | 'image';
@@ -45,6 +46,11 @@ export default function AdminEpisodes() {
     linked_content_id: '',
     comment_text: '',
   });
+  
+  // OCR 관련 상태
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
+  const ocrInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadData();
@@ -96,6 +102,163 @@ export default function AdminEpisodes() {
     const updated = [...messages];
     updated[index] = { ...updated[index], [field]: value };
     setMessages(updated);
+  };
+
+  // 줄 끝에서 시간 추출 (위버스 DM은 메시지 오른쪽에 시간이 붙음)
+  // 예: "파티를 했었어 19:11" → { content: "파티를 했었어", time: "19:11" }
+  const extractTimeFromEnd = (text: string): { content: string; time: string } => {
+    // 줄 끝의 시간 패턴: HH:MM (공백 포함)
+    const endTimeMatch = text.match(/^(.+?)\s+(\d{1,2}:\d{2})\s*$/);
+    if (endTimeMatch) {
+      return {
+        content: endTimeMatch[1].trim(),
+        time: endTimeMatch[2],
+      };
+    }
+    return { content: text, time: '' };
+  };
+
+  // 시간만 있는 줄인지 체크
+  const isOnlyTime = (text: string): boolean => {
+    const trimmed = text.trim();
+    return /^\d{1,2}:\d{2}$/.test(trimmed);
+  };
+
+  // 닉네임인지 확인 (설정된 멤버 이름과 비교)
+  const isNickname = (text: string): boolean => {
+    const trimmed = text.trim();
+    const name1 = memberSettings.member1_name;
+    const name2 = memberSettings.member2_name;
+    
+    // 정확히 일치
+    if (trimmed === name1 || trimmed === name2) return true;
+    
+    // 이미지 예시: "느슨한 송아지", "강아지보다모카빠" 같은 위버스 닉네임
+    // 닉네임은 보통 짧고, 특수문자가 적음
+    // 설정된 이름이 포함되어 있고 짧은 텍스트면 닉네임으로 간주
+    const lowerTrimmed = trimmed.toLowerCase();
+    const lowerName1 = name1.toLowerCase();
+    const lowerName2 = name2.toLowerCase();
+    
+    if (lowerTrimmed.includes(lowerName1) && trimmed.length <= name1.length + 10) return true;
+    if (lowerTrimmed.includes(lowerName2) && trimmed.length <= name2.length + 10) return true;
+    
+    return false;
+  };
+
+  // OCR로 이미지에서 텍스트 추출
+  const handleOCR = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setOcrLoading(true);
+    setOcrProgress(0);
+
+    try {
+      const result = await Tesseract.recognize(
+        file,
+        'kor+eng', // 한국어 + 영어
+        {
+          logger: (m) => {
+            if (m.status === 'recognizing text') {
+              setOcrProgress(Math.round(m.progress * 100));
+            }
+          }
+        }
+      );
+
+      const extractedText = result.data.text.trim();
+      console.log('OCR Raw Result:', extractedText); // 디버깅용
+      
+      if (extractedText) {
+        const lines = extractedText.split('\n').filter(line => line.trim());
+        
+        // 메시지와 시간 파싱
+        // 하나의 말풍선 = 시간이 나오기 전까지의 내용을 합침
+        const parsedMessages: MessageInput[] = [];
+        let contentBuffer: string[] = []; // 말풍선 내용 버퍼
+        let lastTime = '';
+        
+        const flushBuffer = (time: string) => {
+          if (contentBuffer.length > 0) {
+            const content = contentBuffer.join(' ').trim();
+            if (content.length >= 2) {
+              parsedMessages.push({
+                type: 'text' as const,
+                content: content,
+                time: time,
+              });
+            }
+            contentBuffer = [];
+          }
+        };
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          
+          // 빈 줄 스킵
+          if (!trimmedLine) continue;
+          
+          // 시간만 있는 줄이면 버퍼 플러시 후 시간 저장
+          if (isOnlyTime(trimmedLine)) {
+            flushBuffer(trimmedLine);
+            lastTime = trimmedLine;
+            continue;
+          }
+          
+          // 닉네임이면 버퍼 플러시 (새로운 메시지 그룹 시작)
+          if (isNickname(trimmedLine)) {
+            flushBuffer(lastTime);
+            continue;
+          }
+          
+          // 너무 짧은 텍스트 (1글자)는 스킵 (노이즈일 가능성)
+          if (trimmedLine.length < 2) continue;
+          
+          // 줄 끝에서 시간 추출 시도
+          const { content, time } = extractTimeFromEnd(trimmedLine);
+          
+          if (time) {
+            // 시간이 있는 줄 = 말풍선의 마지막 줄
+            contentBuffer.push(content);
+            flushBuffer(time);
+            lastTime = time;
+          } else {
+            // 시간이 없는 줄 = 말풍선 내용 계속
+            contentBuffer.push(content);
+          }
+        }
+        
+        // 남은 버퍼 처리
+        flushBuffer(lastTime);
+        
+        if (parsedMessages.length > 0) {
+          // 기존 빈 메시지가 있으면 교체, 아니면 추가
+          if (messages.length === 1 && messages[0].content === '') {
+            setMessages(parsedMessages);
+          } else {
+            setMessages([...messages, ...parsedMessages]);
+          }
+          
+          const withTime = parsedMessages.filter(m => m.time).length;
+          alert(`${parsedMessages.length}개의 메시지를 추출했어요!\n(시간 자동입력: ${withTime}개)\n\n⚠️ 인식 결과를 확인하고 필요시 수정해주세요.`);
+        } else {
+          alert('말풍선 내용을 찾을 수 없어요.\n닉네임과 시간을 제외한 텍스트가 없습니다.');
+        }
+      } else {
+        alert('이미지에서 텍스트를 인식하지 못했어요.\n더 선명한 이미지를 시도해보세요.');
+      }
+    } catch (error) {
+      console.error('OCR error:', error);
+      alert('텍스트 인식 중 오류가 발생했어요.');
+    } finally {
+      setOcrLoading(false);
+      setOcrProgress(0);
+      // 파일 입력 초기화
+      if (ocrInputRef.current) {
+        ocrInputRef.current.value = '';
+      }
+    }
   };
 
   // DM 제출
@@ -346,7 +509,7 @@ export default function AdminEpisodes() {
             className={`type-tab ${episodeType === 'dm' ? 'active' : ''}`}
             onClick={() => { setEpisodeType('dm'); handleCancelEdit(); }}
           >
-            📱 팬소통 (DM)
+            📱 DM
           </button>
           <button 
             type="button"
@@ -371,7 +534,7 @@ export default function AdminEpisodes() {
                 <option value="member1">{memberSettings.member1_name}</option>
                 <option value="member2">{memberSettings.member2_name}</option>
               </select>
-              <span className="form-hint">팬들에게 상대 멤버 얘기를 알려준 멤버</span>
+
             </div>
 
             <div className="form-group">
@@ -398,6 +561,37 @@ export default function AdminEpisodes() {
 
             <div className="form-group">
               <label>메시지들</label>
+              
+              {/* OCR 캡쳐 업로드 */}
+              <div className="ocr-upload-section">
+                <input
+                  ref={ocrInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleOCR}
+                  disabled={ocrLoading}
+                  id="ocr-input"
+                  style={{ display: 'none' }}
+                />
+                <button
+                  type="button"
+                  className="ocr-upload-btn"
+                  onClick={() => ocrInputRef.current?.click()}
+                  disabled={ocrLoading}
+                >
+                  {ocrLoading ? (
+                    <>🔄 인식 중... {ocrProgress}%</>
+                  ) : (
+                    <>📸 DM 캡쳐에서 텍스트 추출</>
+                  )}
+                </button>
+                {ocrLoading && (
+                  <div className="ocr-progress-bar">
+                    <div className="ocr-progress" style={{ width: `${ocrProgress}%` }} />
+                  </div>
+                )}
+              </div>
+              
               {messages.map((msg, index) => (
                 <div key={index} className="message-input-row">
                   <select

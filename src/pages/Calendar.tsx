@@ -68,7 +68,9 @@ export default function Calendar() {
         archivesByDate[v.date].push({ id: v.id, type: 'video', title: v.title, path: '/videos' });
       });
 
+      // 영상에 연결되지 않은 모먼트만 표시
       moments.forEach((m: Moment) => {
+        if (m.video_id) return; // 영상에 연결된 모먼트는 제외
         if (!archivesByDate[m.date]) archivesByDate[m.date] = [];
         archivesByDate[m.date].push({ id: m.id, type: 'moment', title: m.title, path: '/moments' });
       });

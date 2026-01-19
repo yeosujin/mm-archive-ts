@@ -227,7 +227,7 @@ export default function AdminArticles() {
               type="text"
               value={formData.tags}
               onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-              placeholder="소설, 팬픽, 로맨스"
+              placeholder="현대, SF"
             />
           </div>
           
