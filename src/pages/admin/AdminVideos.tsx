@@ -32,6 +32,7 @@ async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date:
   try {
     console.log('Fetching YouTube info for:', videoId);
     console.log('API Key exists:', !!YOUTUBE_API_KEY);
+    console.log('API Key (first 10 chars):', YOUTUBE_API_KEY?.substring(0, 10) + '...');
     
     const response = await fetch(
       `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`

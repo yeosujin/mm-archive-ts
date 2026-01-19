@@ -985,12 +985,17 @@
   /* Input with button */
   .input-with-button {
     flex-direction: column;
+    width: 100%;
   }
 
   .form-group .input-with-button input,
   .input-with-button input[type="url"],
-  .input-with-button input[type="text"] {
+  .input-with-button input[type="text"],
+  #video-url,
+  #post-url,
+  #article-url {
     width: 100% !important;
+    min-width: 100% !important;
     height: 42px !important;
     padding: 0 0.75rem !important;
     font-size: 0.9rem;
