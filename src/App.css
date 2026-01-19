@@ -13,7 +13,14 @@
   --accent-soft: rgba(14, 165, 233, 0.1);
   --border: #e5e5ea;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  
+
+  /* Calendar Dot Colors: 빨주노초보 */
+  --color-video: #ff4b4b; /* Red */
+  --color-moment: #f97316; /* Orange */
+  --color-post: #ca8a04; /* Yellow/Dark Gold */
+  --color-episode: #10b981; /* Green */
+  --color-article: #8b5cf6; /* Purple */
+
   /* Spacing */
   --container-padding: 1.5rem;
   --section-gap: 2rem;
@@ -39,7 +46,9 @@
   min-height: 100vh;
   background: var(--bg-primary);
   color: var(--text-primary);
-  transition: background 0.3s, color 0.3s;
+  transition:
+    background 0.3s,
+    color 0.3s;
   display: flex;
   flex-direction: column;
 }
@@ -746,7 +755,7 @@
 }
 
 .timeline-group::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 5px;
   top: 20px;
@@ -975,7 +984,6 @@
 }
 
 @media (max-width: 479px) {
-
   .home-search {
     max-width: 100%;
     padding: 0 1rem;
@@ -1908,12 +1916,18 @@
 }
 
 .day-dot {
-  width: 7px;
-  height: 7px;
-  background: var(--accent);
+  width: 6px;
+  height: 6px;
+  background-color: var(--accent);
   border-radius: 50%;
   box-shadow: 0 0 4px rgba(14, 165, 233, 0.5);
 }
+
+.day-dot.video { background-color: var(--color-video); }
+.day-dot.moment { background-color: var(--color-moment); }
+.day-dot.post { background-color: var(--color-post); }
+.day-dot.episode { background-color: var(--color-episode); }
+.day-dot.article { background-color: var(--color-article); }
 
 .day-more {
   font-size: 0.65rem;
@@ -2003,7 +2017,7 @@
   }
 
   .cal-day.has-archive::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: 4px;
     width: 4px;
@@ -2303,11 +2317,19 @@
 
 /* 다크모드 말풍선 */
 [data-theme="dark"] .dm-bubble-left {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(56, 189, 248, 0.15) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(56, 189, 248, 0.2) 0%,
+    rgba(56, 189, 248, 0.15) 100%
+  );
 }
 
 [data-theme="dark"] .dm-bubble-right {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.2) 0%,
+    rgba(168, 85, 247, 0.15) 100%
+  );
 }
 
 .dm-text {
@@ -2381,8 +2403,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -2628,8 +2654,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .post-embed.error {
@@ -2661,7 +2692,7 @@
 }
 
 .platform-icon.youtube-icon {
-  color: #FF0000;
+  color: #ff0000;
 }
 
 .platform-icon.x-icon {
@@ -2669,7 +2700,7 @@
 }
 
 .platform-icon.instagram-icon {
-  color: #E4405F;
+  color: #e4405f;
 }
 
 .platform-icon.weverse-icon {
