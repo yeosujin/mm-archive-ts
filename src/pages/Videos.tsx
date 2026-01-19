@@ -3,7 +3,8 @@ import { getVideos, getMomentsByVideoId } from '../lib/database';
 import type { Video, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import TwitterVideoEmbed from '../components/TwitterVideoEmbed';
-import PlatformIcon, { detectVideoPlatform } from '../components/PlatformIcon';
+import PlatformIcon from '../components/PlatformIcon';
+import { detectVideoPlatform } from '../lib/platformUtils';
 
 export default function Videos() {
   const [videos, setVideos] = useState<Video[]>([]);
