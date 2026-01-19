@@ -97,7 +97,11 @@ export default function Home() {
         <div className="featured-section">
           {featuredItem.type === 'video' && (
             <div className="featured-content">
-              <VideoEmbed url={(featuredItem.item as Video).url} title={featuredItem.item.title} />
+              <VideoEmbed 
+                url={(featuredItem.item as Video).url} 
+                title={featuredItem.item.title} 
+                icon={(featuredItem.item as Video).icon}
+              />
             </div>
           )}
           

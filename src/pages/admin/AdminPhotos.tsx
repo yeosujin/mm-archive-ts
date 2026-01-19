@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getPhotos, createPhoto, deletePhoto } from '../../lib/database';
+import { getPhotos, createPhoto, updatePhoto, deletePhoto } from '../../lib/database';
 import type { Photo } from '../../lib/database';
 
 export default function AdminPhotos() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     image_url: '',
@@ -30,19 +31,44 @@ export default function AdminPhotos() {
     e.preventDefault();
     
     try {
-      await createPhoto({
-        title: formData.title,
-        image_url: formData.image_url,
-        date: formData.date,
-      });
+      if (editingId) {
+        await updatePhoto(editingId, {
+          title: formData.title,
+          image_url: formData.image_url,
+          date: formData.date,
+        });
+        alert('수정되었어요!');
+        setEditingId(null);
+      } else {
+        await createPhoto({
+          title: formData.title,
+          image_url: formData.image_url,
+          date: formData.date,
+        });
+        alert('사진이 추가되었어요!');
+      }
       
-      alert('사진이 추가되었어요!');
       setFormData({ title: '', image_url: '', date: '' });
       loadPhotos();
     } catch (error) {
-      console.error('Error creating photo:', error);
-      alert('사진 추가 중 오류가 발생했어요.');
+      console.error('Error saving photo:', error);
+      alert('저장 중 오류가 발생했어요.');
     }
+  };
+
+  const handleEdit = (photo: Photo) => {
+    setEditingId(photo.id);
+    setFormData({
+      title: photo.title,
+      image_url: photo.image_url,
+      date: photo.date,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({ title: '', image_url: '', date: '' });
   };
 
   const handleDelete = async (id: string) => {
@@ -71,7 +97,7 @@ export default function AdminPhotos() {
       <h1>사진 관리</h1>
       
       <div className="admin-section">
-        <h2>새 사진 추가</h2>
+        <h2>{editingId ? '사진 수정' : '새 사진 추가'}</h2>
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-group">
             <label htmlFor="photo-title">제목 *</label>
@@ -109,9 +135,16 @@ export default function AdminPhotos() {
             />
           </div>
           
-          <button type="submit" className="admin-submit-btn">
-            추가하기
-          </button>
+          <div className="form-buttons">
+            <button type="submit" className="admin-submit-btn">
+              {editingId ? '수정하기' : '추가하기'}
+            </button>
+            {editingId && (
+              <button type="button" className="admin-clear-btn" onClick={handleCancelEdit}>
+                취소
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
@@ -126,6 +159,7 @@ export default function AdminPhotos() {
                 <p>{photo.date}</p>
               </div>
               <div className="admin-list-actions">
+                <button className="edit-btn" onClick={() => handleEdit(photo)}>수정</button>
                 <button className="delete-btn" onClick={() => handleDelete(photo.id)}>삭제</button>
               </div>
             </div>

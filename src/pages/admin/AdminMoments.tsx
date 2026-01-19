@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getMoments, getVideos, createMoment, deleteMoment } from '../../lib/database';
+import { getMoments, getVideos, createMoment, updateMoment, deleteMoment } from '../../lib/database';
 import type { Moment, Video } from '../../lib/database';
 
 export default function AdminMoments() {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     tweet_url: '',
@@ -36,20 +37,47 @@ export default function AdminMoments() {
     e.preventDefault();
     
     try {
-      await createMoment({
-        title: formData.title,
-        tweet_url: formData.tweet_url,
-        date: formData.date,
-        video_id: formData.video_id || undefined,
-      });
+      if (editingId) {
+        await updateMoment(editingId, {
+          title: formData.title,
+          tweet_url: formData.tweet_url,
+          date: formData.date,
+          video_id: formData.video_id || undefined,
+        });
+        alert('수정되었어요!');
+        setEditingId(null);
+      } else {
+        await createMoment({
+          title: formData.title,
+          tweet_url: formData.tweet_url,
+          date: formData.date,
+          video_id: formData.video_id || undefined,
+        });
+        alert('모먼트가 추가되었어요!');
+      }
       
-      alert('모먼트가 추가되었어요!');
       setFormData({ title: '', tweet_url: '', date: '', video_id: '' });
       loadData();
     } catch (error) {
-      console.error('Error creating moment:', error);
-      alert('모먼트 추가 중 오류가 발생했어요.');
+      console.error('Error saving moment:', error);
+      alert('저장 중 오류가 발생했어요.');
     }
+  };
+
+  const handleEdit = (moment: Moment) => {
+    setEditingId(moment.id);
+    setFormData({
+      title: moment.title,
+      tweet_url: moment.tweet_url,
+      date: moment.date,
+      video_id: moment.video_id || '',
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({ title: '', tweet_url: '', date: '', video_id: '' });
   };
 
   const handleDelete = async (id: string) => {
@@ -65,14 +93,12 @@ export default function AdminMoments() {
     }
   };
 
-  // 선택된 영상 정보 가져오기
   const getVideoTitle = (videoId: string | undefined) => {
     if (!videoId) return '연결된 영상 없음';
     const video = videos.find(v => v.id === videoId);
     return video ? video.title : '알 수 없는 영상';
   };
 
-  // 영상 선택 시 날짜 자동 설정
   const handleVideoSelect = (videoId: string) => {
     const selectedVideo = videos.find(v => v.id === videoId);
     setFormData({
@@ -95,7 +121,7 @@ export default function AdminMoments() {
       <h1>모먼트 관리</h1>
       
       <div className="admin-section">
-        <h2>새 모먼트 추가</h2>
+        <h2>{editingId ? '모먼트 수정' : '새 모먼트 추가'}</h2>
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-group">
             <label htmlFor="moment-title">제목 *</label>
@@ -152,9 +178,16 @@ export default function AdminMoments() {
             <span className="form-hint">영상과 다른 날짜로 수정할 수도 있어요</span>
           </div>
           
-          <button type="submit" className="admin-submit-btn">
-            추가하기
-          </button>
+          <div className="form-buttons">
+            <button type="submit" className="admin-submit-btn">
+              {editingId ? '수정하기' : '추가하기'}
+            </button>
+            {editingId && (
+              <button type="button" className="admin-clear-btn" onClick={handleCancelEdit}>
+                취소
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
@@ -174,6 +207,7 @@ export default function AdminMoments() {
                 </a>
               </div>
               <div className="admin-list-actions">
+                <button className="edit-btn" onClick={() => handleEdit(moment)}>수정</button>
                 <button className="delete-btn" onClick={() => handleDelete(moment.id)}>삭제</button>
               </div>
             </div>

@@ -35,7 +35,7 @@ export default function Articles() {
       <div className="page articles-page">
         <div className="loading">로딩 중...</div>
       </div>
-    );
+  );
   }
 
   return (

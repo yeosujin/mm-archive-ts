@@ -74,7 +74,7 @@ export default function Episodes() {
               <button 
                 className="dm-thread-header"
                 onClick={() => toggleEpisode(episode.id)}
-              >
+            >
                 <span className="dm-icon">💬</span>
                 <time className="dm-date">{episode.date}</time>
                 <span className="dm-preview">
@@ -97,13 +97,13 @@ export default function Episodes() {
                       {msg.type === 'image' && (
                         <div className="dm-image">
                           <img src={msg.content} alt="" />
-                        </div>
+                </div>
                       )}
                       <span className="dm-time">{msg.time}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              </div>
+          ))}
+        </div>
+      )}
             </div>
           ))}
         </div>

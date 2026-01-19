@@ -3,16 +3,20 @@ import TweetEmbed from './TweetEmbed';
 interface Props {
   url: string;
   title: string;
+  icon?: string;  // 위버스 등 외부 링크용 커스텀 아이콘
   className?: string;
 }
 
 // URL 타입 감지
-function getVideoType(url: string): 'youtube' | 'twitter' | 'unknown' {
+function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'unknown' {
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     return 'youtube';
   }
   if (url.includes('twitter.com') || url.includes('x.com')) {
     return 'twitter';
+  }
+  if (url.includes('weverse.io')) {
+    return 'weverse';
   }
   return 'unknown';
 }
@@ -20,7 +24,14 @@ function getVideoType(url: string): 'youtube' | 'twitter' | 'unknown' {
 // YouTube URL에서 비디오 ID 추출
 function getYouTubeId(url: string): string | null {
   const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    // 일반 영상: youtube.com/watch?v=VIDEO_ID
+    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+    // 짧은 URL: youtu.be/VIDEO_ID
+    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    // 임베드: youtube.com/embed/VIDEO_ID
+    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    // 숏츠: youtube.com/shorts/VIDEO_ID
+    /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
   ];
   
   for (const pattern of patterns) {
@@ -30,7 +41,7 @@ function getYouTubeId(url: string): string | null {
   return null;
 }
 
-export default function VideoEmbed({ url, title, className = '' }: Props) {
+export default function VideoEmbed({ url, title, icon, className = '' }: Props) {
   const videoType = getVideoType(url);
 
   if (videoType === 'youtube') {
@@ -59,13 +70,37 @@ export default function VideoEmbed({ url, title, className = '' }: Props) {
     return <TweetEmbed tweetUrl={url} className={className} />;
   }
 
+  if (videoType === 'weverse') {
+    return (
+      <div className={`video-embed-external weverse-link ${className}`}>
+        <div className="external-link-card">
+          <span className="external-icon">{icon || '🩵'}</span>
+          <div className="external-info">
+            <span className="external-platform">Weverse</span>
+            <span className="external-title">{title}</span>
+          </div>
+          <a href={url} target="_blank" rel="noopener noreferrer" className="external-btn">
+            보러가기 →
+          </a>
+        </div>
+        <p className="external-note">위버스 영상은 앱/웹에서 직접 확인해주세요</p>
+      </div>
+    );
+  }
+
   // Unknown type - just show link
   return (
-    <div className={`video-embed-unknown ${className}`}>
-      <p>🔗 외부 링크</p>
-      <a href={url} target="_blank" rel="noopener noreferrer">
-        {title} →
-      </a>
+    <div className={`video-embed-external ${className}`}>
+      <div className="external-link-card">
+        <span className="external-icon">🔗</span>
+        <div className="external-info">
+          <span className="external-platform">외부 링크</span>
+          <span className="external-title">{title}</span>
+        </div>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="external-btn">
+          보러가기 →
+        </a>
+      </div>
     </div>
   );
 }

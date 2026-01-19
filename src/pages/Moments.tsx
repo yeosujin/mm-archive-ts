@@ -32,18 +32,18 @@ export default function Moments() {
       )
     : moments;
 
-  // 날짜별로 그룹화
+// 날짜별로 그룹화
   const groupedMoments = (() => {
     const groups: Record<string, Moment[]> = {};
-    
+  
     filteredMoments.forEach((item) => {
-      if (!groups[item.date]) {
-        groups[item.date] = [];
-      }
-      groups[item.date].push(item);
-    });
+    if (!groups[item.date]) {
+      groups[item.date] = [];
+    }
+    groups[item.date].push(item);
+  });
 
-    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
   })();
 
   const toggleDate = (date: string) => {
@@ -104,12 +104,12 @@ export default function Moments() {
                   {expandedDate === date && (
                     <div className="moment-item-content">
                       <div className="moment-tweets-list">
-                        {dateMoments.map((moment) => (
+                {dateMoments.map((moment) => (
                           <div key={moment.id} className="moment-tweet-item">
                             <h4 className="moment-title">{moment.title}</h4>
                             <TwitterVideoEmbed tweetUrl={moment.tweet_url} />
-                          </div>
-                        ))}
+                  </div>
+                ))}
                       </div>
                     </div>
                   )}

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getArticles, createArticle, deleteArticle } from '../../lib/database';
+import { getArticles, createArticle, updateArticle, deleteArticle } from '../../lib/database';
 import type { Article } from '../../lib/database';
 
 export default function AdminArticles() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     author: '',
@@ -32,21 +33,46 @@ export default function AdminArticles() {
     e.preventDefault();
     
     try {
-      await createArticle({
+      const articleData = {
         title: formData.title,
         author: formData.author,
         url: formData.url,
         date: formData.date,
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-      });
+      };
+
+      if (editingId) {
+        await updateArticle(editingId, articleData);
+        alert('수정되었어요!');
+        setEditingId(null);
+      } else {
+        await createArticle(articleData);
+        alert('글이 추가되었어요!');
+      }
       
-      alert('글이 추가되었어요!');
       setFormData({ title: '', author: '', url: '', date: '', tags: '' });
       loadArticles();
     } catch (error) {
-      console.error('Error creating article:', error);
-      alert('글 추가 중 오류가 발생했어요.');
+      console.error('Error saving article:', error);
+      alert('저장 중 오류가 발생했어요.');
     }
+  };
+
+  const handleEdit = (article: Article) => {
+    setEditingId(article.id);
+    setFormData({
+      title: article.title,
+      author: article.author,
+      url: article.url,
+      date: article.date,
+      tags: article.tags.join(', '),
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({ title: '', author: '', url: '', date: '', tags: '' });
   };
 
   const handleDelete = async (id: string) => {
@@ -75,7 +101,7 @@ export default function AdminArticles() {
       <h1>글 관리</h1>
       
       <div className="admin-section">
-        <h2>새 글 추가</h2>
+        <h2>{editingId ? '글 수정' : '새 글 추가'}</h2>
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-group">
             <label htmlFor="article-title">제목 *</label>
@@ -135,9 +161,16 @@ export default function AdminArticles() {
             />
           </div>
           
-          <button type="submit" className="admin-submit-btn">
-            추가하기
-          </button>
+          <div className="form-buttons">
+            <button type="submit" className="admin-submit-btn">
+              {editingId ? '수정하기' : '추가하기'}
+            </button>
+            {editingId && (
+              <button type="button" className="admin-clear-btn" onClick={handleCancelEdit}>
+                취소
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
@@ -159,6 +192,7 @@ export default function AdminArticles() {
                 </div>
               </div>
               <div className="admin-list-actions">
+                <button className="edit-btn" onClick={() => handleEdit(article)}>수정</button>
                 <button className="delete-btn" onClick={() => handleDelete(article.id)}>삭제</button>
               </div>
             </div>

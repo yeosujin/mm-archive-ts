@@ -6,6 +6,7 @@ export interface Video {
   title: string;
   url: string;
   date: string;
+  icon?: string; // 위버스 등 외부 링크용 아이콘 (💙, 🩵, 🖤, 🤍)
 }
 
 export interface Moment {
@@ -81,6 +82,18 @@ export async function createVideo(video: Omit<Video, 'id'>): Promise<Video> {
   return data;
 }
 
+export async function updateVideo(id: string, video: Partial<Omit<Video, 'id'>>): Promise<Video> {
+  const { data, error } = await supabase
+    .from('videos')
+    .update(video)
+    .eq('id', id)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteVideo(id: string): Promise<void> {
   const { error } = await supabase
     .from('videos')
@@ -123,6 +136,18 @@ export async function createMoment(moment: Omit<Moment, 'id'>): Promise<Moment> 
   return data;
 }
 
+export async function updateMoment(id: string, moment: Partial<Omit<Moment, 'id'>>): Promise<Moment> {
+  const { data, error } = await supabase
+    .from('moments')
+    .update(moment)
+    .eq('id', id)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteMoment(id: string): Promise<void> {
   const { error } = await supabase
     .from('moments')
@@ -147,6 +172,18 @@ export async function createPhoto(photo: Omit<Photo, 'id'>): Promise<Photo> {
   const { data, error } = await supabase
     .from('photos')
     .insert(photo)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function updatePhoto(id: string, photo: Partial<Omit<Photo, 'id'>>): Promise<Photo> {
+  const { data, error } = await supabase
+    .from('photos')
+    .update(photo)
+    .eq('id', id)
     .select()
     .single();
   
@@ -185,6 +222,18 @@ export async function createEpisode(episode: Omit<Episode, 'id'>): Promise<Episo
   return data;
 }
 
+export async function updateEpisode(id: string, episode: Partial<Omit<Episode, 'id'>>): Promise<Episode> {
+  const { data, error } = await supabase
+    .from('episodes')
+    .update(episode)
+    .eq('id', id)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteEpisode(id: string): Promise<void> {
   const { error } = await supabase
     .from('episodes')
@@ -209,6 +258,18 @@ export async function createArticle(article: Omit<Article, 'id'>): Promise<Artic
   const { data, error } = await supabase
     .from('articles')
     .insert(article)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function updateArticle(id: string, article: Partial<Omit<Article, 'id'>>): Promise<Article> {
+  const { data, error } = await supabase
+    .from('articles')
+    .update(article)
+    .eq('id', id)
     .select()
     .single();
   

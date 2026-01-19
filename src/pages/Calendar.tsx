@@ -4,10 +4,10 @@ import { getVideos, getMoments, getPhotos, getEpisodes, getArticles } from '../l
 import type { Video, Moment, Photo, Episode, Article } from '../lib/database';
 
 interface ArchiveItem {
-  id: string;
-  type: 'video' | 'moment' | 'photo' | 'episode' | 'article';
-  title: string;
-  path: string;
+    id: string;
+    type: 'video' | 'moment' | 'photo' | 'episode' | 'article';
+    title: string;
+    path: string;
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getEpisodes, createEpisode, deleteEpisode } from '../../lib/database';
+import { getEpisodes, createEpisode, updateEpisode, deleteEpisode } from '../../lib/database';
 import type { Episode } from '../../lib/database';
 
 interface MessageInput {
@@ -11,6 +11,7 @@ interface MessageInput {
 export default function AdminEpisodes() {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     date: '',
@@ -60,20 +61,50 @@ export default function AdminEpisodes() {
     }
     
     try {
-      await createEpisode({
-        title: formData.title,
-        date: formData.date,
-        messages: validMessages,
-      });
+      if (editingId) {
+        await updateEpisode(editingId, {
+          title: formData.title,
+          date: formData.date,
+          messages: validMessages,
+        });
+        alert('수정되었어요!');
+        setEditingId(null);
+      } else {
+        await createEpisode({
+          title: formData.title,
+          date: formData.date,
+          messages: validMessages,
+        });
+        alert('에피소드가 추가되었어요!');
+      }
       
-      alert('에피소드가 추가되었어요!');
       setFormData({ title: '', date: '' });
       setMessages([{ type: 'text', content: '', time: '' }]);
       loadEpisodes();
     } catch (error) {
-      console.error('Error creating episode:', error);
-      alert('에피소드 추가 중 오류가 발생했어요.');
+      console.error('Error saving episode:', error);
+      alert('저장 중 오류가 발생했어요.');
     }
+  };
+
+  const handleEdit = (episode: Episode) => {
+    setEditingId(episode.id);
+    setFormData({
+      title: episode.title,
+      date: episode.date,
+    });
+    setMessages(episode.messages.map(m => ({
+      type: m.type,
+      content: m.content,
+      time: m.time,
+    })));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({ title: '', date: '' });
+    setMessages([{ type: 'text', content: '', time: '' }]);
   };
 
   const handleDelete = async (id: string) => {
@@ -102,7 +133,7 @@ export default function AdminEpisodes() {
       <h1>에피소드 관리</h1>
       
       <div className="admin-section">
-        <h2>새 에피소드 추가</h2>
+        <h2>{editingId ? '에피소드 수정' : '새 에피소드 추가'}</h2>
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-group">
             <label htmlFor="episode-title">제목</label>
@@ -164,9 +195,16 @@ export default function AdminEpisodes() {
             </button>
           </div>
           
-          <button type="submit" className="admin-submit-btn">
-            추가하기
-          </button>
+          <div className="form-buttons">
+            <button type="submit" className="admin-submit-btn">
+              {editingId ? '수정하기' : '추가하기'}
+            </button>
+            {editingId && (
+              <button type="button" className="admin-clear-btn" onClick={handleCancelEdit}>
+                취소
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
@@ -180,6 +218,7 @@ export default function AdminEpisodes() {
                 <p>{episode.date} · {episode.messages.length}개 메시지</p>
               </div>
               <div className="admin-list-actions">
+                <button className="edit-btn" onClick={() => handleEdit(episode)}>수정</button>
                 <button className="delete-btn" onClick={() => handleDelete(episode.id)}>삭제</button>
               </div>
             </div>

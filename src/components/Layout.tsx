@@ -77,14 +77,14 @@ export default function Layout() {
             >
               🔍
             </button>
-            
-            <button 
-              className="theme-toggle"
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              aria-label="테마 변경"
-            >
-              {isDarkMode ? '☀️' : '🌙'}
-            </button>
+
+          <button 
+            className="theme-toggle"
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            aria-label="테마 변경"
+          >
+            {isDarkMode ? '☀️' : '🌙'}
+          </button>
 
             {/* Mobile Menu Toggle */}
             <button 

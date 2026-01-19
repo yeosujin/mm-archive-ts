@@ -1,15 +1,69 @@
 import { useState, useEffect } from 'react';
-import { getVideos, createVideo, deleteVideo } from '../../lib/database';
+import { getVideos, createVideo, updateVideo, deleteVideo } from '../../lib/database';
 import type { Video } from '../../lib/database';
+
+const HEART_OPTIONS = [
+  { value: '💙', label: '💙 파란색' },
+  { value: '🩵', label: '🩵 하늘색' },
+  { value: '🖤', label: '🖤 검은색' },
+  { value: '🤍', label: '🤍 흰색' },
+];
+
+const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+
+// YouTube URL에서 비디오 ID 추출
+function extractYouTubeId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+// YouTube 영상 정보 가져오기
+async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date: string } | null> {
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`
+    );
+    const data = await response.json();
+    
+    if (data.items && data.items.length > 0) {
+      const snippet = data.items[0].snippet;
+      return {
+        title: snippet.title,
+        date: snippet.publishedAt.split('T')[0], // YYYY-MM-DD 형식
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('YouTube API error:', error);
+    return null;
+  }
+}
 
 export default function AdminVideos() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     url: '',
     date: '',
+    icon: '🩵',
   });
+
+  // URL 타입 확인
+  const isYouTubeUrl = formData.url.includes('youtube.com') || formData.url.includes('youtu.be');
+  const isWeverseUrl = formData.url.includes('weverse.io');
 
   useEffect(() => {
     loadVideos();
@@ -26,23 +80,79 @@ export default function AdminVideos() {
     }
   };
 
+  // YouTube 정보 불러오기
+  const handleFetchYouTube = async () => {
+    const videoId = extractYouTubeId(formData.url);
+    if (!videoId) {
+      alert('올바른 YouTube URL을 입력해주세요.');
+      return;
+    }
+
+    setFetching(true);
+    try {
+      const info = await fetchYouTubeInfo(videoId);
+      if (info) {
+        setFormData({
+          ...formData,
+          title: info.title,
+          date: info.date,
+        });
+      } else {
+        alert('영상 정보를 가져올 수 없어요.');
+      }
+    } catch (error) {
+      console.error('Error fetching YouTube info:', error);
+      alert('영상 정보를 가져오는 중 오류가 발생했어요.');
+    } finally {
+      setFetching(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      await createVideo({
-        title: formData.title,
-        url: formData.url,
-        date: formData.date,
-      });
+      if (editingId) {
+        await updateVideo(editingId, {
+          title: formData.title,
+          url: formData.url,
+          date: formData.date,
+          icon: isWeverseUrl ? formData.icon : undefined,
+        });
+        alert('수정되었어요!');
+        setEditingId(null);
+      } else {
+        await createVideo({
+          title: formData.title,
+          url: formData.url,
+          date: formData.date,
+          ...(isWeverseUrl && { icon: formData.icon }),
+        });
+        alert('영상이 추가되었어요!');
+      }
       
-      alert('영상이 추가되었어요!');
-      setFormData({ title: '', url: '', date: '' });
-      loadVideos(); // 목록 새로고침
+      setFormData({ title: '', url: '', date: '', icon: '🩵' });
+      loadVideos();
     } catch (error) {
-      console.error('Error creating video:', error);
-      alert('영상 추가 중 오류가 발생했어요.');
+      console.error('Error saving video:', error);
+      alert('저장 중 오류가 발생했어요.');
     }
+  };
+
+  const handleEdit = (video: Video) => {
+    setEditingId(video.id);
+    setFormData({
+      title: video.title,
+      url: video.url,
+      date: video.date,
+      icon: video.icon || '🩵',
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({ title: '', url: '', date: '', icon: '🩵' });
   };
 
   const handleDelete = async (id: string) => {
@@ -71,8 +181,38 @@ export default function AdminVideos() {
       <h1>영상 관리</h1>
       
       <div className="admin-section">
-        <h2>새 영상 추가</h2>
+        <h2>{editingId ? '영상 수정' : '새 영상 추가'}</h2>
         <form onSubmit={handleSubmit} className="admin-form">
+          <div className="form-group">
+            <label htmlFor="video-url">영상 URL *</label>
+            <div className="input-with-button">
+              <input
+                id="video-url"
+                type="url"
+                value={formData.url}
+                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                placeholder="YouTube, Twitter(X), Weverse 영상 URL"
+                required
+              />
+              {isYouTubeUrl && (
+                <button 
+                  type="button" 
+                  className="fetch-btn"
+                  onClick={handleFetchYouTube}
+                  disabled={fetching}
+                >
+                  {fetching ? '불러오는 중...' : '정보 불러오기'}
+                </button>
+              )}
+            </div>
+            <span className="form-hint">
+              {isYouTubeUrl 
+                ? '✨ YouTube URL이에요! "정보 불러오기"를 눌러 제목과 날짜를 자동으로 가져오세요'
+                : 'YouTube, YouTube Shorts, Twitter(X), Weverse 지원'
+              }
+            </span>
+          </div>
+
           <div className="form-group">
             <label htmlFor="video-title">제목 *</label>
             <input
@@ -86,19 +226,6 @@ export default function AdminVideos() {
           </div>
           
           <div className="form-group">
-            <label htmlFor="video-url">영상 URL *</label>
-            <input
-              id="video-url"
-              type="url"
-              value={formData.url}
-              onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-              placeholder="YouTube, Twitter(X) 영상 URL"
-              required
-            />
-            <span className="form-hint">예: https://youtube.com/watch?v=... 또는 https://x.com/.../status/...</span>
-          </div>
-          
-          <div className="form-group">
             <label htmlFor="video-date">날짜 *</label>
             <input
               id="video-date"
@@ -108,10 +235,34 @@ export default function AdminVideos() {
               required
             />
           </div>
+
+          {isWeverseUrl && (
+            <div className="form-group">
+              <label htmlFor="video-icon">아이콘 선택</label>
+              <select
+                id="video-icon"
+                value={formData.icon}
+                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                className="form-select"
+              >
+                {HEART_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <span className="form-hint">위버스 영상 카드에 표시될 아이콘</span>
+            </div>
+          )}
           
-          <button type="submit" className="admin-submit-btn">
-            추가하기
-          </button>
+          <div className="form-buttons">
+            <button type="submit" className="admin-submit-btn">
+              {editingId ? '수정하기' : '추가하기'}
+            </button>
+            {editingId && (
+              <button type="button" className="admin-clear-btn" onClick={handleCancelEdit}>
+                취소
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
@@ -121,13 +272,14 @@ export default function AdminVideos() {
           {videos.map((video) => (
             <div key={video.id} className="admin-list-item simple-item">
               <div className="admin-list-info">
-                <h3>{video.title}</h3>
+                <h3>{video.icon && <span style={{ marginRight: '0.5rem' }}>{video.icon}</span>}{video.title}</h3>
                 <p>{video.date}</p>
                 <a href={video.url} target="_blank" rel="noopener noreferrer" className="item-link">
                   {video.url}
                 </a>
               </div>
               <div className="admin-list-actions">
+                <button className="edit-btn" onClick={() => handleEdit(video)}>수정</button>
                 <button className="delete-btn" onClick={() => handleDelete(video.id)}>삭제</button>
               </div>
             </div>

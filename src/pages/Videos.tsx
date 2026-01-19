@@ -135,7 +135,7 @@ export default function Videos() {
                       
                       {expandedVideo === video.id && (
                         <div className="thread-item-content">
-                          <VideoEmbed url={video.url} title={video.title} />
+                          <VideoEmbed url={video.url} title={video.title} icon={video.icon} />
                           
                           {moments.length > 0 && (
                             <div className="video-moments-section">
