@@ -27,14 +27,20 @@ export interface Post {
 
 export interface Episode {
   id: string;
-  title: string;
+  title?: string;
   date: string;
+  episode_type: 'dm' | 'comment'; // dm: 팬소통에서 언급, comment: 콘텐츠에 댓글
   sender: 'member1' | 'member2'; // 이 에피소드를 보낸 멤버
-  messages: {
+  // DM 타입용
+  messages?: {
     type: 'text' | 'image';
     content: string;
     time: string;
   }[];
+  // Comment 타입용
+  linked_content_type?: 'video' | 'moment' | 'post'; // 연결된 콘텐츠 타입
+  linked_content_id?: string; // 연결된 콘텐츠 ID
+  comment_text?: string; // 댓글 내용
 }
 
 // 멤버 설정

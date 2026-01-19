@@ -11,6 +11,7 @@ interface ArchiveItem {
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const MONTHS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
 const TYPE_ICONS: Record<string, string> = {
   video: '📹',
   moment: '✨',
@@ -19,15 +20,36 @@ const TYPE_ICONS: Record<string, string> = {
   article: '📝',
 };
 
+// 연도 범위 생성 (2020년 ~ 현재 + 1년)
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: currentYear - 2020 + 2 }, (_, i) => 2020 + i);
+
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [archives, setArchives] = useState<Record<string, ArchiveItem[]>>({});
   const [loading, setLoading] = useState(true);
+  const [showPicker, setShowPicker] = useState(false);
 
   useEffect(() => {
     loadAllData();
   }, []);
+
+  // 피커 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.cal-picker-wrapper')) {
+        setShowPicker(false);
+      }
+    };
+    
+    if (showPicker) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showPicker]);
 
   const loadAllData = async () => {
     try {
@@ -104,6 +126,23 @@ export default function Calendar() {
     setSelectedDate(null);
   };
 
+  const handleYearChange = (newYear: number) => {
+    setCurrentDate(new Date(newYear, month, 1));
+    setSelectedDate(null);
+  };
+
+  const handleMonthChange = (newMonth: number) => {
+    setCurrentDate(new Date(year, newMonth, 1));
+    setSelectedDate(null);
+    setShowPicker(false);
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+    setSelectedDate(null);
+    setShowPicker(false);
+  };
+
   const formatDate = (day: number) => {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
@@ -133,7 +172,50 @@ export default function Calendar() {
       <div className="calendar-container">
         <div className="calendar-nav">
           <button onClick={prevMonth} className="cal-nav-btn">◀</button>
-          <span className="cal-title">{year}년 {month + 1}월</span>
+          
+          <div className="cal-picker-wrapper">
+            <button 
+              className="cal-title-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPicker(!showPicker);
+              }}
+            >
+              {year}년 {month + 1}월
+              <span className="cal-title-arrow">{showPicker ? '▲' : '▼'}</span>
+            </button>
+            
+            {showPicker && (
+              <div className="cal-picker-dropdown">
+                <div className="cal-picker-header">
+                  <select 
+                    value={year} 
+                    onChange={(e) => handleYearChange(Number(e.target.value))}
+                    className="cal-year-select"
+                  >
+                    {YEARS.map((y) => (
+                      <option key={y} value={y}>{y}년</option>
+                    ))}
+                  </select>
+                  <button className="cal-today-btn" onClick={goToToday}>
+                    오늘
+                  </button>
+                </div>
+                <div className="cal-month-grid">
+                  {MONTHS.map((m, idx) => (
+                    <button
+                      key={m}
+                      className={`cal-month-btn ${idx === month ? 'active' : ''}`}
+                      onClick={() => handleMonthChange(idx)}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
           <button onClick={nextMonth} className="cal-nav-btn">▶</button>
         </div>
 
