@@ -157,7 +157,7 @@ export default function AdminPosts() {
             <select
               id="post-platform"
               value={formData.platform}
-              onChange={(e) => setFormData({ ...formData, platform: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, platform: e.target.value as Post['platform'] })}
               className="form-select"
             >
               <option value="twitter">X (Twitter)</option>
