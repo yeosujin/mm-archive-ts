@@ -810,6 +810,9 @@
   border-color: var(--accent);
 }
 
+/* ===== Video Only Tweet Embed (Moves text/header/etc) ===== */
+/* Reverted to standard view per user request */
+
 .timeline-thumbnail {
   position: relative;
   width: 140px;
