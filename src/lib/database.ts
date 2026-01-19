@@ -28,11 +28,18 @@ export interface Episode {
   id: string;
   title: string;
   date: string;
+  sender: 'member1' | 'member2'; // 이 에피소드를 보낸 멤버
   messages: {
     type: 'text' | 'image';
     content: string;
     time: string;
   }[];
+}
+
+// 멤버 설정
+export interface MemberSettings {
+  member1_name: string;
+  member2_name: string;
 }
 
 export interface Article {
@@ -303,6 +310,26 @@ export async function setFeaturedContent(type: string | null, contentId: string 
     .from('featured_content')
     .update({ type, content_id: contentId, updated_at: new Date().toISOString() })
     .eq('id', 1);
+  
+  if (error) throw error;
+}
+
+// ============ Member Settings ============
+export async function getMemberSettings(): Promise<MemberSettings> {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('member1_name, member2_name')
+    .eq('id', 1)
+    .single();
+  
+  if (error) return { member1_name: '멤버1', member2_name: '멤버2' };
+  return data;
+}
+
+export async function updateMemberSettings(settings: MemberSettings): Promise<void> {
+  const { error } = await supabase
+    .from('settings')
+    .upsert({ id: 1, ...settings, updated_at: new Date().toISOString() });
   
   if (error) throw error;
 }

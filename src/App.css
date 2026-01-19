@@ -2029,67 +2029,169 @@
 .dm-timeline {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.25rem;
   max-width: 500px;
   margin: 0 auto;
 }
 
 .dm-thread {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .dm-thread-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
 }
 
 .dm-thread-header:hover {
-  background: var(--bg-card-hover);
+  color: var(--accent);
 }
 
-.dm-icon {
-  font-size: 1.2rem;
+.dm-thread-header:hover .dm-member-name,
+.dm-thread-header:hover .dm-date,
+.dm-thread-header:hover .dm-preview {
+  color: var(--accent);
 }
 
-.dm-date {
+.dm-member-name {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--accent);
+  transition: color 0.2s;
+}
+
+.dm-date {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  transition: color 0.2s;
 }
 
 .dm-preview {
   flex: 1;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 0.2s;
 }
 
 .dm-messages {
-  padding: 0 1rem 1rem;
+  padding: 0.5rem 1rem 1rem;
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* 메시지 행 */
+.dm-row {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.dm-row-left {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.dm-row-right {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+/* 그룹 첫 메시지 위에 간격 */
+.dm-row:has(.dm-sender) {
+  margin-top: 0.75rem;
+}
+
+.dm-row:first-child {
+  margin-top: 0;
+}
+
+/* 닉네임 */
+.dm-sender {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+  padding-left: 0.25rem;
+}
+
+/* 말풍선 + 시간 행 */
+.dm-bubble-row {
+  display: flex;
+  align-items: flex-end;
   gap: 0.5rem;
 }
 
-.dm-message {
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
-  max-width: 85%;
-  position: relative;
+.dm-row-right .dm-bubble-row {
+  flex-direction: row-reverse;
+}
+
+/* 말풍선 */
+.dm-bubble {
+  padding: 0.625rem 0.875rem;
+  border-radius: 16px;
+  max-width: 100%;
+}
+
+/* 왼쪽 말풍선 (멤버1) - 하늘색 */
+.dm-bubble-left {
+  background: linear-gradient(135deg, #e0f4ff 0%, #d4f0ff 100%);
+  border-radius: 4px 16px 16px 16px;
+}
+
+.dm-bubble-left.dm-bubble-grouped {
+  border-radius: 4px 16px 16px 4px;
+}
+
+.dm-bubble-left.dm-bubble-grouped.dm-bubble-last {
+  border-radius: 4px 16px 16px 16px;
+}
+
+/* 오른쪽 말풍선 (멤버2) - 연보라색 */
+.dm-bubble-right {
+  background: linear-gradient(135deg, #f3e8ff 0%, #ede4ff 100%);
+  border-radius: 16px 4px 16px 16px;
+}
+
+.dm-bubble-right.dm-bubble-grouped {
+  border-radius: 16px 4px 4px 16px;
+}
+
+.dm-bubble-right.dm-bubble-grouped.dm-bubble-last {
+  border-radius: 16px 4px 16px 16px;
+}
+
+/* 시간 */
+.dm-time {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 다크모드 말풍선 */
+[data-theme="dark"] .dm-bubble-left {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(56, 189, 248, 0.15) 100%);
+}
+
+[data-theme="dark"] .dm-bubble-right {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
 }
 
 .dm-text {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1.5;
   margin: 0;
   color: var(--text-primary);
@@ -2099,21 +2201,12 @@
 .dm-image {
   border-radius: 8px;
   overflow: hidden;
-  margin-bottom: 0.25rem;
 }
 
 .dm-image img {
   width: 100%;
-  max-width: 250px;
+  max-width: 200px;
   display: block;
-}
-
-.dm-time {
-  display: block;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  text-align: right;
-  margin-top: 0.25rem;
 }
 
 /* ===== Photo Modal ===== */
