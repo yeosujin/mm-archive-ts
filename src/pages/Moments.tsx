@@ -83,38 +83,28 @@ export default function Moments() {
       ) : (
         <div className="moments-timeline">
           {groupedMoments.map(([date, dateMoments]) => (
-            <div key={date} className="moment-thread">
-              <div className="thread-date">
-                <span className="thread-marker"></span>
+            <div key={date} className="moment-date-group">
+              <button 
+                className={`moment-date-header ${expandedDate === date ? 'expanded' : ''}`}
+                onClick={() => toggleDate(date)}
+              >
+                <span className="date-marker">✨</span>
                 <time>{date}</time>
-              </div>
-              <div className="thread-items">
-                <div className="moment-accordion-item">
-                  <button 
-                    className="moment-item-header"
-                    onClick={() => toggleDate(date)}
-                  >
-                    <span className="item-icon">✨</span>
-                    <span className="item-title">모먼트 ({dateMoments.length})</span>
-                    <span className={`expand-arrow ${expandedDate === date ? 'open' : ''}`}>
-                      ▼
-                    </span>
-                  </button>
-                  
-                  {expandedDate === date && (
-                    <div className="moment-item-content">
-                      <div className="moment-tweets-list">
-                {dateMoments.map((moment) => (
-                          <div key={moment.id} className="moment-tweet-item">
-                            <h4 className="moment-title">{moment.title}</h4>
-                            <TwitterVideoEmbed tweetUrl={moment.tweet_url} />
-                  </div>
-                ))}
-                      </div>
+                <span className="moment-count">{dateMoments.length}개</span>
+                <span className={`expand-arrow ${expandedDate === date ? 'open' : ''}`}>
+                  ▼
+                </span>
+              </button>
+              
+              {expandedDate === date && (
+                <div className="moment-list">
+                  {dateMoments.map((moment) => (
+                    <div key={moment.id} className="moment-item">
+                      <TwitterVideoEmbed tweetUrl={moment.tweet_url} />
                     </div>
-                  )}
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
