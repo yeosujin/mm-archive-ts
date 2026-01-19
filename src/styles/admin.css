@@ -459,12 +459,16 @@
 .admin-list-info {
   flex: 1;
   min-width: 0;
+  width: 100%;
 }
 
 .admin-list-info h3 {
   font-size: 0.95rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .admin-list-info p {
@@ -604,12 +608,22 @@
 
 /* Simple item style */
 .admin-list-item.simple-item {
+  display: flex;
   flex-direction: row;
   align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .admin-list-item.simple-item .admin-list-info {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 200px;
+  width: calc(100% - 150px);
+}
+
+.admin-list-item.simple-item .admin-list-info h3 {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .admin-list-item.simple-item .item-link {
@@ -617,6 +631,7 @@
   color: var(--accent);
   text-decoration: none;
   word-break: break-all;
+  display: block;
 }
 
 .admin-list-item.simple-item .item-link:hover {
@@ -688,6 +703,16 @@
 
   .admin-page h2 {
     font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .admin-section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .admin-list {
+    gap: 0.5rem;
   }
 
   .admin-stats {
@@ -703,13 +728,37 @@
     max-width: 100%;
   }
 
+  .form-group {
+    margin-bottom: 0.25rem;
+  }
+
   .form-group label {
-    white-space: nowrap;
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-select {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.9rem;
   }
 
   .form-hint {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     word-break: keep-all;
+    line-height: 1.4;
+  }
+
+  .form-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .admin-submit-btn,
+  .admin-clear-btn {
+    width: 100%;
+    padding: 0.75rem;
   }
 
   .featured-select-row {
@@ -726,32 +775,69 @@
   }
 
   .admin-list-item {
-    flex-direction: column;
-    align-items: flex-start;
+    display: block;
+    padding: 0.875rem;
   }
 
   .admin-list-item.simple-item {
-    flex-direction: column;
+    display: block;
+  }
+
+  .admin-list-item.simple-item .admin-list-info {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .admin-list-info {
+    width: 100%;
+    display: block;
   }
 
   .admin-list-info h3 {
     word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 0.25rem;
+  }
+
+  .admin-list-info p {
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .admin-list-info .item-link,
+  .admin-list-info .article-link {
+    font-size: 0.7rem;
+    display: block;
+    word-break: break-all;
+    white-space: normal;
+  }
+
+  .admin-list-info .linked-video {
+    font-size: 0.7rem;
   }
 
   .admin-list-thumb {
     width: 100%;
     height: auto;
     aspect-ratio: 16/9;
+    margin-bottom: 0.5rem;
   }
 
   .admin-list-actions {
+    display: flex;
     width: 100%;
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
+    gap: 0.5rem;
   }
 
   .edit-btn,
   .delete-btn {
     flex: 1;
+    padding: 0.5rem;
+    font-size: 0.8rem;
   }
 
   /* Input with button */

@@ -1171,45 +1171,49 @@
 
 .thread-video-item,
 .thread-moments {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
-  transition: border-color 0.2s;
-}
-
-.thread-video-item:hover,
-.thread-moments:hover {
-  border-color: var(--accent);
 }
 
 .thread-item-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
 }
 
 .thread-item-header:hover {
-  background: var(--bg-card-hover);
+  color: var(--accent);
+}
+
+.thread-item-header:hover .item-title {
+  color: var(--accent);
 }
 
 .item-icon {
-  font-size: 1rem;
+  font-size: 0.9rem;
+  opacity: 0.7;
 }
 
 .item-title {
   flex: 1;
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: color 0.2s;
 }
 
 .expand-arrow {
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   transition: transform 0.2s;
+  opacity: 0.6;
 }
 
 .expand-arrow.open {
@@ -1217,7 +1221,7 @@
 }
 
 .thread-item-content {
-  padding: 0 1rem 1rem;
+  padding: 0.75rem 0 1rem;
 }
 
 .moments-header {
@@ -1251,23 +1255,29 @@
 /* ===== Video Moments Section (영상 아래 모먼트 영역) ===== */
 .video-moments-section {
   margin-top: 1rem;
-  background: var(--bg-secondary);
-  border-radius: 8px;
-  overflow: hidden;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
 }
 
 .video-moments-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
   cursor: pointer;
-  transition: background 0.2s;
-  background: var(--accent-soft);
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
 }
 
 .video-moments-header:hover {
-  background: var(--bg-card-hover);
+  color: var(--accent);
+}
+
+.video-moments-header:hover .item-title {
+  color: var(--accent);
 }
 
 .video-moments-title {
@@ -1281,7 +1291,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 0.75rem 0;
 }
 
 .video-moments-grid .moment-embed-item {
