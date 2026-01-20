@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getMoments, getVideos, createMoment, updateMoment, deleteMoment } from '../../lib/database';
 import type { Moment, Video } from '../../lib/database';
 import { uploadVideoToR2, deleteFileFromR2, isVideoFile, formatFileSize } from '../../lib/r2Upload';
@@ -16,6 +16,13 @@ export default function AdminMoments() {
     date: '',
     video_id: '',
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
+
+  // URL 변경 감지 로그
+  useEffect(() => {
+    console.log('[AdminMoments] formData.tweet_url changed:', formData.tweet_url);
+  }, [formData.tweet_url]);
 
   useEffect(() => {
     loadData();
@@ -53,30 +60,35 @@ export default function AdminMoments() {
       return;
     }
 
+    console.log('[AdminMoments] File upload triggered');
     setUploading(true);
     setUploadProgress(`업로드 중... (${formatFileSize(file.size)})`);
 
     try {
+      console.log('[AdminMoments] Calling uploadVideoToR2...');
       const uploadedUrl = await uploadVideoToR2(file);
-      console.log('Uploaded R2 URL (Moment):', uploadedUrl);
+      console.log('[AdminMoments] Upload result URL (Moment):', uploadedUrl);
       if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
 
       // 구버전 파일 배경 삭제
       const oldUrl = formData.tweet_url;
       if (oldUrl) {
+        console.log('[AdminMoments] Old URL exists, scheduling delete:', oldUrl);
         deleteFileFromR2(oldUrl).catch(err => console.error('Failed to delete old moment file in background:', err));
       }
 
+      console.log('[AdminMoments] Updating formData.tweet_url with:', uploadedUrl);
       setFormData(prev => ({ ...prev, tweet_url: uploadedUrl }));
       setUploadProgress('업로드 완료! ✅');
       setTimeout(() => setUploadProgress(''), 3000);
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('[AdminMoments] Upload error:', error);
       alert('업로드 실패: ' + (error as Error).message);
       setUploadProgress('');
     } finally {
+      console.log('[AdminMoments] Upload process finished, resetting uploading state');
       setUploading(false);
-      if (e.target) e.target.value = '';
+      setFileInputKey(prev => prev + 1);
     }
   };
 
@@ -179,6 +191,8 @@ export default function AdminMoments() {
           <div className="form-group">
             <label htmlFor="moment-file">📤 영상 파일 직접 업로드</label>
             <input
+              key={fileInputKey}
+              ref={fileInputRef}
               id="moment-file"
               type="file"
               accept="video/*"

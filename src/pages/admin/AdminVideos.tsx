@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getVideos, createVideo, updateVideo, deleteVideo } from '../../lib/database';
 import type { Video } from '../../lib/database';
 import { uploadVideoToR2, deleteFileFromR2, isVideoFile, formatFileSize } from '../../lib/r2Upload';
@@ -74,6 +74,17 @@ export default function AdminVideos() {
     date: '',
     icon: '🩵',
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
+
+  // URL 변경 감지 로그
+  useEffect(() => {
+    console.log('[AdminVideos] formData.url changed:', formData.url);
+  }, [formData.url]);
+
+  useEffect(() => {
+    console.log('[AdminVideos] uploading state changed:', uploading);
+  }, [uploading]);
 
   // URL 타입 확인
   const isYouTubeUrl = formData.url.includes('youtube.com') || formData.url.includes('youtu.be');
@@ -140,33 +151,44 @@ export default function AdminVideos() {
       return;
     }
 
+    console.log('[AdminVideos] File upload triggered');
     setUploading(true);
     setUploadProgress(`업로드 중... (${formatFileSize(file.size)})`);
 
     try {
+      console.log('[AdminVideos] Calling uploadVideoToR2...');
       const uploadedUrl = await uploadVideoToR2(file);
-      console.log('Uploaded R2 URL:', uploadedUrl);
-      if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
+      console.log('[AdminVideos] Upload result URL:', uploadedUrl);
       
-      // 구버전 파일이 있다면 배경에서 삭제 수행 (URL 업데이트를 방해하지 않도록 await 하지 않음)
+      if (!uploadedUrl) {
+        throw new Error('업로드된 URL이 비어있습니다.');
+      }
+      
+      // 구버전 파일이 있다면 배경에서 삭제 수행
       const oldUrl = formData.url;
       if (oldUrl) {
+        console.log('[AdminVideos] Old URL exists, scheduling delete:', oldUrl);
         deleteFileFromR2(oldUrl).catch(err => console.error('Failed to delete old file in background:', err));
       }
 
-      setFormData(prev => ({ ...prev, url: uploadedUrl }));
-      setUploadProgress('업로드 완료! ✅');
+      console.log('[AdminVideos] Updating formData.url with:', uploadedUrl);
+      setFormData(prev => {
+        const next = { ...prev, url: uploadedUrl };
+        console.log('[AdminVideos] setFormData(prev => ...) update from:', prev.url, 'to:', next.url);
+        return next;
+      });
       
-      // 3초 후 메시지 제거
+      setUploadProgress('업로드 완료! ✅');
       setTimeout(() => setUploadProgress(''), 3000);
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('[AdminVideos] Upload error:', error);
       alert('업로드 실패: ' + (error as Error).message);
       setUploadProgress('');
     } finally {
+      console.log('[AdminVideos] Upload process finished, resetting uploading state');
       setUploading(false);
-      // input 초기화 (같은 파일 다시 선택 가능하도록)
-      if (e.target) e.target.value = '';
+      // input 초기화 (key를 바꿔서 강제 재렌더링 및 value 비우기)
+      setFileInputKey(prev => prev + 1);
     }
   };
 
@@ -254,6 +276,8 @@ export default function AdminVideos() {
           <div className="form-group">
             <label htmlFor="video-file">📤 영상 파일 직접 업로드</label>
             <input
+              key={fileInputKey}
+              ref={fileInputRef}
               id="video-file"
               type="file"
               accept="video/*"

@@ -16,32 +16,40 @@ const r2Client = new S3Client({
  * @returns 업로드된 파일의 공개 URL
  */
 export async function uploadVideoToR2(file: File): Promise<string> {
+  console.log('[R2] Starting upload for file:', file.name, 'size:', file.size, 'type:', file.type);
+  
   // 고유한 파일명 생성 (타임스탬프 + 원본 파일명)
   const timestamp = Date.now();
   const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   const fileName = `videos/${timestamp}-${sanitizedFileName}`;
 
   try {
-    // File을 Uint8Array로 변환 (브라우저 stream 이슈 방지)
+    console.log('[R2] Converting file to ArrayBuffer...');
     const arrayBuffer = await file.arrayBuffer();
     const body = new Uint8Array(arrayBuffer);
+    console.log('[R2] File converted. Body size:', body.length);
+
+    const bucketName = import.meta.env.VITE_R2_BUCKET_NAME;
+    console.log('[R2] Uploading to bucket:', bucketName, 'key:', fileName);
 
     // R2에 업로드
     const command = new PutObjectCommand({
-      Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
+      Bucket: bucketName,
       Key: fileName,
       Body: body,
       ContentType: file.type,
     });
 
     await r2Client.send(command);
+    console.log('[R2] Upload successful!');
 
     // 공개 URL 반환
     const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
+    console.log('[R2] Generated Public URL:', publicUrl);
     return publicUrl;
   } catch (error) {
-    console.error('R2 업로드 실패:', error);
-    throw new Error('비디오 업로드에 실패했습니다.');
+    console.error('[R2] Upload failed internal:', error);
+    throw error;
   }
 }
 
@@ -51,21 +59,24 @@ export async function uploadVideoToR2(file: File): Promise<string> {
  */
 export async function deleteFileFromR2(url: string): Promise<void> {
   const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
-  if (!url || !url.startsWith(r2PublicUrl)) return; // R2 URL이 아니면 무시
+  if (!url || !url.startsWith(r2PublicUrl)) {
+    console.log('[R2] Not an R2 URL, skipping delete:', url);
+    return;
+  }
 
-  console.log('Attempting to delete R2 file:', url);
+  console.log('[R2] Attempting to delete file:', url);
   const key = url.replace(`${r2PublicUrl}/`, '');
   
   try {
+    console.log('[R2] Deleting from bucket:', import.meta.env.VITE_R2_BUCKET_NAME, 'key:', key);
     const command = new DeleteObjectCommand({
       Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
       Key: key,
     });
     await r2Client.send(command);
-    console.log('R2 파일 삭제 완료:', key);
+    console.log('[R2] Delete successful:', key);
   } catch (error) {
-    console.error('R2 파일 삭제 실패:', error);
-    // 삭제 실패가 메인 흐름을 방해하지 않도록 에러를 던지지 않음
+    console.error('[R2] Delete failed:', error);
   }
 }
 
