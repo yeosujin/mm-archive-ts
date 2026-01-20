@@ -106,11 +106,11 @@ export default function AdminVideos() {
     try {
       const info = await fetchYouTubeInfo(videoId);
       if (info) {
-        setFormData({
-          ...formData,
+        setFormData(prev => ({
+          ...prev,
           title: info.title,
           date: info.date,
-        });
+        }));
       } else {
         alert('영상 정보를 가져올 수 없어요.');
       }
@@ -145,6 +145,9 @@ export default function AdminVideos() {
 
     try {
       const uploadedUrl = await uploadVideoToR2(file);
+      console.log('Uploaded R2 URL:', uploadedUrl);
+      if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
+      
       setFormData(prev => ({ ...prev, url: uploadedUrl }));
       setUploadProgress('업로드 완료! ✅');
       setTimeout(() => setUploadProgress(''), 3000);
@@ -260,9 +263,9 @@ export default function AdminVideos() {
             <div className="input-with-button">
               <input
                 id="video-url"
-                type="url"
+                type="text"
                 value={formData.url}
-                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
                 placeholder="YouTube, Twitter(X), Weverse 영상 URL"
                 required
               />
@@ -291,7 +294,7 @@ export default function AdminVideos() {
               id="video-title"
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="영상 제목"
               required
             />
@@ -303,7 +306,7 @@ export default function AdminVideos() {
               id="video-date"
               type="date"
               value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
               required
             />
           </div>
@@ -314,7 +317,7 @@ export default function AdminVideos() {
               <select
                 id="video-icon"
                 value={formData.icon}
-                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
                 className="form-select"
               >
                 {HEART_OPTIONS.map(opt => (

@@ -58,6 +58,9 @@ export default function AdminMoments() {
 
     try {
       const uploadedUrl = await uploadVideoToR2(file);
+      console.log('Uploaded R2 URL (Moment):', uploadedUrl);
+      if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
+
       setFormData(prev => ({ ...prev, tweet_url: uploadedUrl }));
       setUploadProgress('업로드 완료! ✅');
       setTimeout(() => setUploadProgress(''), 3000);
@@ -139,11 +142,11 @@ export default function AdminMoments() {
 
   const handleVideoSelect = (videoId: string) => {
     const selectedVideo = videos.find(v => v.id === videoId);
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       video_id: videoId,
-      date: selectedVideo ? selectedVideo.date : formData.date,
-    });
+      date: selectedVideo ? selectedVideo.date : prev.date,
+    }));
   };
 
   if (loading) {
@@ -188,7 +191,7 @@ export default function AdminMoments() {
               id="moment-title"
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="어떤 순간인지 설명"
               required
             />
@@ -198,9 +201,9 @@ export default function AdminMoments() {
             <label htmlFor="moment-url">영상 URL *</label>
             <input
               id="moment-url"
-              type="url"
+              type="text"
               value={formData.tweet_url}
-              onChange={(e) => setFormData({ ...formData, tweet_url: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, tweet_url: e.target.value }))}
               placeholder="트윗 URL 또는 R2 업로드 URL"
               required
             />
@@ -231,7 +234,7 @@ export default function AdminMoments() {
               id="moment-date"
               type="date"
               value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
               required
             />
             <span className="form-hint">영상과 다른 날짜로 수정할 수도 있어요</span>
