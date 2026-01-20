@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   getVideos, getMoments, getPosts, getEpisodes, getArticles,
   getFeaturedContent, setFeaturedContent
@@ -17,11 +17,7 @@ export default function Dashboard() {
   const [currentFeatured, setCurrentFeatured] = useState<string>('없음');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadAllData();
-  }, []);
-
-  const loadAllData = async () => {
+  const loadAllData = useCallback(async () => {
     try {
       const [videosData, momentsData, postsData, episodesData, articlesData, featured] = await Promise.all([
         getVideos(),
@@ -49,7 +45,11 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
 
   const updateCurrentFeaturedLabel = (
     type: string, 
