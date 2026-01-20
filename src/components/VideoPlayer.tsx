@@ -8,6 +8,8 @@ export default function VideoPlayer({ videoUrl, className = '' }: Props) {
     <div className={`video-player ${className}`}>
       <video
         controls
+        playsInline
+        webkit-playsinline="true"
         controlsList="nodownload"
         preload="metadata"
         style={{

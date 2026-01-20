@@ -66,7 +66,8 @@ export default function AdminVideos() {
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadMessage, setUploadMessage] = useState<string>('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -153,16 +154,11 @@ export default function AdminVideos() {
 
     console.log('[AdminVideos] File upload triggered');
     setUploading(true);
-    setUploadProgress(`업로드 중... (${formatFileSize(file.size)})`);
+    setUploadProgress(0);
+    setUploadMessage(`업로드 중... (0%)`);
 
     try {
       console.log('[AdminVideos] Calling uploadVideoToR2...');
-      const uploadedUrl = await uploadVideoToR2(file);
-      console.log('[AdminVideos] Upload result URL:', uploadedUrl);
-      
-      if (!uploadedUrl) {
-        throw new Error('업로드된 URL이 비어있습니다.');
-      }
       
       // 구버전 파일이 있다면 배경에서 삭제 수행
       const oldUrl = formData.url;
@@ -171,23 +167,35 @@ export default function AdminVideos() {
         deleteFileFromR2(oldUrl).catch(err => console.error('Failed to delete old file in background:', err));
       }
 
-      console.log('[AdminVideos] Updating formData.url with:', uploadedUrl);
-      setFormData(prev => {
-        const next = { ...prev, url: uploadedUrl };
-        console.log('[AdminVideos] setFormData(prev => ...) update from:', prev.url, 'to:', next.url);
-        return next;
+      // 업로드 시작과 동시에 "업로드 중..." 선제적 표시
+      setFormData(prev => ({ ...prev, url: '업로드 중...' }));
+
+      const uploadedUrl = await uploadVideoToR2(file, (percent) => {
+        setUploadProgress(percent);
+        setUploadMessage(`업로드 중... (${percent}%)`);
       });
       
-      setUploadProgress('업로드 완료! ✅');
-      setTimeout(() => setUploadProgress(''), 3000);
+      console.log('[AdminVideos] Upload result URL:', uploadedUrl);
+      
+      if (!uploadedUrl) {
+        throw new Error('업로드된 URL이 비어있습니다.');
+      }
+
+      console.log('[AdminVideos] Updating formData.url with:', uploadedUrl);
+      setFormData(prev => ({ ...prev, url: uploadedUrl }));
+      
+      setUploadMessage('업로드 완료! ✅');
+      setTimeout(() => setUploadMessage(''), 3000);
     } catch (error) {
       console.error('[AdminVideos] Upload error:', error);
       alert('업로드 실패: ' + (error as Error).message);
-      setUploadProgress('');
+      setUploadMessage('');
+      // 오류 시 URL 원복 (또는 비우기)
+      setFormData(prev => ({ ...prev, url: '' }));
     } finally {
       console.log('[AdminVideos] Upload process finished, resetting uploading state');
       setUploading(false);
-      // input 초기화 (key를 바꿔서 강제 재렌더링 및 value 비우기)
+      setUploadProgress(0);
       setFileInputKey(prev => prev + 1);
     }
   };
@@ -272,22 +280,34 @@ export default function AdminVideos() {
       <div className="admin-section">
         <h2>{editingId ? '영상 수정' : '새 영상 추가'}</h2>
         <form onSubmit={handleSubmit} className="admin-form">
-          {/* R2 직접 업로드 */}
           <div className="form-group">
             <label htmlFor="video-file">📤 영상 파일 직접 업로드</label>
-            <input
-              key={fileInputKey}
-              ref={fileInputRef}
-              id="video-file"
-              type="file"
-              accept="video/*"
-              onChange={handleFileUpload}
-              disabled={uploading}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            {uploadProgress && (
-              <span className="form-hint" style={{ color: uploading ? '#666' : '#4CAF50' }}>
-                {uploadProgress}
+            <div className="upload-container" style={{ position: 'relative' }}>
+              <input
+                key={fileInputKey}
+                ref={fileInputRef}
+                id="video-file"
+                type="file"
+                accept="video/*"
+                onChange={handleFileUpload}
+                disabled={uploading}
+                style={{ marginBottom: '0.5rem', width: '100%' }}
+              />
+              {uploading && (
+                <div className="upload-progress-overlay">
+                  <div className="spinner"></div>
+                  <div className="progress-bar-container">
+                    <div 
+                      className="progress-bar-fill" 
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </div>
+            {uploadMessage && (
+              <span className="form-hint" style={{ color: uploading ? '#666' : '#4CAF50', fontWeight: 'bold' }}>
+                {uploadMessage}
               </span>
             )}
             <span className="form-hint">

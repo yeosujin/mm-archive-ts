@@ -8,7 +8,8 @@ export default function AdminMoments() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadMessage, setUploadMessage] = useState<string>('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -62,14 +63,12 @@ export default function AdminMoments() {
 
     console.log('[AdminMoments] File upload triggered');
     setUploading(true);
-    setUploadProgress(`업로드 중... (${formatFileSize(file.size)})`);
+    setUploadProgress(0);
+    setUploadMessage(`업로드 중... (0%)`);
 
     try {
       console.log('[AdminMoments] Calling uploadVideoToR2...');
-      const uploadedUrl = await uploadVideoToR2(file);
-      console.log('[AdminMoments] Upload result URL (Moment):', uploadedUrl);
-      if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
-
+      
       // 구버전 파일 배경 삭제
       const oldUrl = formData.tweet_url;
       if (oldUrl) {
@@ -77,17 +76,30 @@ export default function AdminMoments() {
         deleteFileFromR2(oldUrl).catch(err => console.error('Failed to delete old moment file in background:', err));
       }
 
+      // 선제적 표시
+      setFormData(prev => ({ ...prev, tweet_url: '업로드 중...' }));
+
+      const uploadedUrl = await uploadVideoToR2(file, (percent) => {
+        setUploadProgress(percent);
+        setUploadMessage(`업로드 중... (${percent}%)`);
+      });
+
+      console.log('[AdminMoments] Upload result URL (Moment):', uploadedUrl);
+      if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
+
       console.log('[AdminMoments] Updating formData.tweet_url with:', uploadedUrl);
       setFormData(prev => ({ ...prev, tweet_url: uploadedUrl }));
-      setUploadProgress('업로드 완료! ✅');
-      setTimeout(() => setUploadProgress(''), 3000);
+      setUploadMessage('업로드 완료! ✅');
+      setTimeout(() => setUploadMessage(''), 3000);
     } catch (error) {
       console.error('[AdminMoments] Upload error:', error);
       alert('업로드 실패: ' + (error as Error).message);
-      setUploadProgress('');
+      setUploadMessage('');
+      setFormData(prev => ({ ...prev, tweet_url: '' }));
     } finally {
       console.log('[AdminMoments] Upload process finished, resetting uploading state');
       setUploading(false);
+      setUploadProgress(0);
       setFileInputKey(prev => prev + 1);
     }
   };
@@ -190,19 +202,32 @@ export default function AdminMoments() {
           {/* R2 직접 업로드 */}
           <div className="form-group">
             <label htmlFor="moment-file">📤 영상 파일 직접 업로드</label>
-            <input
-              key={fileInputKey}
-              ref={fileInputRef}
-              id="moment-file"
-              type="file"
-              accept="video/*"
-              onChange={handleFileUpload}
-              disabled={uploading}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            {uploadProgress && (
-              <span className="form-hint" style={{ color: uploading ? '#666' : '#4CAF50' }}>
-                {uploadProgress}
+            <div className="upload-container" style={{ position: 'relative' }}>
+              <input
+                key={fileInputKey}
+                ref={fileInputRef}
+                id="moment-file"
+                type="file"
+                accept="video/*"
+                onChange={handleFileUpload}
+                disabled={uploading}
+                style={{ marginBottom: '0.5rem', width: '100%' }}
+              />
+              {uploading && (
+                <div className="upload-progress-overlay">
+                  <div className="spinner"></div>
+                  <div className="progress-bar-container">
+                    <div 
+                      className="progress-bar-fill" 
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </div>
+            {uploadMessage && (
+              <span className="form-hint" style={{ color: uploading ? '#666' : '#4CAF50', fontWeight: 'bold' }}>
+                {uploadMessage}
               </span>
             )}
             <span className="form-hint">

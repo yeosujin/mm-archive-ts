@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 
 // Cloudflare R2 설정 (S3 호환)
 const r2Client = new S3Client({
@@ -11,44 +12,50 @@ const r2Client = new S3Client({
 });
 
 /**
- * 비디오 파일을 Cloudflare R2에 업로드
+ * 비디오 파일을 Cloudflare R2에 업로드 (진행률 추적 지원)
  * @param file - 업로드할 비디오 파일
+ * @param onProgress - 진행률 콜백 (0-100)
  * @returns 업로드된 파일의 공개 URL
  */
-export async function uploadVideoToR2(file: File): Promise<string> {
-  console.log('[R2] Starting upload for file:', file.name, 'size:', file.size, 'type:', file.type);
+export async function uploadVideoToR2(
+  file: File, 
+  onProgress?: (progress: number) => void
+): Promise<string> {
+  console.log('[R2] Starting managed upload for file:', file.name, 'size:', file.size);
   
-  // 고유한 파일명 생성 (타임스탬프 + 원본 파일명)
   const timestamp = Date.now();
   const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   const fileName = `videos/${timestamp}-${sanitizedFileName}`;
 
   try {
-    console.log('[R2] Converting file to ArrayBuffer...');
-    const arrayBuffer = await file.arrayBuffer();
-    const body = new Uint8Array(arrayBuffer);
-    console.log('[R2] File converted. Body size:', body.length);
-
-    const bucketName = import.meta.env.VITE_R2_BUCKET_NAME;
-    console.log('[R2] Uploading to bucket:', bucketName, 'key:', fileName);
-
-    // R2에 업로드
-    const command = new PutObjectCommand({
-      Bucket: bucketName,
-      Key: fileName,
-      Body: body,
-      ContentType: file.type,
+    const parallelUploads3 = new Upload({
+      client: r2Client,
+      params: {
+        Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
+        Key: fileName,
+        Body: file,
+        ContentType: file.type,
+      },
+      // 대용량 파일의 경우 파트 크기 조절 (기본 5MB)
+      partSize: 1024 * 1024 * 5, 
+      leavePartsOnError: false,
     });
 
-    await r2Client.send(command);
-    console.log('[R2] Upload successful!');
+    parallelUploads3.on('httpUploadProgress', (progress) => {
+      if (progress.loaded && progress.total) {
+        const percent = Math.round((progress.loaded / progress.total) * 100);
+        console.log(`[R2] Upload progress: ${percent}%`);
+        onProgress?.(percent);
+      }
+    });
 
-    // 공개 URL 반환
+    await parallelUploads3.done();
+    console.log('[R2] Managed upload successful!');
+
     const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
-    console.log('[R2] Generated Public URL:', publicUrl);
     return publicUrl;
   } catch (error) {
-    console.error('[R2] Upload failed internal:', error);
+    console.error('[R2] Managed upload failed:', error);
     throw error;
   }
 }
