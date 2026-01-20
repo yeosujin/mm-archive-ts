@@ -65,52 +65,62 @@ export async function uploadVideoToR2(
  * @param url - 삭제할 파일의 공개 URL
  */
 export async function deleteFileFromR2(url: string): Promise<void> {
+  if (!url) {
+    console.log('[R2] Empty URL, skipping delete');
+    return;
+  }
+
   const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL || '';
-  
-  // URL 정규화: 트레이링 슬래시 제거
   const normalizedPublicUrl = r2PublicUrl.replace(/\/$/, '');
+  
+  // R2 URL 판단 로직 개선
   const isR2Url = url.includes('.r2.dev') || 
                   url.includes('r2.cloudflarestorage.com') || 
                   (normalizedPublicUrl && url.startsWith(normalizedPublicUrl));
 
-  if (!url || !isR2Url) {
-    console.log('[R2] Not an R2 URL or empty, skipping delete:', url);
+  if (!isR2Url) {
+    console.log('[R2] Not an R2 URL, skipping delete:', url);
     return;
   }
 
-  console.log('[R2] Attempting to delete file:', url);
+  console.log('[R2] Deleting file:', url);
   
-  // 키 추출 로직 개선: 공개 URL 기반 또는 도메인 기반
   let key = '';
-  if (normalizedPublicUrl && url.startsWith(normalizedPublicUrl)) {
-    key = url.replace(normalizedPublicUrl, '').replace(/^\//, '');
-  } else {
-    // 도메인 이후의 경로를 키로 간주
-    try {
+  try {
+    if (normalizedPublicUrl && url.startsWith(normalizedPublicUrl)) {
+      // 퍼블릭 도메인을 제외한 나머지를 키로 추출
+      key = url.replace(normalizedPublicUrl, '').replace(/^\/+/, '');
+    } else {
+      // 도메인 이후의 경로를 키로 간주
       const urlObj = new URL(url);
-      key = urlObj.pathname.replace(/^\//, '');
-    } catch {
-      console.error('[R2] Failed to parse URL for key extraction:', url);
-      return;
+      key = urlObj.pathname.replace(/^\/+/, '');
     }
+    
+    // URL 디코딩 (공백이나 특수문자 대응)
+    key = decodeURIComponent(key);
+  } catch (e) {
+    console.error('[R2] Failed to parse URL or extract key:', url, e);
+    return;
   }
   
   if (!key) {
-    console.log('[R2] Key extraction failed, skipping delete:', url);
+    console.warn('[R2] Key extraction failed (empty key) for URL:', url);
     return;
   }
 
   try {
     const bucketName = import.meta.env.VITE_R2_BUCKET_NAME;
-    console.log('[R2] Deleting from bucket:', bucketName, 'key:', key);
+    console.log(`[R2] Attempting delete - Bucket: ${bucketName}, Key: ${key}`);
+    
     const command = new DeleteObjectCommand({
       Bucket: bucketName,
       Key: key,
     });
+    
     await r2Client.send(command);
-    console.log('[R2] Delete successful:', key);
+    console.log('[R2] Delete successful ✅ Key:', key);
   } catch (error) {
-    console.error('[R2] Delete failed:', error);
+    console.error('[R2] Delete operation failed ❌', error);
   }
 }
 
