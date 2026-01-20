@@ -89,7 +89,7 @@ export async function deleteFileFromR2(url: string): Promise<void> {
     try {
       const urlObj = new URL(url);
       key = urlObj.pathname.replace(/^\//, '');
-    } catch (_e) {
+    } catch {
       console.error('[R2] Failed to parse URL for key extraction:', url);
       return;
     }
