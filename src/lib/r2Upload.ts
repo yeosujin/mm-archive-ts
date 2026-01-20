@@ -21,7 +21,12 @@ export async function uploadVideoToR2(
   file: File, 
   onProgress?: (progress: number) => void
 ): Promise<string> {
-  console.log('[R2] Starting managed upload for file:', file.name, 'size:', file.size);
+  console.log('[R2] Starting managed upload:', {
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    lastModified: new Date(file.lastModified).toISOString()
+  });
   
   const timestamp = Date.now();
   const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -54,8 +59,16 @@ export async function uploadVideoToR2(
 
     const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
     return publicUrl;
-  } catch (error) {
-    console.error('[R2] Managed upload failed:', error);
+  } catch (error: any) {
+    console.error('[R2] Managed upload failed ❌');
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    if (error.$metadata) {
+      console.error('AWS Metadata:', error.$metadata);
+    }
+    if (error.stack) {
+      console.error('Stack trace:', error.stack);
+    }
     throw error;
   }
 }

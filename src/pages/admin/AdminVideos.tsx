@@ -179,9 +179,10 @@ export default function AdminVideos() {
       
       setUploadMessage('업로드 완료! ✅');
       setTimeout(() => setUploadMessage(''), 3000);
-    } catch (error) {
-      console.error('[AdminVideos] Upload error:', error);
-      alert('업로드 실패: ' + (error as Error).message);
+    } catch (error: any) {
+      console.error('[AdminVideos] Upload error details:', error);
+      const errorDetail = error.message || '알 수 없는 오류';
+      alert(`업로드 실패 ❌\n원인: ${errorDetail}\n\n브라우저 콘솔(F12)을 확인하여 상세 에러 로그를 확인해주세요.`);
       setUploadMessage('');
       // 오류 시 URL 원복 (또는 비우기)
       setFormData(prev => ({ ...prev, url: '' }));
