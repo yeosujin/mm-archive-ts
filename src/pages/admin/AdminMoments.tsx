@@ -61,9 +61,10 @@ export default function AdminMoments() {
       console.log('Uploaded R2 URL (Moment):', uploadedUrl);
       if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
 
-      // 기존 R2 파일 삭제
-      if (formData.tweet_url) {
-        await deleteFileFromR2(formData.tweet_url);
+      // 구버전 파일 배경 삭제
+      const oldUrl = formData.tweet_url;
+      if (oldUrl) {
+        deleteFileFromR2(oldUrl).catch(err => console.error('Failed to delete old moment file in background:', err));
       }
 
       setFormData(prev => ({ ...prev, tweet_url: uploadedUrl }));
@@ -75,7 +76,7 @@ export default function AdminMoments() {
       setUploadProgress('');
     } finally {
       setUploading(false);
-      e.target.value = '';
+      if (e.target) e.target.value = '';
     }
   };
 
