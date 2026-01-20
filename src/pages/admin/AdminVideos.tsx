@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getVideos, createVideo, updateVideo, deleteVideo } from '../../lib/database';
 import type { Video } from '../../lib/database';
-import { uploadVideoToR2, deleteFileFromR2, isVideoFile, formatFileSize } from '../../lib/r2Upload';
+import { uploadVideoToR2, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
 
 const HEART_OPTIONS = [
   { value: '💙', label: '💙 파란색' },

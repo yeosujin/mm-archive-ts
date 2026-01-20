@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getMoments, getVideos, createMoment, updateMoment, deleteMoment } from '../../lib/database';
 import type { Moment, Video } from '../../lib/database';
-import { uploadVideoToR2, deleteFileFromR2, isVideoFile, formatFileSize } from '../../lib/r2Upload';
+import { uploadVideoToR2, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
 
 export default function AdminMoments() {
   const [moments, setMoments] = useState<Moment[]>([]);
