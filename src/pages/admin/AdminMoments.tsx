@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getMoments, getVideos, createMoment, updateMoment, deleteMoment } from '../../lib/database';
 import type { Moment, Video } from '../../lib/database';
-import { uploadVideoToR2, isVideoFile, formatFileSize } from '../../lib/r2Upload';
+import { uploadVideoToR2, deleteFileFromR2, isVideoFile, formatFileSize } from '../../lib/r2Upload';
 
 export default function AdminMoments() {
   const [moments, setMoments] = useState<Moment[]>([]);
@@ -60,6 +60,11 @@ export default function AdminMoments() {
       const uploadedUrl = await uploadVideoToR2(file);
       console.log('Uploaded R2 URL (Moment):', uploadedUrl);
       if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
+
+      // 기존 R2 파일 삭제
+      if (formData.tweet_url) {
+        await deleteFileFromR2(formData.tweet_url);
+      }
 
       setFormData(prev => ({ ...prev, tweet_url: uploadedUrl }));
       setUploadProgress('업로드 완료! ✅');
@@ -125,6 +130,11 @@ export default function AdminMoments() {
     if (!confirm('정말 삭제하시겠어요?')) return;
     
     try {
+      const moment = moments.find(m => m.id === id);
+      if (moment?.tweet_url) {
+        await deleteFileFromR2(moment.tweet_url);
+      }
+
       await deleteMoment(id);
       alert('삭제되었어요!');
       loadData();

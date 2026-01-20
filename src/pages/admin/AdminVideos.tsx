@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getVideos, createVideo, updateVideo, deleteVideo } from '../../lib/database';
 import type { Video } from '../../lib/database';
-import { uploadVideoToR2, isVideoFile, formatFileSize } from '../../lib/r2Upload';
+import { uploadVideoToR2, deleteFileFromR2, isVideoFile, formatFileSize } from '../../lib/r2Upload';
 
 const HEART_OPTIONS = [
   { value: '💙', label: '💙 파란색' },
@@ -148,6 +148,12 @@ export default function AdminVideos() {
       console.log('Uploaded R2 URL:', uploadedUrl);
       if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
       
+      // 기존에 R2 URL이 있었다면 구버전 파일 삭제 예약 (성공 시에만 실행하기 위해 나중에 처리하거나 즉시 처리)
+      // 여기서는 사용자의 교체 의사가 확실하므로 즉시 삭제 시도
+      if (formData.url) {
+        await deleteFileFromR2(formData.url);
+      }
+
       setFormData(prev => ({ ...prev, url: uploadedUrl }));
       setUploadProgress('업로드 완료! ✅');
       setTimeout(() => setUploadProgress(''), 3000);
@@ -213,6 +219,11 @@ export default function AdminVideos() {
     if (!confirm('정말 삭제하시겠어요?')) return;
     
     try {
+      const video = videos.find(v => v.id === id);
+      if (video?.url) {
+        await deleteFileFromR2(video.url);
+      }
+      
       await deleteVideo(id);
       alert('삭제되었어요!');
       loadVideos();

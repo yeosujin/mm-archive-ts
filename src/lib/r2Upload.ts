@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 // Cloudflare R2 설정 (S3 호환)
 const r2Client = new S3Client({
@@ -42,6 +42,30 @@ export async function uploadVideoToR2(file: File): Promise<string> {
   } catch (error) {
     console.error('R2 업로드 실패:', error);
     throw new Error('비디오 업로드에 실패했습니다.');
+  }
+}
+
+/**
+ * Cloudflare R2에서 파일 삭제
+ * @param url - 삭제할 파일의 공개 URL
+ */
+export async function deleteFileFromR2(url: string): Promise<void> {
+  const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
+  if (!url || !url.startsWith(r2PublicUrl)) return; // R2 URL이 아니면 무시
+
+  console.log('Attempting to delete R2 file:', url);
+  const key = url.replace(`${r2PublicUrl}/`, '');
+  
+  try {
+    const command = new DeleteObjectCommand({
+      Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
+      Key: key,
+    });
+    await r2Client.send(command);
+    console.log('R2 파일 삭제 완료:', key);
+  } catch (error) {
+    console.error('R2 파일 삭제 실패:', error);
+    // 삭제 실패가 메인 흐름을 방해하지 않도록 에러를 던지지 않음
   }
 }
 
