@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getVideos, getPosts, getMoments, getFeaturedContent } from '../lib/database';
 import type { Video, Post, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
-import TwitterVideoEmbed from '../components/TwitterVideoEmbed';
 import PostEmbed from '../components/PostEmbed';
 
 export default function Home() {
@@ -117,8 +116,11 @@ export default function Home() {
           
           {featuredItem.type === 'moment' && (
             <div className="featured-content">
-              <TwitterVideoEmbed tweetUrl={(featuredItem.item as Moment).tweet_url} />
-        </div>
+              <VideoEmbed 
+                url={(featuredItem.item as Moment).tweet_url} 
+                title={(featuredItem.item as Moment).title}
+              />
+            </div>
           )}
         </div>
       )}

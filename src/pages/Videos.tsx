@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { getVideos, getMomentsByVideoId } from '../lib/database';
 import type { Video, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
-import TwitterVideoEmbed from '../components/TwitterVideoEmbed';
 import PlatformIcon from '../components/PlatformIcon';
 import { detectVideoPlatform } from '../lib/platformUtils';
 
@@ -159,7 +158,10 @@ export default function Videos() {
                                   {moments.map((moment) => (
                           <div key={moment.id} className="moment-embed-item">
                                       <h4 className="moment-title">{moment.title}</h4>
-                                      <TwitterVideoEmbed tweetUrl={moment.tweet_url} />
+                                      <VideoEmbed 
+                                        url={moment.tweet_url} 
+                                        title={moment.title}
+                                      />
                           </div>
                         ))}
                       </div>

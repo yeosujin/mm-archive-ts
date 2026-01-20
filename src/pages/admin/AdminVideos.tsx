@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getVideos, createVideo, updateVideo, deleteVideo } from '../../lib/database';
 import type { Video } from '../../lib/database';
+import { uploadVideoToR2, isVideoFile, formatFileSize } from '../../lib/r2Upload';
 
 const HEART_OPTIONS = [
   { value: '💙', label: '💙 파란색' },
@@ -64,6 +65,8 @@ export default function AdminVideos() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -116,6 +119,43 @@ export default function AdminVideos() {
       alert('영상 정보를 가져오는 중 오류가 발생했어요.');
     } finally {
       setFetching(false);
+    }
+  };
+
+  // 파일 업로드 핸들러
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 비디오 파일 확인
+    if (!isVideoFile(file)) {
+      alert('비디오 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    // 파일 크기 확인 (100MB 제한)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+      alert('파일 크기는 100MB 이하여야 합니다.');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(`업로드 중... (${formatFileSize(file.size)})`);
+
+    try {
+      const url = await uploadVideoToR2(file);
+      setFormData({ ...formData, url });
+      setUploadProgress('업로드 완료! ✅');
+      setTimeout(() => setUploadProgress(''), 3000);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('업로드 실패: ' + (error as Error).message);
+      setUploadProgress('');
+    } finally {
+      setUploading(false);
+      // input 초기화
+      e.target.value = '';
     }
   };
 
@@ -194,6 +234,27 @@ export default function AdminVideos() {
       <div className="admin-section">
         <h2>{editingId ? '영상 수정' : '새 영상 추가'}</h2>
         <form onSubmit={handleSubmit} className="admin-form">
+          {/* R2 직접 업로드 */}
+          <div className="form-group">
+            <label htmlFor="video-file">📤 영상 파일 직접 업로드</label>
+            <input
+              id="video-file"
+              type="file"
+              accept="video/*"
+              onChange={handleFileUpload}
+              disabled={uploading}
+              style={{ marginBottom: '0.5rem' }}
+            />
+            {uploadProgress && (
+              <span className="form-hint" style={{ color: uploading ? '#666' : '#4CAF50' }}>
+                {uploadProgress}
+              </span>
+            )}
+            <span className="form-hint">
+              또는 아래에 YouTube/Twitter/Weverse URL을 입력하세요
+            </span>
+          </div>
+
           <div className="form-group">
             <label htmlFor="video-url">영상 URL *</label>
             <div className="input-with-button">

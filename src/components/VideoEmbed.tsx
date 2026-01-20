@@ -1,4 +1,5 @@
 import TweetEmbed from './TweetEmbed';
+import VideoPlayer from './VideoPlayer';
 
 interface Props {
   url: string;
@@ -8,7 +9,16 @@ interface Props {
 }
 
 // URL 타입 감지
-function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'unknown' {
+function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'r2' | 'unknown' {
+  // R2 URL 감지 (환경변수의 PUBLIC_URL 또는 .r2.dev 도메인)
+  const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
+  if (r2PublicUrl && url.startsWith(r2PublicUrl)) {
+    return 'r2';
+  }
+  if (url.includes('.r2.dev') || url.includes('.r2.cloudflarestorage.com')) {
+    return 'r2';
+  }
+  
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     return 'youtube';
   }
@@ -43,6 +53,11 @@ function getYouTubeId(url: string): string | null {
 
 export default function VideoEmbed({ url, title, icon, className = '' }: Props) {
   const videoType = getVideoType(url);
+
+  // R2 직접 업로드 영상
+  if (videoType === 'r2') {
+    return <VideoPlayer videoUrl={url} className={className} />;
+  }
 
   if (videoType === 'youtube') {
     const videoId = getYouTubeId(url);

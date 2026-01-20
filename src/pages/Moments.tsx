@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getMoments } from '../lib/database';
 import type { Moment } from '../lib/database';
-import TwitterVideoEmbed from '../components/TwitterVideoEmbed';
+import VideoEmbed from '../components/VideoEmbed';
 
 export default function Moments() {
   const [moments, setMoments] = useState<Moment[]>([]);
@@ -100,7 +100,7 @@ export default function Moments() {
                 <div className="moment-list">
                 {dateMoments.map((moment) => (
                     <div key={moment.id} className="moment-item">
-                      <TwitterVideoEmbed tweetUrl={moment.tweet_url} />
+                      <VideoEmbed url={moment.tweet_url} title={moment.title} />
                   </div>
                 ))}
               </div>

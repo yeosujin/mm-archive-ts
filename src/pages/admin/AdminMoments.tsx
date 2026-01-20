@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { getMoments, getVideos, createMoment, updateMoment, deleteMoment } from '../../lib/database';
 import type { Moment, Video } from '../../lib/database';
+import { uploadVideoToR2, isVideoFile, formatFileSize } from '../../lib/r2Upload';
 
 export default function AdminMoments() {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -30,6 +33,40 @@ export default function AdminMoments() {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 파일 업로드 핸들러
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!isVideoFile(file)) {
+      alert('비디오 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    const maxSize = 100 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('파일 크기는 100MB 이하여야 합니다.');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(`업로드 중... (${formatFileSize(file.size)})`);
+
+    try {
+      const url = await uploadVideoToR2(file);
+      setFormData({ ...formData, tweet_url: url });
+      setUploadProgress('업로드 완료! ✅');
+      setTimeout(() => setUploadProgress(''), 3000);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('업로드 실패: ' + (error as Error).message);
+      setUploadProgress('');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -123,6 +160,27 @@ export default function AdminMoments() {
       <div className="admin-section">
         <h2>{editingId ? '모먼트 수정' : '새 모먼트 추가'}</h2>
         <form onSubmit={handleSubmit} className="admin-form">
+          {/* R2 직접 업로드 */}
+          <div className="form-group">
+            <label htmlFor="moment-file">📤 영상 파일 직접 업로드</label>
+            <input
+              id="moment-file"
+              type="file"
+              accept="video/*"
+              onChange={handleFileUpload}
+              disabled={uploading}
+              style={{ marginBottom: '0.5rem' }}
+            />
+            {uploadProgress && (
+              <span className="form-hint" style={{ color: uploading ? '#666' : '#4CAF50' }}>
+                {uploadProgress}
+              </span>
+            )}
+            <span className="form-hint">
+              또는 아래에 트윗 URL을 입력하세요
+            </span>
+          </div>
+
           <div className="form-group">
             <label htmlFor="moment-title">제목 *</label>
             <input
@@ -136,16 +194,16 @@ export default function AdminMoments() {
           </div>
           
           <div className="form-group">
-            <label htmlFor="moment-url">트윗 URL *</label>
+            <label htmlFor="moment-url">영상 URL *</label>
             <input
               id="moment-url"
               type="url"
               value={formData.tweet_url}
               onChange={(e) => setFormData({ ...formData, tweet_url: e.target.value })}
-              placeholder="https://x.com/.../status/..."
+              placeholder="트윗 URL 또는 R2 업로드 URL"
               required
             />
-            <span className="form-hint">트위터(X)에 영상을 올린 후 트윗 URL을 복사해서 붙여넣으세요</span>
+            <span className="form-hint">트위터(X) 트윗 URL 또는 위에서 업로드한 영상 URL</span>
           </div>
           
           <div className="form-group">
