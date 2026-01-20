@@ -34,36 +34,42 @@ export default function Layout() {
             <NavLink 
               to="/videos" 
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/Videos')}
             >
               영상
             </NavLink>
             <NavLink 
               to="/moments" 
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/Moments')}
             >
               모먼트
             </NavLink>
             <NavLink 
               to="/posts" 
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/Posts')}
             >
               포스트
             </NavLink>
             <NavLink 
               to="/episodes" 
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/Episodes')}
             >
               에피소드
             </NavLink>
             <NavLink 
               to="/articles" 
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/Articles')}
             >
               글
             </NavLink>
             <NavLink 
               to="/calendar" 
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/Calendar')}
             >
               📅
             </NavLink>

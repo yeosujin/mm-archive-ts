@@ -1,30 +1,43 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  getVideos, getMoments, getPosts, getEpisodes, getArticles,
   getFeaturedContent, setFeaturedContent
 } from '../../lib/database';
 import type { Video, Moment, Post, Episode, Article } from '../../lib/database';
+import { useData } from '../../context/DataContext';
 
 export default function Dashboard() {
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [moments, setMoments] = useState<Moment[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [articles, setArticles] = useState<Article[]>([]);
+  const { 
+    videos: cachedVideos, 
+    moments: cachedMoments, 
+    posts: cachedPosts, 
+    episodes: cachedEpisodes, 
+    articles: cachedArticles,
+    fetchVideos,
+    fetchMoments,
+    fetchPosts,
+    fetchEpisodes,
+    fetchArticles
+  } = useData();
+
+  const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
+  const [moments, setMoments] = useState<Moment[]>(cachedMoments || []);
+  const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
+  const [episodes, setEpisodes] = useState<Episode[]>(cachedEpisodes || []);
+  const [articles, setArticles] = useState<Article[]>(cachedArticles || []);
   
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedId, setSelectedId] = useState<string>('');
   const [currentFeatured, setCurrentFeatured] = useState<string>('없음');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedVideos || !cachedMoments || !cachedPosts || !cachedEpisodes || !cachedArticles);
 
   const loadAllData = useCallback(async () => {
     try {
       const [videosData, momentsData, postsData, episodesData, articlesData, featured] = await Promise.all([
-        getVideos(),
-        getMoments(),
-        getPosts(),
-        getEpisodes(),
-        getArticles(),
+        fetchVideos(),
+        fetchMoments(),
+        fetchPosts(),
+        fetchEpisodes(),
+        fetchArticles(),
         getFeaturedContent()
       ]);
       
@@ -45,11 +58,18 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchArticles]);
 
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
+
+  // Sync with cache
+  useEffect(() => { if (cachedVideos) setVideos(cachedVideos); }, [cachedVideos]);
+  useEffect(() => { if (cachedMoments) setMoments(cachedMoments); }, [cachedMoments]);
+  useEffect(() => { if (cachedPosts) setPosts(cachedPosts); }, [cachedPosts]);
+  useEffect(() => { if (cachedEpisodes) setEpisodes(cachedEpisodes); }, [cachedEpisodes]);
+  useEffect(() => { if (cachedArticles) setArticles(cachedArticles); }, [cachedArticles]);
 
   const updateCurrentFeaturedLabel = (
     type: string, 

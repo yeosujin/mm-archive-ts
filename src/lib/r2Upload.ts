@@ -59,15 +59,23 @@ export async function uploadVideoToR2(
 
     const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
     return publicUrl;
-  } catch (error: any) {
+  } catch (error) {
     console.error('[R2] Managed upload failed ❌');
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    if (error.$metadata) {
-      console.error('AWS Metadata:', error.$metadata);
-    }
-    if (error.stack) {
-      console.error('Stack trace:', error.stack);
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      
+      // AWS specific metadata check
+      const awsError = error as Error & { $metadata?: unknown };
+      if (awsError.$metadata) {
+        console.error('AWS Metadata:', awsError.$metadata);
+      }
+      
+      if (error.stack) {
+        console.error('Stack trace:', error.stack);
+      }
+    } else {
+      console.error('Unknown error:', error);
     }
     throw error;
   }

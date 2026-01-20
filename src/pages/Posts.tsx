@@ -1,30 +1,35 @@
-import { useState, useEffect } from 'react';
-import { getPosts } from '../lib/database';
+import { useState, useEffect, useCallback } from 'react';
 import type { Post } from '../lib/database';
 import PostEmbed from '../components/PostEmbed';
 import PlatformIcon from '../components/PlatformIcon';
 import { getPlatformName } from '../lib/platformUtils';
+import { useData } from '../context/DataContext';
 
 export default function Posts() {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const { posts: cachedPosts, fetchPosts } = useData();
+  const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedPosts);
 
-  useEffect(() => {
-    loadPosts();
-  }, []);
-
-  const loadPosts = async () => {
+  const loadPosts = useCallback(async () => {
     try {
-      const data = await getPosts();
+      const data = await fetchPosts();
       setPosts(data);
     } catch (error) {
       console.error('Error loading posts:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchPosts]);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
+
+  useEffect(() => {
+    if (cachedPosts) setPosts(cachedPosts);
+  }, [cachedPosts]);
 
   // 검색 필터링 (제목, 날짜)
   const filteredPosts = searchQuery

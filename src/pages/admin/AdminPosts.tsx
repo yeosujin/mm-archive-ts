@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
-import { getPosts, createPost, updatePost, deletePost } from '../../lib/database';
+import { useState, useEffect, useCallback } from 'react';
+import { createPost, updatePost, deletePost } from '../../lib/database';
 import type { Post } from '../../lib/database';
 import { detectPlatform } from '../../lib/platformUtils';
 import PlatformIcon from '../../components/PlatformIcon';
 import { getPlatformName } from '../../lib/platformUtils';
+import { useData } from '../../context/DataContext';
 
 export default function AdminPosts() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { posts: cachedPosts, fetchPosts, invalidateCache } = useData();
+  const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
+  const [loading, setLoading] = useState(!cachedPosts);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -16,20 +18,24 @@ export default function AdminPosts() {
     platform: 'twitter' as 'twitter' | 'instagram' | 'weverse' | 'other',
   });
 
-  useEffect(() => {
-    loadPosts();
-  }, []);
-
-  const loadPosts = async () => {
+  const loadPosts = useCallback(async () => {
     try {
-      const data = await getPosts();
+      const data = await fetchPosts();
       setPosts(data);
     } catch (error) {
       console.error('Error loading posts:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchPosts]);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
+
+  useEffect(() => {
+    if (cachedPosts) setPosts(cachedPosts);
+  }, [cachedPosts]);
 
   // URL 변경 시 플랫폼 자동 감지
   const handleUrlChange = (url: string) => {
@@ -61,6 +67,7 @@ export default function AdminPosts() {
       }
       
       setFormData({ title: '', url: '', date: '', platform: 'twitter' });
+      invalidateCache('posts');
       loadPosts();
     } catch (error) {
       console.error('Error saving post:', error);
@@ -90,6 +97,7 @@ export default function AdminPosts() {
     try {
       await deletePost(id);
       alert('삭제되었어요!');
+      invalidateCache('posts');
       loadPosts();
     } catch (error) {
       console.error('Error deleting post:', error);

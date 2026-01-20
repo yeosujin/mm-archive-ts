@@ -1,32 +1,41 @@
-import { useState, useEffect } from 'react';
-import { getEpisodes, getMemberSettings, getVideos, getMoments, getPosts } from '../lib/database';
+import { useState, useEffect, useCallback } from 'react';
 import type { Episode, MemberSettings, Video, Moment, Post } from '../lib/database';
+import { useData } from '../context/DataContext';
 
 export default function Episodes() {
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [moments, setMoments] = useState<Moment[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [memberSettings, setMemberSettings] = useState<MemberSettings>({
+  const { 
+    episodes: cachedEpisodes, 
+    memberSettings: cachedSettings,
+    videos: cachedVideos,
+    moments: cachedMoments,
+    posts: cachedPosts,
+    fetchEpisodes,
+    fetchMemberSettings,
+    fetchVideos,
+    fetchMoments,
+    fetchPosts
+  } = useData();
+
+  const [episodes, setEpisodes] = useState<Episode[]>(cachedEpisodes || []);
+  const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
+  const [moments, setMoments] = useState<Moment[]>(cachedMoments || []);
+  const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
+  const [memberSettings, setMemberSettings] = useState<MemberSettings>(cachedSettings || {
     member1_name: '멤버1',
     member2_name: '멤버2',
   });
   const [expandedEpisode, setExpandedEpisode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedEpisodes || !cachedSettings);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [episodesData, settings, videosData, momentsData, postsData] = await Promise.all([
-        getEpisodes(),
-        getMemberSettings(),
-        getVideos(),
-        getMoments(),
-        getPosts()
+        fetchEpisodes(),
+        fetchMemberSettings(),
+        fetchVideos(),
+        fetchMoments(),
+        fetchPosts()
       ]);
       setEpisodes(episodesData);
       setMemberSettings(settings);
@@ -38,7 +47,18 @@ export default function Episodes() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchEpisodes, fetchMemberSettings, fetchVideos, fetchMoments, fetchPosts]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Sync with cache
+  useEffect(() => { if (cachedEpisodes) setEpisodes(cachedEpisodes); }, [cachedEpisodes]);
+  useEffect(() => { if (cachedSettings) setMemberSettings(cachedSettings); }, [cachedSettings]);
+  useEffect(() => { if (cachedVideos) setVideos(cachedVideos); }, [cachedVideos]);
+  useEffect(() => { if (cachedMoments) setMoments(cachedMoments); }, [cachedMoments]);
+  useEffect(() => { if (cachedPosts) setPosts(cachedPosts); }, [cachedPosts]);
 
   // 검색 필터링 (날짜, 메시지 내용, 댓글 내용)
   const filteredEpisodes = searchQuery

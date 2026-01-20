@@ -15,6 +15,7 @@ export interface Moment {
   tweet_url: string;
   date: string;
   video_id?: string;
+  position?: number;
 }
 
 export interface Post {
@@ -122,7 +123,9 @@ export async function getMoments(): Promise<Moment[]> {
   const { data, error } = await supabase
     .from('moments')
     .select('*')
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true });
   
   if (error) throw error;
   return data || [];
@@ -133,7 +136,9 @@ export async function getMomentsByVideoId(videoId: string): Promise<Moment[]> {
     .from('moments')
     .select('*')
     .eq('video_id', videoId)
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true });
   
   if (error) throw error;
   return data || [];
@@ -169,6 +174,20 @@ export async function deleteMoment(id: string): Promise<void> {
     .eq('id', id);
   
   if (error) throw error;
+}
+
+export async function updateMomentPositions(updates: { id: string; position: number }[]): Promise<void> {
+  const promises = updates.map((update) =>
+    supabase
+      .from('moments')
+      .update({ position: update.position })
+      .eq('id', update.id)
+  );
+
+  const results = await Promise.all(promises);
+  const firstError = results.find(r => r.error)?.error;
+  
+  if (firstError) throw firstError;
 }
 
 // ============ Posts ============

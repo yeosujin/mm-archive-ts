@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  getEpisodes, createEpisode, updateEpisode, deleteEpisode, 
-  getMemberSettings, updateMemberSettings,
-  getVideos, getMoments, getPosts
+  createEpisode, updateEpisode, deleteEpisode, 
+  updateMemberSettings
 } from '../../lib/database';
 import type { Episode, MemberSettings, Video, Moment, Post } from '../../lib/database';
 import Tesseract from 'tesseract.js';
+import { useData } from '../../context/DataContext';
 
 interface MessageInput {
   type: 'text' | 'image';
@@ -14,13 +14,27 @@ interface MessageInput {
 }
 
 export default function AdminEpisodes() {
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [moments, setMoments] = useState<Moment[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    episodes: cachedEpisodes, 
+    memberSettings: cachedSettings,
+    videos: cachedVideos,
+    moments: cachedMoments,
+    posts: cachedPosts,
+    fetchEpisodes,
+    fetchMemberSettings,
+    fetchVideos,
+    fetchMoments,
+    fetchPosts,
+    invalidateCache
+  } = useData();
+
+  const [episodes, setEpisodes] = useState<Episode[]>(cachedEpisodes || []);
+  const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
+  const [moments, setMoments] = useState<Moment[]>(cachedMoments || []);
+  const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
+  const [loading, setLoading] = useState(!cachedEpisodes || !cachedSettings);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [memberSettings, setMemberSettings] = useState<MemberSettings>({
+  const [memberSettings, setMemberSettings] = useState<MemberSettings>(cachedSettings || {
     member1_name: '멤버1',
     member2_name: '멤버2',
   });
@@ -52,18 +66,14 @@ export default function AdminEpisodes() {
   const [ocrProgress, setOcrProgress] = useState(0);
   const ocrInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [episodesData, settings, videosData, momentsData, postsData] = await Promise.all([
-        getEpisodes(),
-        getMemberSettings(),
-        getVideos(),
-        getMoments(),
-        getPosts()
+        fetchEpisodes(),
+        fetchMemberSettings(),
+        fetchVideos(),
+        fetchMoments(),
+        fetchPosts()
       ]);
       setEpisodes(episodesData);
       setMemberSettings(settings);
@@ -75,12 +85,24 @@ export default function AdminEpisodes() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchEpisodes, fetchMemberSettings, fetchVideos, fetchMoments, fetchPosts]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Sync with cache
+  useEffect(() => { if (cachedEpisodes) setEpisodes(cachedEpisodes); }, [cachedEpisodes]);
+  useEffect(() => { if (cachedSettings) setMemberSettings(cachedSettings); }, [cachedSettings]);
+  useEffect(() => { if (cachedVideos) setVideos(cachedVideos); }, [cachedVideos]);
+  useEffect(() => { if (cachedMoments) setMoments(cachedMoments); }, [cachedMoments]);
+  useEffect(() => { if (cachedPosts) setPosts(cachedPosts); }, [cachedPosts]);
 
   const handleSaveMemberSettings = async () => {
     try {
       await updateMemberSettings(memberSettings);
       alert('멤버 이름이 저장되었어요!');
+      invalidateCache('memberSettings');
     } catch (error) {
       console.error('Error saving member settings:', error);
       alert('저장 중 오류가 발생했어요.');
@@ -294,6 +316,7 @@ export default function AdminEpisodes() {
       }
       
       resetDMForm();
+      invalidateCache('episodes');
       loadData();
     } catch (error) {
       console.error('Error saving episode:', error);
@@ -331,6 +354,7 @@ export default function AdminEpisodes() {
       }
       
       resetCommentForm();
+      invalidateCache('episodes');
       loadData();
     } catch (error) {
       console.error('Error saving episode:', error);
@@ -394,6 +418,7 @@ export default function AdminEpisodes() {
     try {
       await deleteEpisode(id);
       alert('삭제되었어요!');
+      invalidateCache('episodes');
       loadData();
     } catch (error) {
       console.error('Error deleting episode:', error);

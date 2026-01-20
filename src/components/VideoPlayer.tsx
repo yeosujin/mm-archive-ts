@@ -13,7 +13,7 @@ const VideoPlayer = memo(({ videoUrl, className = '' }: Props) => {
         playsInline
         webkit-playsinline="true"
         controlsList="nodownload"
-        preload="auto"
+        preload="metadata"
         style={{
           width: '100%',
           maxWidth: '800px',
@@ -21,9 +21,7 @@ const VideoPlayer = memo(({ videoUrl, className = '' }: Props) => {
           backgroundColor: '#000',
         }}
       >
-        <source src={`${videoUrl}#t=0.1`} type="video/mp4" />
-        <source src={`${videoUrl}#t=0.1`} type="video/webm" />
-        <source src={`${videoUrl}#t=0.1`} type="video/ogg" />
+        <source src={`${videoUrl}#t=0.1`} />
         브라우저가 비디오 재생을 지원하지 않습니다.
       </video>
     </div>

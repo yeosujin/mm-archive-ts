@@ -1,26 +1,31 @@
-import { useState, useEffect } from 'react';
-import { getArticles } from '../lib/database';
+import { useState, useEffect, useCallback } from 'react';
 import type { Article } from '../lib/database';
+import { useData } from '../context/DataContext';
 
 export default function Articles() {
-  const [articles, setArticles] = useState<Article[]>([]);
+  const { articles: cachedArticles, fetchArticles } = useData();
+  const [articles, setArticles] = useState<Article[]>(cachedArticles || []);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedArticles);
 
-  useEffect(() => {
-    loadArticles();
-  }, []);
-
-  const loadArticles = async () => {
+  const loadArticles = useCallback(async () => {
     try {
-      const data = await getArticles();
+      const data = await fetchArticles();
       setArticles(data);
     } catch (error) {
       console.error('Error loading articles:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchArticles]);
+
+  useEffect(() => {
+    loadArticles();
+  }, [loadArticles]);
+
+  useEffect(() => {
+    if (cachedArticles) setArticles(cachedArticles);
+  }, [cachedArticles]);
 
   // 검색 필터링 (제목, 글쓴이, 태그, 날짜)
   const filteredArticles = articles.filter((article) =>

@@ -1,39 +1,122 @@
-import { useState, useEffect, useRef } from 'react';
-import { getMoments, getVideos, createMoment, updateMoment, deleteMoment } from '../../lib/database';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createMoment, updateMoment, deleteMoment, updateMomentPositions } from '../../lib/database';
 import type { Moment, Video } from '../../lib/database';
 import { uploadVideoToR2, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
+import AdminModal from '../../components/AdminModal';
+import VideoEmbed from '../../components/VideoEmbed';
+import { useData } from '../../context/DataContext';
+
+// DnD Kit Imports
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable Item Component
+function SortableMomentItem({ 
+  moment, 
+  handleEdit, 
+  handleDelete, 
+  isSortMode
+}: { 
+  moment: Moment; 
+  handleEdit: (m: Moment) => void; 
+  handleDelete: (id: string) => void;
+  isSortMode: boolean;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: moment.id, disabled: !isSortMode });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 2 : 1,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`admin-item-wrapper ${isDragging ? 'dragging' : ''}`}
+    >
+      {isSortMode && (
+        <div className="drag-handle" {...attributes} {...listeners}>
+          ⠿
+        </div>
+      )}
+      <div className="admin-item-content">
+        <div className="moment-item">
+          <VideoEmbed url={moment.tweet_url} title={moment.title} />
+          {isSortMode && <div className="moment-title" style={{ marginTop: '0.5rem' }}>{moment.title}</div>}
+        </div>
+      </div>
+      {!isSortMode && (
+        <div className="admin-item-controls">
+          <button className="admin-control-btn edit" onClick={() => handleEdit(moment)}>수정</button>
+          <button className="admin-control-btn delete" onClick={() => handleDelete(moment.id)}>삭제</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminMoments() {
-  const [moments, setMoments] = useState<Moment[]>([]);
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { moments: cachedMoments, videos: cachedVideos, fetchMoments, fetchVideos, invalidateCache } = useData();
+  const [loading, setLoading] = useState(!cachedMoments || !cachedVideos);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadMessage, setUploadMessage] = useState<string>('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSortMode, setIsSortMode] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     tweet_url: '',
     date: '',
     video_id: '',
+    position: 0,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
 
-  // URL 변경 감지 로그
-  useEffect(() => {
-    console.log('[AdminMoments] formData.tweet_url changed:', formData.tweet_url);
-  }, [formData.tweet_url]);
+  // Use local state for moments to support DnD smoothly, 
+  // but initialize from cache and update cache when data changes.
+  const [moments, setMoments] = useState<Moment[]>(cachedMoments || []);
+  const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // DnD Sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [momentsData, videosData] = await Promise.all([
-        getMoments(),
-        getVideos()
+        fetchMoments(),
+        fetchVideos()
       ]);
       setMoments(momentsData);
       setVideos(videosData);
@@ -41,6 +124,93 @@ export default function AdminMoments() {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  }, [fetchMoments, fetchVideos]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Update local state when cache updates
+  useEffect(() => {
+    if (cachedMoments) setMoments(cachedMoments);
+  }, [cachedMoments]);
+
+  useEffect(() => {
+    if (cachedVideos) setVideos(cachedVideos);
+  }, [cachedVideos]);
+
+  // 타임라인 그룹화 로직 (Moments.tsx와 유사)
+  const groupedMoments = useMemo(() => {
+    const groups: Record<string, Moment[][]> = {};
+    
+    // Sort logic: In Sort Mode, we respect the array order strictly.
+    // Otherwise, we follow Date DESC, Position ASC.
+    const sortedMoments = isSortMode 
+      ? [...moments]
+      : [...moments].sort((a, b) => {
+          const dateDiff = b.date.localeCompare(a.date);
+          if (dateDiff !== 0) return dateDiff;
+          return (a.position || 0) - (b.position || 0);
+        });
+
+    sortedMoments.forEach((item) => {
+      // If the array order says one item is between two others of the same date, 
+      // we must ensure they stay grouped if we want to maintain the "Thread" layout.
+      // But for simple reordering, we just group by date.
+      if (!groups[item.date]) {
+        groups[item.date] = [];
+      }
+      
+      const dayGroups = groups[item.date];
+      const lastGroup = dayGroups[dayGroups.length - 1];
+      
+      if (item.video_id && lastGroup && lastGroup[0].video_id === item.video_id) {
+        lastGroup.push(item);
+      } else {
+        dayGroups.push([item]);
+      }
+    });
+    
+    // In Sort Mode, we might want to preserve the chronological date order regardless of array order?
+    // No, usually array order IS the truth. But grouping by date naturally splits them.
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  }, [moments, isSortMode]);
+
+  // DnD Handle Drag End
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = moments.findIndex((m) => m.id === active.id);
+      const newIndex = moments.findIndex((m) => m.id === over.id);
+
+      const reordered = arrayMove(moments, oldIndex, newIndex);
+      
+      // Update local state WITH new positions so useMemo doesn't sort them back
+      // if we were not in Sort Mode. But since we use array order in Sort Mode now,
+      // updating positions is mainly for persistence.
+      const newMoments = reordered.map((m, idx) => ({
+        ...m,
+        position: idx
+      }));
+      
+      setMoments(newMoments);
+
+      const updates = newMoments.map((m) => ({
+        id: m.id,
+        position: m.position
+      }));
+
+      try {
+        await updateMomentPositions(updates);
+        invalidateCache('moments');
+      } catch (error) {
+        console.error('[AdminMoments] Failed to update positions:', error);
+        const errorMsg = error instanceof Error ? error.message : JSON.stringify(error);
+        alert(`순서 저장에 실패했습니다: ${errorMsg}`);
+        loadData();
+      }
     }
   };
 
@@ -54,43 +224,26 @@ export default function AdminMoments() {
       return;
     }
 
-    // 파일 크기 확인 (500MB 제한)
-    const maxSize = 500 * 1024 * 1024; // 500MB
-    if (file.size > maxSize) {
-      alert('파일 크기는 500MB 이하여야 합니다.');
-      return;
-    }
-
-    console.log('[AdminMoments] File upload triggered');
     setUploading(true);
     setUploadProgress(0);
     setUploadMessage(`업로드 중... (0%)`);
 
     try {
-      console.log('[AdminMoments] Calling uploadVideoToR2...');
-      
-      // 선제적 표시
       setFormData(prev => ({ ...prev, tweet_url: '업로드 중...' }));
-
       const uploadedUrl = await uploadVideoToR2(file, (percent) => {
         setUploadProgress(percent);
         setUploadMessage(`업로드 중... (${percent}%)`);
       });
 
-      console.log('[AdminMoments] Upload result URL (Moment):', uploadedUrl);
       if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
-
-      console.log('[AdminMoments] Updating formData.tweet_url with:', uploadedUrl);
       setFormData(prev => ({ ...prev, tweet_url: uploadedUrl }));
       setUploadMessage('업로드 완료! ✅');
       setTimeout(() => setUploadMessage(''), 3000);
     } catch (error) {
-      console.error('[AdminMoments] Upload error:', error);
       alert('업로드 실패: ' + (error as Error).message);
       setUploadMessage('');
       setFormData(prev => ({ ...prev, tweet_url: '' }));
     } finally {
-      console.log('[AdminMoments] Upload process finished, resetting uploading state');
       setUploading(false);
       setUploadProgress(0);
       setFileInputKey(prev => prev + 1);
@@ -103,9 +256,7 @@ export default function AdminMoments() {
     try {
       if (editingId) {
         const originalMoment = moments.find(m => m.id === editingId);
-        // URL이 변경되었고 기존 URL이 R2 파일이었다면 삭제
         if (originalMoment && originalMoment.tweet_url !== formData.tweet_url) {
-          console.log('[AdminMoments] URL changed, checking for old R2 file cleanup:', originalMoment.tweet_url);
           deleteFileFromR2(originalMoment.tweet_url).catch(err => console.error('Cleanup failed:', err));
         }
 
@@ -114,20 +265,22 @@ export default function AdminMoments() {
           tweet_url: formData.tweet_url,
           date: formData.date,
           video_id: formData.video_id || undefined,
+          position: Number(formData.position) || 0,
         });
         alert('수정되었어요!');
-        setEditingId(null);
       } else {
         await createMoment({
           title: formData.title,
           tweet_url: formData.tweet_url,
           date: formData.date,
           video_id: formData.video_id || undefined,
+          position: Number(formData.position) || 0,
         });
         alert('모먼트가 추가되었어요!');
       }
       
-      setFormData({ title: '', tweet_url: '', date: '', video_id: '' });
+      invalidateCache('moments');
+      handleCloseModal();
       loadData();
     } catch (error) {
       console.error('Error saving moment:', error);
@@ -142,13 +295,22 @@ export default function AdminMoments() {
       tweet_url: moment.tweet_url,
       date: moment.date,
       video_id: moment.video_id || '',
+      position: moment.position || 0,
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsModalOpen(true);
   };
 
-  const handleCancelEdit = () => {
+  const handleOpenAddModal = () => {
     setEditingId(null);
-    setFormData({ title: '', tweet_url: '', date: '', video_id: '' });
+    setFormData({ title: '', tweet_url: '', date: '', video_id: '', position: 0 });
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData({ title: '', tweet_url: '', date: '', video_id: '', position: 0 });
+    setUploadMessage('');
   };
 
   const handleDelete = async (id: string) => {
@@ -161,18 +323,13 @@ export default function AdminMoments() {
       }
 
       await deleteMoment(id);
+      invalidateCache('moments');
       alert('삭제되었어요!');
       loadData();
     } catch (error) {
       console.error('Error deleting moment:', error);
       alert('삭제 중 오류가 발생했어요.');
     }
-  };
-
-  const getVideoTitle = (videoId: string | undefined) => {
-    if (!videoId) return '연결된 영상 없음';
-    const video = videos.find(v => v.id === videoId);
-    return video ? video.title : '알 수 없는 영상';
   };
 
   const handleVideoSelect = (videoId: string) => {
@@ -194,12 +351,67 @@ export default function AdminMoments() {
 
   return (
     <div className="admin-page">
-      <h1>모먼트 관리</h1>
-      
-      <div className="admin-section">
-        <h2>{editingId ? '모먼트 수정' : '새 모먼트 추가'}</h2>
+      <div className="admin-header-actions">
+        <h1>모먼트 관리</h1>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button 
+            className={`sort-mode-toggle ${isSortMode ? 'active' : ''}`}
+            onClick={() => setIsSortMode(!isSortMode)}
+          >
+            {isSortMode ? '정렬 완료' : '순서 편집'}
+          </button>
+          <button className="admin-add-btn-header" onClick={handleOpenAddModal}>+ 추가</button>
+        </div>
+      </div>
+
+      <div className="moments-timeline">
+        <DndContext 
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext 
+            items={moments.map(m => m.id)}
+            strategy={verticalListSortingStrategy}
+            disabled={!isSortMode}
+          >
+            {groupedMoments.map(([date, dateGroups]) => (
+              <div key={date} className="moment-date-group">
+                <div className="moment-date-header expanded" style={{ cursor: 'default' }}>
+                  <span className="date-marker">✨</span>
+                  <time>{date}</time>
+                </div>
+                
+                <div className="moment-list">
+                  {dateGroups.map((group, groupIdx) => (
+                    <div key={groupIdx} className="moment-group">
+                      {groupIdx > 0 && <hr className="moment-group-divider" />}
+                      <div className="group-items">
+                        {group.map((moment) => (
+                          <SortableMomentItem 
+                            key={moment.id} 
+                            moment={moment} 
+                            handleEdit={handleEdit}
+                            handleDelete={handleDelete}
+                            isSortMode={isSortMode}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </SortableContext>
+        </DndContext>
+      </div>
+
+      <AdminModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        title={editingId ? '모먼트 수정' : '새 모먼트 추가'}
+      >
         <form onSubmit={handleSubmit} className="admin-form">
-          {/* R2 직접 업로드 */}
           <div className="form-group">
             <label htmlFor="moment-file">📤 영상 파일 직접 업로드</label>
             <div className="upload-container" style={{ position: 'relative' }}>
@@ -214,25 +426,15 @@ export default function AdminMoments() {
                 style={{ marginBottom: '0.5rem', width: '100%' }}
               />
               {uploading && (
-                <div className="upload-progress-overlay">
+                <div className="upload-progress-overlay" style={{ borderRadius: '8px' }}>
                   <div className="spinner"></div>
                   <div className="progress-bar-container">
-                    <div 
-                      className="progress-bar-fill" 
-                      style={{ width: `${uploadProgress}%` }}
-                    ></div>
+                    <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }}></div>
                   </div>
                 </div>
               )}
             </div>
-            {uploadMessage && (
-              <span className="form-hint" style={{ color: uploading ? '#666' : '#4CAF50', fontWeight: 'bold' }}>
-                {uploadMessage}
-              </span>
-            )}
-            <span className="form-hint">
-              또는 아래에 트윗 URL을 입력하세요
-            </span>
+            {uploadMessage && <span className="form-hint" style={{ color: '#4CAF50', fontWeight: 'bold' }}>{uploadMessage}</span>}
           </div>
 
           <div className="form-group">
@@ -257,7 +459,6 @@ export default function AdminMoments() {
               placeholder="트윗 URL 또는 R2 업로드 URL"
               required
             />
-            <span className="form-hint">트위터(X) 트윗 URL 또는 위에서 업로드한 영상 URL</span>
           </div>
           
           <div className="form-group">
@@ -275,7 +476,6 @@ export default function AdminMoments() {
                 </option>
               ))}
             </select>
-            <span className="form-hint">영상 선택 시 날짜가 자동으로 설정돼요</span>
           </div>
           
           <div className="form-group">
@@ -287,45 +487,18 @@ export default function AdminMoments() {
               onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
               required
             />
-            <span className="form-hint">영상과 다른 날짜로 수정할 수도 있어요</span>
           </div>
-          
+
           <div className="form-buttons">
-          <button type="submit" className="admin-submit-btn">
+            <button type="submit" className="admin-submit-btn">
               {editingId ? '수정하기' : '추가하기'}
             </button>
-            {editingId && (
-              <button type="button" className="admin-clear-btn" onClick={handleCancelEdit}>
-                취소
-          </button>
-            )}
+            <button type="button" className="admin-clear-btn" onClick={handleCloseModal}>취소</button>
           </div>
         </form>
-      </div>
+      </AdminModal>
 
-      <div className="admin-section">
-        <h2>등록된 모먼트 ({moments.length}개)</h2>
-        <div className="admin-list">
-          {moments.map((moment) => (
-            <div key={moment.id} className="admin-list-item simple-item">
-              <div className="admin-list-info">
-                <h3>{moment.title}</h3>
-                <p>{moment.date}</p>
-                {moment.video_id && (
-                  <p className="linked-video">🎬 {getVideoTitle(moment.video_id)}</p>
-                )}
-                <a href={moment.tweet_url} target="_blank" rel="noopener noreferrer" className="item-link">
-                  {moment.tweet_url}
-                </a>
-              </div>
-              <div className="admin-list-actions">
-                <button className="edit-btn" onClick={() => handleEdit(moment)}>수정</button>
-                <button className="delete-btn" onClick={() => handleDelete(moment.id)}>삭제</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <button className="admin-add-btn-fixed" onClick={handleOpenAddModal}>+ 모먼트 추가</button>
     </div>
   );
 }

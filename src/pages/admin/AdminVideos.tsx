@@ -1,7 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
-import { getVideos, createVideo, updateVideo, deleteVideo } from '../../lib/database';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createVideo, updateVideo, deleteVideo } from '../../lib/database';
 import type { Video } from '../../lib/database';
 import { uploadVideoToR2, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
+import AdminModal from '../../components/AdminModal';
+import PlatformIcon from '../../components/PlatformIcon';
+import { detectVideoPlatform } from '../../lib/platformUtils';
+import VideoEmbed from '../../components/VideoEmbed';
+import { useData } from '../../context/DataContext';
 
 const HEART_OPTIONS = [
   { value: '💙', label: '💙 파란색' },
@@ -31,21 +36,10 @@ function extractYouTubeId(url: string): string | null {
 // YouTube 영상 정보 가져오기
 async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date: string } | null> {
   try {
-    console.log('Fetching YouTube info for:', videoId);
-    console.log('API Key exists:', !!YOUTUBE_API_KEY);
-    console.log('API Key (first 10 chars):', YOUTUBE_API_KEY?.substring(0, 10) + '...');
-    
     const response = await fetch(
       `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`
     );
     const data = await response.json();
-    
-    console.log('YouTube API response:', data);
-    
-    if (data.error) {
-      console.error('YouTube API error:', data.error);
-      return null;
-    }
     
     if (data.items && data.items.length > 0) {
       const snippet = data.items[0].snippet;
@@ -62,49 +56,60 @@ async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date:
 }
 
 export default function AdminVideos() {
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { videos: cachedVideos, fetchVideos, invalidateCache } = useData();
+  const [loading, setLoading] = useState(!cachedVideos);
   const [fetching, setFetching] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadMessage, setUploadMessage] = useState<string>('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     url: '',
     date: '',
-    icon: '🩵',
+    icon: '',
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
 
-  // URL 변경 감지 로그
-  useEffect(() => {
-    console.log('[AdminVideos] formData.url changed:', formData.url);
-  }, [formData.url]);
-
-  useEffect(() => {
-    console.log('[AdminVideos] uploading state changed:', uploading);
-  }, [uploading]);
+  // Sync with cache
+  const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
 
   // URL 타입 확인
   const isYouTubeUrl = formData.url.includes('youtube.com') || formData.url.includes('youtu.be');
   const isWeverseUrl = formData.url.includes('weverse.io');
 
-  useEffect(() => {
-    loadVideos();
-  }, []);
-
-  const loadVideos = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const data = await getVideos();
+      const data = await fetchVideos();
       setVideos(data);
     } catch (error) {
-      console.error('Error loading videos:', error);
+      console.error('Error fetching videos:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchVideos]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    if (cachedVideos) setVideos(cachedVideos);
+  }, [cachedVideos]);
+
+  // 그룹화 로직 (Videos.tsx와 동일)
+  const groupedVideos = useMemo(() => {
+    const groups: Record<string, Video[]> = {};
+    videos.forEach((video) => {
+      if (!groups[video.date]) {
+        groups[video.date] = [];
+      }
+      groups[video.date].push(video);
+    });
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  }, [videos]);
 
   // YouTube 정보 불러오기
   const handleFetchYouTube = async () => {
@@ -128,7 +133,6 @@ export default function AdminVideos() {
       }
     } catch (error) {
       console.error('Error fetching YouTube info:', error);
-      alert('영상 정보를 가져오는 중 오류가 발생했어요.');
     } finally {
       setFetching(false);
     }
@@ -139,55 +143,31 @@ export default function AdminVideos() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 비디오 파일 확인
     if (!isVideoFile(file)) {
       alert('비디오 파일만 업로드 가능합니다.');
       return;
     }
 
-    // 파일 크기 확인 (500MB 제한)
-    const maxSize = 500 * 1024 * 1024; // 500MB
-    if (file.size > maxSize) {
-      alert('파일 크기는 500MB 이하여야 합니다.');
-      return;
-    }
-
-    console.log('[AdminVideos] File upload triggered');
     setUploading(true);
     setUploadProgress(0);
     setUploadMessage(`업로드 중... (0%)`);
 
     try {
-      console.log('[AdminVideos] Calling uploadVideoToR2...');
-      
-      // 업로드 시작과 동시에 "업로드 중..." 선제적 표시
       setFormData(prev => ({ ...prev, url: '업로드 중...' }));
-
       const uploadedUrl = await uploadVideoToR2(file, (percent) => {
         setUploadProgress(percent);
         setUploadMessage(`업로드 중... (${percent}%)`);
       });
       
-      console.log('[AdminVideos] Upload result URL:', uploadedUrl);
-      
-      if (!uploadedUrl) {
-        throw new Error('업로드된 URL이 비어있습니다.');
-      }
-
-      console.log('[AdminVideos] Updating formData.url with:', uploadedUrl);
+      if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
       setFormData(prev => ({ ...prev, url: uploadedUrl }));
-      
       setUploadMessage('업로드 완료! ✅');
       setTimeout(() => setUploadMessage(''), 3000);
-    } catch (error: any) {
-      console.error('[AdminVideos] Upload error details:', error);
-      const errorDetail = error.message || '알 수 없는 오류';
-      alert(`업로드 실패 ❌\n원인: ${errorDetail}\n\n브라우저 콘솔(F12)을 확인하여 상세 에러 로그를 확인해주세요.`);
+    } catch (error) {
+      alert('업로드 실패: ' + (error as Error).message);
       setUploadMessage('');
-      // 오류 시 URL 원복 (또는 비우기)
       setFormData(prev => ({ ...prev, url: '' }));
     } finally {
-      console.log('[AdminVideos] Upload process finished, resetting uploading state');
       setUploading(false);
       setUploadProgress(0);
       setFileInputKey(prev => prev + 1);
@@ -200,9 +180,7 @@ export default function AdminVideos() {
     try {
       if (editingId) {
         const originalVideo = videos.find(v => v.id === editingId);
-        // 만약 URL이 바뀌었고, 기존 URL이 R2 파일이었다면 삭제
         if (originalVideo && originalVideo.url !== formData.url) {
-          console.log('[AdminVideos] URL changed, checking for old R2 file cleanup:', originalVideo.url);
           deleteFileFromR2(originalVideo.url).catch(err => console.error('Cleanup failed:', err));
         }
 
@@ -213,7 +191,6 @@ export default function AdminVideos() {
           icon: isWeverseUrl ? formData.icon : undefined,
         });
         alert('수정되었어요!');
-        setEditingId(null);
       } else {
         await createVideo({
           title: formData.title,
@@ -224,8 +201,9 @@ export default function AdminVideos() {
         alert('영상이 추가되었어요!');
       }
       
-      setFormData({ title: '', url: '', date: '', icon: '🩵' });
-      loadVideos();
+      invalidateCache('videos');
+      handleCloseModal();
+      loadData();
     } catch (error) {
       console.error('Error saving video:', error);
       alert('저장 중 오류가 발생했어요.');
@@ -240,12 +218,20 @@ export default function AdminVideos() {
       date: video.date,
       icon: video.icon || '🩵',
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsModalOpen(true);
   };
 
-  const handleCancelEdit = () => {
+  const handleOpenAddModal = () => {
     setEditingId(null);
     setFormData({ title: '', url: '', date: '', icon: '🩵' });
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData({ title: '', url: '', date: '', icon: '🩵' });
+    setUploadMessage('');
   };
 
   const handleDelete = async (id: string) => {
@@ -258,8 +244,9 @@ export default function AdminVideos() {
       }
       
       await deleteVideo(id);
+      invalidateCache('videos');
       alert('삭제되었어요!');
-      loadVideos();
+      loadData();
     } catch (error) {
       console.error('Error deleting video:', error);
       alert('삭제 중 오류가 발생했어요.');
@@ -276,10 +263,51 @@ export default function AdminVideos() {
 
   return (
     <div className="admin-page">
-      <h1>영상 관리</h1>
-      
-      <div className="admin-section">
-        <h2>{editingId ? '영상 수정' : '새 영상 추가'}</h2>
+      <div className="admin-header-actions">
+        <h1>영상 관리</h1>
+        <button className="admin-add-btn-header" onClick={handleOpenAddModal}>+ 추가</button>
+      </div>
+
+      <div className="video-timeline">
+        {groupedVideos.map(([date, dateVideos]) => (
+          <div key={date} className="date-thread">
+            <div className="thread-date-header">
+              <span className="thread-marker"></span>
+              <time>{date}</time>
+            </div>
+
+            <div className="thread-content">
+              {dateVideos.map((video) => (
+                <div key={video.id} className="admin-item-wrapper">
+                  <div className="admin-item-content">
+                    <div className="thread-video-item">
+                      <div className="thread-item-header" style={{ cursor: 'default' }}>
+                        <span className="item-icon">
+                          <PlatformIcon platform={detectVideoPlatform(video.url)} size={18} />
+                        </span>
+                        <span className="item-title">{video.title}</span>
+                      </div>
+                      <div className="thread-item-content" style={{ padding: '0 1rem 1rem' }}>
+                        <VideoEmbed url={video.url} title={video.title} icon={video.icon} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="admin-item-controls">
+                    <button className="admin-control-btn edit" onClick={() => handleEdit(video)}>수정</button>
+                    <button className="admin-control-btn delete" onClick={() => handleDelete(video.id)}>삭제</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AdminModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        title={editingId ? '영상 수정' : '새 영상 추가'}
+      >
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-group">
             <label htmlFor="video-file">📤 영상 파일 직접 업로드</label>
@@ -295,25 +323,15 @@ export default function AdminVideos() {
                 style={{ marginBottom: '0.5rem', width: '100%' }}
               />
               {uploading && (
-                <div className="upload-progress-overlay">
+                <div className="upload-progress-overlay" style={{ borderRadius: '8px' }}>
                   <div className="spinner"></div>
                   <div className="progress-bar-container">
-                    <div 
-                      className="progress-bar-fill" 
-                      style={{ width: `${uploadProgress}%` }}
-                    ></div>
+                    <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }}></div>
                   </div>
                 </div>
               )}
             </div>
-            {uploadMessage && (
-              <span className="form-hint" style={{ color: uploading ? '#666' : '#4CAF50', fontWeight: 'bold' }}>
-                {uploadMessage}
-              </span>
-            )}
-            <span className="form-hint">
-              또는 아래에 YouTube/Twitter/Weverse URL을 입력하세요
-            </span>
+            {uploadMessage && <span className="form-hint" style={{ color: '#4CAF50', fontWeight: 'bold' }}>{uploadMessage}</span>}
           </div>
 
           <div className="form-group">
@@ -328,22 +346,11 @@ export default function AdminVideos() {
                 required
               />
               {isYouTubeUrl && (
-                <button 
-                  type="button" 
-                  className="fetch-btn"
-                  onClick={handleFetchYouTube}
-                  disabled={fetching}
-                >
-                  {fetching ? '불러오는 중...' : '정보 불러오기'}
+                <button type="button" className="fetch-btn" onClick={handleFetchYouTube} disabled={fetching}>
+                  {fetching ? '...' : '정보'}
                 </button>
               )}
             </div>
-            <span className="form-hint">
-              {isYouTubeUrl 
-                ? '✨ YouTube URL이에요! "정보 불러오기"를 눌러 제목과 날짜를 자동으로 가져오세요'
-                : 'YouTube, YouTube Shorts, Twitter(X), Weverse 지원'
-              }
-            </span>
           </div>
 
           <div className="form-group">
@@ -382,43 +389,17 @@ export default function AdminVideos() {
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-              <span className="form-hint">위버스 영상 카드에 표시될 아이콘</span>
             </div>
           )}
           
           <div className="form-buttons">
-          <button type="submit" className="admin-submit-btn">
+            <button type="submit" className="admin-submit-btn">
               {editingId ? '수정하기' : '추가하기'}
             </button>
-            {editingId && (
-              <button type="button" className="admin-clear-btn" onClick={handleCancelEdit}>
-                취소
-          </button>
-            )}
+            <button type="button" className="admin-clear-btn" onClick={handleCloseModal}>취소</button>
           </div>
         </form>
-      </div>
-
-      <div className="admin-section">
-        <h2>등록된 영상 ({videos.length}개)</h2>
-        <div className="admin-list">
-          {videos.map((video) => (
-            <div key={video.id} className="admin-list-item simple-item">
-              <div className="admin-list-info">
-                <h3>{video.icon && <span style={{ marginRight: '0.5rem' }}>{video.icon}</span>}{video.title}</h3>
-                <p>{video.date}</p>
-                <a href={video.url} target="_blank" rel="noopener noreferrer" className="item-link">
-                  {video.url}
-                </a>
-              </div>
-              <div className="admin-list-actions">
-                <button className="edit-btn" onClick={() => handleEdit(video)}>수정</button>
-                <button className="delete-btn" onClick={() => handleDelete(video.id)}>삭제</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      </AdminModal>
     </div>
   );
 }

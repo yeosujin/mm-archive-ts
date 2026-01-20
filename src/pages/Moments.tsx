@@ -1,24 +1,25 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { getMoments } from '../lib/database';
 import type { Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
+import { useData } from '../context/DataContext';
 
 export default function Moments() {
-  const [moments, setMoments] = useState<Moment[]>([]);
+  const { moments: cachedMoments, fetchMoments } = useData();
+  const [moments, setMoments] = useState<Moment[]>(cachedMoments || []);
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedMoments);
 
   const loadMoments = useCallback(async () => {
     try {
-      const data = await getMoments();
+      const data = await fetchMoments();
       setMoments(data);
     } catch (error) {
       console.error('Error loading moments:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchMoments]);
 
   useEffect(() => {
     loadMoments();
@@ -34,15 +35,26 @@ export default function Moments() {
     );
   }, [moments, searchQuery]);
 
-  // 날짜별로 그룹화 (메모이제이션)
+  // 날짜별 및 비디오별로 그룹화 (메모이제이션)
   const groupedMoments = useMemo(() => {
-    const groups: Record<string, Moment[]> = {};
+    const groups: Record<string, Moment[][]> = {};
+    
     filteredMoments.forEach((item) => {
       if (!groups[item.date]) {
         groups[item.date] = [];
       }
-      groups[item.date].push(item);
+      
+      const dayGroups = groups[item.date];
+      const lastGroup = dayGroups[dayGroups.length - 1];
+      
+      // video_id가 있고 마지막 그룹의 video_id와 같으면 하나의 스레드로 묶음
+      if (item.video_id && lastGroup && lastGroup[0].video_id === item.video_id) {
+        lastGroup.push(item);
+      } else {
+        dayGroups.push([item]);
+      }
     });
+    
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
   }, [filteredMoments]);
 
@@ -82,7 +94,7 @@ export default function Moments() {
         </div>
       ) : (
         <div className="moments-timeline">
-          {groupedMoments.map(([date, dateMoments]) => (
+          {groupedMoments.map(([date, dateGroups]) => (
             <div key={date} className="moment-date-group">
               <button 
                 className={`moment-date-header ${expandedDate === date ? 'expanded' : ''}`}
@@ -90,7 +102,9 @@ export default function Moments() {
               >
                 <span className="date-marker">✨</span>
                 <time>{date}</time>
-                <span className="moment-count">{dateMoments.length}개</span>
+                <span className="moment-count">
+                  {dateGroups.reduce((acc, g) => acc + g.length, 0)}개
+                </span>
                 <span className={`expand-arrow ${expandedDate === date ? 'open' : ''}`}>
                   ▼
                 </span>
@@ -98,12 +112,19 @@ export default function Moments() {
               
               {expandedDate === date && (
                 <div className="moment-list">
-                {dateMoments.map((moment) => (
-                    <div key={moment.id} className="moment-item">
-                      <VideoEmbed url={moment.tweet_url} title={moment.title} />
-                  </div>
-                ))}
-              </div>
+                  {dateGroups.map((group, groupIdx) => (
+                    <div key={groupIdx} className="moment-group">
+                      {groupIdx > 0 && <hr className="moment-group-divider" />}
+                      <div className="group-items">
+                        {group.map((moment) => (
+                          <div key={moment.id} className="moment-item">
+                            <VideoEmbed url={moment.tweet_url} title={moment.title} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           ))}

@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
-import { getArticles, createArticle, updateArticle, deleteArticle } from '../../lib/database';
+import { useState, useEffect, useCallback } from 'react';
+import { createArticle, updateArticle, deleteArticle } from '../../lib/database';
 import { supabase } from '../../lib/supabase';
 import type { Article } from '../../lib/database';
+import { useData } from '../../context/DataContext';
 
 export default function AdminArticles() {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { articles: cachedArticles, fetchArticles, invalidateCache } = useData();
+  const [articles, setArticles] = useState<Article[]>(cachedArticles || []);
+  const [loading, setLoading] = useState(!cachedArticles);
   const [fetching, setFetching] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -16,20 +18,24 @@ export default function AdminArticles() {
     tags: '',
   });
 
-  useEffect(() => {
-    loadArticles();
-  }, []);
-
-  const loadArticles = async () => {
+  const loadArticles = useCallback(async () => {
     try {
-      const data = await getArticles();
+      const data = await fetchArticles();
       setArticles(data);
     } catch (error) {
       console.error('Error loading articles:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchArticles]);
+
+  useEffect(() => {
+    loadArticles();
+  }, [loadArticles]);
+
+  useEffect(() => {
+    if (cachedArticles) setArticles(cachedArticles);
+  }, [cachedArticles]);
 
   const isPostypeUrl = (url: string) => {
     return url.includes('posty.pe') || url.includes('postype.com');
@@ -109,6 +115,7 @@ export default function AdminArticles() {
       }
       
       setFormData({ title: '', author: '', url: '', date: '', tags: '' });
+      invalidateCache('articles');
       loadArticles();
     } catch (error) {
       console.error('Error saving article:', error);
@@ -139,6 +146,7 @@ export default function AdminArticles() {
     try {
       await deleteArticle(id);
       alert('삭제되었어요!');
+      invalidateCache('articles');
       loadArticles();
     } catch (error) {
       console.error('Error deleting article:', error);

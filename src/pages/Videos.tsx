@@ -1,43 +1,55 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { getVideos, getMomentsByVideoId } from '../lib/database';
 import type { Video, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import PlatformIcon from '../components/PlatformIcon';
 import { detectVideoPlatform } from '../lib/platformUtils';
+import { useData } from '../context/DataContext';
 
 export default function Videos() {
-  const [videos, setVideos] = useState<Video[]>([]);
+  const { videos: cachedVideos, moments: cachedMoments, fetchVideos, fetchMoments } = useData();
   const [videoMoments, setVideoMoments] = useState<Record<string, Moment[]>>({});
   const [expandedVideo, setExpandedVideo] = useState<string | null>(null);
   const [expandedMoments, setExpandedMoments] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedVideos);
+
+  // Sync videos from cache
+  const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
 
   const loadVideos = useCallback(async () => {
     try {
-      const data = await getVideos();
+      const data = await fetchVideos();
       setVideos(data);
     } catch (error) {
       console.error('Error loading videos:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchVideos]);
 
   useEffect(() => {
     loadVideos();
   }, [loadVideos]);
 
+  // Sync expanded video's moments from cache or fetch all
   const loadMomentsForVideo = useCallback(async (videoId: string) => {
     if (videoMoments[videoId]) return;
     
     try {
-      const moments = await getMomentsByVideoId(videoId);
-      setVideoMoments(prev => ({ ...prev, [videoId]: moments }));
+      // If we already have ALL moments, filter locally
+      if (cachedMoments) {
+        const filtered = cachedMoments.filter(m => m.video_id === videoId);
+        setVideoMoments(prev => ({ ...prev, [videoId]: filtered }));
+      } else {
+        // Otherwise fetch all and it will populate cachedMoments for next time
+        const allMoments = await fetchMoments();
+        const filtered = allMoments.filter(m => m.video_id === videoId);
+        setVideoMoments(prev => ({ ...prev, [videoId]: filtered }));
+      }
     } catch (error) {
       console.error('Error loading moments:', error);
     }
-  }, [videoMoments]);
+  }, [videoMoments, cachedMoments, fetchMoments]);
   
   // 검색 필터링 (메모이제이션)
   const filteredVideos = useMemo(() => {

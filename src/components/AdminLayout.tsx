@@ -20,30 +20,35 @@ export default function AdminLayout() {
             <NavLink 
               to="/admin/videos" 
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/admin/AdminVideos')}
             >
               📹 영상
             </NavLink>
             <NavLink 
               to="/admin/moments" 
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/admin/AdminMoments')}
             >
               ✨ 모먼트
             </NavLink>
             <NavLink 
               to="/admin/posts" 
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/admin/AdminPosts')}
             >
               📱 포스트
             </NavLink>
             <NavLink 
               to="/admin/episodes" 
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/admin/AdminEpisodes')}
             >
               🎬 에피소드
             </NavLink>
             <NavLink 
               to="/admin/articles" 
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/admin/AdminArticles')}
             >
               📰 글
             </NavLink>
