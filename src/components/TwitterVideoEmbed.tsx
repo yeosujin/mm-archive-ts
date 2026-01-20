@@ -26,7 +26,7 @@ export default function TwitterVideoEmbed({ tweetUrl, className = '' }: Props) {
 
   return (
     <div className={`twitter-embed ${className}`}>
-      <Tweet id={tweetId} />
+      <Tweet id={tweetId} key={tweetId} />
     </div>
   );
 }
