@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface Props {
   readonly children: React.ReactNode;
@@ -8,19 +8,11 @@ interface Props {
 const ADMIN_PASSWORD = '1008';
 
 export default function AdminAuth({ children }: Props) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return typeof window !== 'undefined' ? sessionStorage.getItem('adminAuth') === 'true' : false;
+  });
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-
-  // 페이지 로드 시 인증 상태 확인
-  useEffect(() => {
-    const authStatus = sessionStorage.getItem('adminAuth');
-    if (authStatus === 'true') {
-      setIsAuthenticated(true);
-    }
-    setIsLoading(false);
-  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,13 +32,6 @@ export default function AdminAuth({ children }: Props) {
     sessionStorage.removeItem('adminAuth');
   };
 
-  if (isLoading) {
-    return (
-      <div className="admin-loading">
-        <p>로딩 중...</p>
-      </div>
-    );
-  }
 
   if (!isAuthenticated) {
     return (

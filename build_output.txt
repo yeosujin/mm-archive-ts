@@ -1,0 +1,37 @@
+
+> mmemory@0.0.0 build
+> tsc -b && vite build
+
+vite v7.3.1 building client environment for production...
+transforming...
+✓ 885 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                            1.19 kB │ gzip:  0.55 kB
+dist/assets/index-DG6HkvXk.css            53.59 kB │ gzip:  9.20 kB
+dist/assets/Articles-BxBYHUl1.js           1.79 kB │ gzip:  0.83 kB
+dist/assets/r2Upload-J1UPYuG_.js           1.84 kB │ gzip:  0.98 kB
+dist/assets/Moments-B_n7QusR.js            2.18 kB │ gzip:  1.07 kB
+dist/assets/AdminLayout-B6axzxJM.js        2.30 kB │ gzip:  0.95 kB
+dist/assets/Posts-DE_cNhtu.js              2.35 kB │ gzip:  1.10 kB
+dist/assets/Home-XplXMHn0.js               2.49 kB │ gzip:  1.09 kB
+dist/assets/PostEmbed-CnvGjUtS.js          3.00 kB │ gzip:  1.20 kB
+dist/assets/platformUtils-BploEhhO.js      3.27 kB │ gzip:  1.34 kB
+dist/assets/Videos-odJB8d7D.js             3.38 kB │ gzip:  1.36 kB
+dist/assets/Search-pObPKdHd.js             3.58 kB │ gzip:  1.07 kB
+dist/assets/database-B2fn_KJ3.js           3.63 kB │ gzip:  0.92 kB
+dist/assets/index-CA6_KSHn.js              3.65 kB │ gzip:  1.52 kB
+dist/assets/VideoEmbed-CA8NpNVO.js         4.21 kB │ gzip:  1.77 kB
+dist/assets/AdminPosts-Br0Ap7Wb.js         4.26 kB │ gzip:  1.59 kB
+dist/assets/Episodes-JyVp3EyP.js           4.44 kB │ gzip:  1.68 kB
+dist/assets/Calendar-IU-Bsi3u.js           4.55 kB │ gzip:  1.81 kB
+dist/assets/AdminArticles-BA8sVCq1.js      5.03 kB │ gzip:  1.96 kB
+dist/assets/Dashboard-BBEBJX5q.js          5.36 kB │ gzip:  1.58 kB
+dist/assets/AdminMoments-lkN9UFdj.js       6.83 kB │ gzip:  2.58 kB
+dist/assets/AdminVideos-QQ7B10Rs.js        8.07 kB │ gzip:  3.14 kB
+dist/assets/AdminEpisodes-B-4ifG_V.js     28.79 kB │ gzip: 10.62 kB
+dist/assets/vendor-react-D6vCu26M.js      98.97 kB │ gzip: 33.50 kB
+dist/assets/vendor-supabase-BWq4RIZ5.js  169.47 kB │ gzip: 44.04 kB
+dist/assets/index-D_gFk8eo.js            188.38 kB │ gzip: 59.10 kB
+dist/assets/vendor-aws-3un7jeGJ.js       287.74 kB │ gzip: 90.15 kB
+✓ built in 1.57s
