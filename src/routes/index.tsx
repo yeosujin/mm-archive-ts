@@ -1,22 +1,27 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import Layout from '../components/Layout';
-import Home from '../pages/Home';
-import Videos from '../pages/Videos';
-import Moments from '../pages/Moments';
-import Posts from '../pages/Posts';
-import Episodes from '../pages/Episodes';
-import Articles from '../pages/Articles';
-import Calendar from '../pages/Calendar';
-import Search from '../pages/Search';
+
+// Pages
+const Home = lazy(() => import('../pages/Home'));
+const Videos = lazy(() => import('../pages/Videos'));
+const Moments = lazy(() => import('../pages/Moments'));
+const Posts = lazy(() => import('../pages/Posts'));
+const Episodes = lazy(() => import('../pages/Episodes'));
+const Articles = lazy(() => import('../pages/Articles'));
+const Calendar = lazy(() => import('../pages/Calendar'));
+const Search = lazy(() => import('../pages/Search'));
 
 // Admin
-import AdminLayout from '../components/AdminLayout';
-import Dashboard from '../pages/admin/Dashboard';
-import AdminVideos from '../pages/admin/AdminVideos';
-import AdminMoments from '../pages/admin/AdminMoments';
-import AdminPosts from '../pages/admin/AdminPosts';
-import AdminEpisodes from '../pages/admin/AdminEpisodes';
-import AdminArticles from '../pages/admin/AdminArticles';
+const AdminLayout = lazy(() => import('../components/AdminLayout'));
+const Dashboard = lazy(() => import('../pages/admin/Dashboard'));
+const AdminVideos = lazy(() => import('../pages/admin/AdminVideos'));
+const AdminMoments = lazy(() => import('../pages/admin/AdminMoments'));
+const AdminPosts = lazy(() => import('../pages/admin/AdminPosts'));
+const AdminEpisodes = lazy(() => import('../pages/admin/AdminEpisodes'));
+const AdminArticles = lazy(() => import('../pages/admin/AdminArticles'));
+
+import PageLoader from '../components/PageLoader';
 
 export const router = createBrowserRouter([
   // 일반 사이트
@@ -26,35 +31,67 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Home />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Home />
+          </Suspense>
+        ),
       },
       {
         path: 'videos',
-        element: <Videos />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Videos />
+          </Suspense>
+        ),
       },
       {
         path: 'moments',
-        element: <Moments />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Moments />
+          </Suspense>
+        ),
       },
       {
         path: 'posts',
-        element: <Posts />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Posts />
+          </Suspense>
+        ),
       },
       {
         path: 'search',
-        element: <Search />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Search />
+          </Suspense>
+        ),
       },
       {
         path: 'episodes',
-        element: <Episodes />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Episodes />
+          </Suspense>
+        ),
       },
       {
         path: 'articles',
-        element: <Articles />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Articles />
+          </Suspense>
+        ),
       },
       {
         path: 'calendar',
-        element: <Calendar />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Calendar />
+          </Suspense>
+        ),
       },
     ],
   },
@@ -62,31 +99,59 @@ export const router = createBrowserRouter([
   // 어드민
   {
     path: '/admin',
-    element: <AdminLayout />,
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <AdminLayout />
+      </Suspense>
+    ),
     children: [
       {
         index: true,
-        element: <Dashboard />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <Dashboard />
+          </Suspense>
+        ),
       },
       {
         path: 'videos',
-        element: <AdminVideos />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AdminVideos />
+          </Suspense>
+        ),
       },
       {
         path: 'moments',
-        element: <AdminMoments />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AdminMoments />
+          </Suspense>
+        ),
       },
       {
         path: 'posts',
-        element: <AdminPosts />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AdminPosts />
+          </Suspense>
+        ),
       },
       {
         path: 'episodes',
-        element: <AdminEpisodes />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AdminEpisodes />
+          </Suspense>
+        ),
       },
       {
         path: 'articles',
-        element: <AdminArticles />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AdminArticles />
+          </Suspense>
+        ),
       },
     ],
   },

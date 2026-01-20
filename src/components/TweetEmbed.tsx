@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 
 interface Props {
   tweetUrl: string;
@@ -22,13 +22,11 @@ declare global {
 
 // 트윗 URL에서 ID 추출
 function getTweetId(url: string): string | null {
-  // https://twitter.com/username/status/1234567890
-  // https://x.com/username/status/1234567890
   const match = url.match(/(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/);
   return match ? match[1] : null;
 }
 
-export default function TweetEmbed({ tweetUrl, className = '' }: Props) {
+const TweetEmbed = memo(({ tweetUrl, className = '' }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const tweetId = getTweetId(tweetUrl);
 
@@ -37,10 +35,6 @@ export default function TweetEmbed({ tweetUrl, className = '' }: Props) {
     if (!tweetId || !containerRef.current) return;
     const container = containerRef.current;
 
-    // 기존 내용 클리어
-    container.innerHTML = '';
-
-    // Twitter 위젯 스크립트 로드
     const loadTwitterWidget = () => {
       if (!isMounted) return;
       if (window.twttr?.widgets && container) {
@@ -59,11 +53,9 @@ export default function TweetEmbed({ tweetUrl, className = '' }: Props) {
       }
     };
 
-    // 스크립트가 이미 로드되어 있는지 확인
     if (window.twttr?.widgets) {
       loadTwitterWidget();
     } else {
-      // 스크립트 로드
       const existingScript = document.getElementById('twitter-widget-script');
       if (!existingScript) {
         const script = document.createElement('script');
@@ -73,7 +65,6 @@ export default function TweetEmbed({ tweetUrl, className = '' }: Props) {
         script.onload = loadTwitterWidget;
         document.body.appendChild(script);
       } else {
-        // 스크립트가 로드 중이면 잠시 대기 후 재시도
         const checkInterval = setInterval(() => {
           if (!isMounted) {
             clearInterval(checkInterval);
@@ -84,8 +75,6 @@ export default function TweetEmbed({ tweetUrl, className = '' }: Props) {
             loadTwitterWidget();
           }
         }, 100);
-
-        // 5초 후 타임아웃
         setTimeout(() => clearInterval(checkInterval), 5000);
       }
     }
@@ -116,4 +105,6 @@ export default function TweetEmbed({ tweetUrl, className = '' }: Props) {
       </div>
     </div>
   );
-}
+});
+
+export default TweetEmbed;

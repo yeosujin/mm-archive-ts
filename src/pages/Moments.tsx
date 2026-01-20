@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getMoments } from '../lib/database';
 import type { Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
@@ -9,11 +9,7 @@ export default function Moments() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadMoments();
-  }, []);
-
-  const loadMoments = async () => {
+  const loadMoments = useCallback(async () => {
     try {
       const data = await getMoments();
       setMoments(data);
@@ -22,33 +18,37 @@ export default function Moments() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // 검색 필터링 (제목, 날짜)
-  const filteredMoments = searchQuery
-    ? moments.filter(moment => 
-        moment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        moment.date.includes(searchQuery)
-      )
-    : moments;
+  useEffect(() => {
+    loadMoments();
+  }, [loadMoments]);
 
-// 날짜별로 그룹화
-  const groupedMoments = (() => {
+  // 검색 필터링 (메모이제이션)
+  const filteredMoments = useMemo(() => {
+    if (!searchQuery) return moments;
+    const query = searchQuery.toLowerCase();
+    return moments.filter(moment => 
+      moment.title.toLowerCase().includes(query) ||
+      moment.date.includes(searchQuery)
+    );
+  }, [moments, searchQuery]);
+
+  // 날짜별로 그룹화 (메모이제이션)
+  const groupedMoments = useMemo(() => {
     const groups: Record<string, Moment[]> = {};
-  
     filteredMoments.forEach((item) => {
-    if (!groups[item.date]) {
-      groups[item.date] = [];
-    }
-    groups[item.date].push(item);
-  });
+      if (!groups[item.date]) {
+        groups[item.date] = [];
+      }
+      groups[item.date].push(item);
+    });
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  }, [filteredMoments]);
 
-  return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  })();
-
-  const toggleDate = (date: string) => {
-    setExpandedDate(expandedDate === date ? null : date);
-  };
+  const toggleDate = useCallback((date: string) => {
+    setExpandedDate(prev => prev === date ? null : date);
+  }, []);
 
   if (loading) {
     return (

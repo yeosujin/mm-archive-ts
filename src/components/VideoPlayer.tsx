@@ -1,9 +1,11 @@
+import { memo } from 'react';
+
 interface Props {
   videoUrl: string;
   className?: string;
 }
 
-export default function VideoPlayer({ videoUrl, className = '' }: Props) {
+const VideoPlayer = memo(({ videoUrl, className = '' }: Props) => {
   return (
     <div className={`video-player ${className}`}>
       <video
@@ -26,4 +28,6 @@ export default function VideoPlayer({ videoUrl, className = '' }: Props) {
       </video>
     </div>
   );
-}
+});
+
+export default VideoPlayer;

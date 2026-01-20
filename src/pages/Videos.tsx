@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getVideos, getMomentsByVideoId } from '../lib/database';
 import type { Video, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
@@ -13,11 +13,7 @@ export default function Videos() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadVideos();
-  }, []);
-
-  const loadVideos = async () => {
+  const loadVideos = useCallback(async () => {
     try {
       const data = await getVideos();
       setVideos(data);
@@ -26,10 +22,14 @@ export default function Videos() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadMomentsForVideo = async (videoId: string) => {
-    if (videoMoments[videoId]) return; // 이미 로드됨
+  useEffect(() => {
+    loadVideos();
+  }, [loadVideos]);
+
+  const loadMomentsForVideo = useCallback(async (videoId: string) => {
+    if (videoMoments[videoId]) return;
     
     try {
       const moments = await getMomentsByVideoId(videoId);
@@ -37,18 +37,20 @@ export default function Videos() {
     } catch (error) {
       console.error('Error loading moments:', error);
     }
-  };
+  }, [videoMoments]);
   
-  // 검색 필터링 (제목, 날짜)
-  const filteredVideos = searchQuery
-    ? videos.filter(video => 
-        video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        video.date.includes(searchQuery)
-      )
-    : videos;
+  // 검색 필터링 (메모이제이션)
+  const filteredVideos = useMemo(() => {
+    if (!searchQuery) return videos;
+    const query = searchQuery.toLowerCase();
+    return videos.filter(video => 
+      video.title.toLowerCase().includes(query) ||
+      video.date.includes(searchQuery)
+    );
+  }, [videos, searchQuery]);
 
-  // 필터링된 영상으로 그룹화
-  const groupedVideos = (() => {
+  // 그룹화 필터링 (메모이제이션)
+  const groupedVideos = useMemo(() => {
     const groups: Record<string, Video[]> = {};
     filteredVideos.forEach((video) => {
       if (!groups[video.date]) {
@@ -57,9 +59,9 @@ export default function Videos() {
       groups[video.date].push(video);
     });
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  })();
+  }, [filteredVideos]);
 
-  const toggleVideo = async (videoId: string) => {
+  const toggleVideo = useCallback(async (videoId: string) => {
     if (expandedVideo === videoId) {
       setExpandedVideo(null);
       setExpandedMoments(null);
@@ -67,11 +69,11 @@ export default function Videos() {
       setExpandedVideo(videoId);
       await loadMomentsForVideo(videoId);
     }
-  };
+  }, [expandedVideo, loadMomentsForVideo]);
 
-  const toggleMoments = (videoId: string) => {
-    setExpandedMoments(expandedMoments === videoId ? null : videoId);
-  };
+  const toggleMoments = useCallback((videoId: string) => {
+    setExpandedMoments(prev => prev === videoId ? null : videoId);
+  }, []);
 
   if (loading) {
     return (

@@ -7,6 +7,18 @@ export default defineConfig({
   define: {
     global: {},
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-aws': ['@aws-sdk/client-s3', '@aws-sdk/lib-storage'],
+          'vendor-firebase': ['firebase/app', 'firebase/firestore', 'firebase/auth'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
   server: {
     port: 3000,
   },

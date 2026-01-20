@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import TweetEmbed from './TweetEmbed';
 import VideoPlayer from './VideoPlayer';
 
@@ -10,7 +11,6 @@ interface Props {
 
 // URL 타입 감지
 function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'r2' | 'unknown' {
-  // R2 URL 감지 (환경변수의 PUBLIC_URL 또는 .r2.dev 도메인)
   const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
   if (r2PublicUrl && url.startsWith(r2PublicUrl)) {
     return 'r2';
@@ -34,13 +34,9 @@ function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'r2' | '
 // YouTube URL에서 비디오 ID 추출
 function getYouTubeId(url: string): string | null {
   const patterns = [
-    // 일반 영상: youtube.com/watch?v=VIDEO_ID
     /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-    // 짧은 URL: youtu.be/VIDEO_ID
     /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    // 임베드: youtube.com/embed/VIDEO_ID
     /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    // 숏츠: youtube.com/shorts/VIDEO_ID
     /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
   ];
   
@@ -51,10 +47,9 @@ function getYouTubeId(url: string): string | null {
   return null;
 }
 
-export default function VideoEmbed({ url, title, icon, className = '' }: Props) {
+const VideoEmbed = memo(({ url, title, icon, className = '' }: Props) => {
   const videoType = getVideoType(url);
 
-  // R2 직접 업로드 영상
   if (videoType === 'r2') {
     return <VideoPlayer videoUrl={url} className={className} />;
   }
@@ -103,7 +98,6 @@ export default function VideoEmbed({ url, title, icon, className = '' }: Props) 
     );
   }
 
-  // Unknown type - just show link
   return (
     <div className={`video-embed-external ${className}`}>
       <div className="external-link-card">
@@ -118,4 +112,6 @@ export default function VideoEmbed({ url, title, icon, className = '' }: Props) 
       </div>
     </div>
   );
-}
+});
+
+export default VideoEmbed;
