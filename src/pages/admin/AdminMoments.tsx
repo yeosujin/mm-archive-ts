@@ -46,9 +46,10 @@ export default function AdminMoments() {
       return;
     }
 
-    const maxSize = 100 * 1024 * 1024;
+    // 파일 크기 확인 (500MB 제한)
+    const maxSize = 500 * 1024 * 1024; // 500MB
     if (file.size > maxSize) {
-      alert('파일 크기는 100MB 이하여야 합니다.');
+      alert('파일 크기는 500MB 이하여야 합니다.');
       return;
     }
 
