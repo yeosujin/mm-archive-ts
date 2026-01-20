@@ -57,8 +57,8 @@ export default function AdminMoments() {
     setUploadProgress(`업로드 중... (${formatFileSize(file.size)})`);
 
     try {
-      const url = await uploadVideoToR2(file);
-      setFormData({ ...formData, tweet_url: url });
+      const uploadedUrl = await uploadVideoToR2(file);
+      setFormData(prev => ({ ...prev, tweet_url: uploadedUrl }));
       setUploadProgress('업로드 완료! ✅');
       setTimeout(() => setUploadProgress(''), 3000);
     } catch (error) {

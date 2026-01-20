@@ -144,8 +144,8 @@ export default function AdminVideos() {
     setUploadProgress(`업로드 중... (${formatFileSize(file.size)})`);
 
     try {
-      const url = await uploadVideoToR2(file);
-      setFormData({ ...formData, url });
+      const uploadedUrl = await uploadVideoToR2(file);
+      setFormData(prev => ({ ...prev, url: uploadedUrl }));
       setUploadProgress('업로드 완료! ✅');
       setTimeout(() => setUploadProgress(''), 3000);
     } catch (error) {
