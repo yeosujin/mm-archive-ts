@@ -160,13 +160,6 @@ export default function AdminVideos() {
     try {
       console.log('[AdminVideos] Calling uploadVideoToR2...');
       
-      // 구버전 파일이 있다면 배경에서 삭제 수행
-      const oldUrl = formData.url;
-      if (oldUrl) {
-        console.log('[AdminVideos] Old URL exists, scheduling delete:', oldUrl);
-        deleteFileFromR2(oldUrl).catch(err => console.error('Failed to delete old file in background:', err));
-      }
-
       // 업로드 시작과 동시에 "업로드 중..." 선제적 표시
       setFormData(prev => ({ ...prev, url: '업로드 중...' }));
 
@@ -205,6 +198,13 @@ export default function AdminVideos() {
     
     try {
       if (editingId) {
+        const originalVideo = videos.find(v => v.id === id);
+        // 만약 URL이 바뀌었고, 기존 URL이 R2 파일이었다면 삭제
+        if (originalVideo && originalVideo.url !== formData.url) {
+          console.log('[AdminVideos] URL changed, checking for old R2 file cleanup:', originalVideo.url);
+          deleteFileFromR2(originalVideo.url).catch(err => console.error('Cleanup failed:', err));
+        }
+
         await updateVideo(editingId, {
           title: formData.title,
           url: formData.url,
@@ -215,9 +215,9 @@ export default function AdminVideos() {
         setEditingId(null);
       } else {
         await createVideo({
-      title: formData.title,
-      url: formData.url,
-      date: formData.date,
+          title: formData.title,
+          url: formData.url,
+          date: formData.date,
           ...(isWeverseUrl && { icon: formData.icon }),
         });
         alert('영상이 추가되었어요!');

@@ -65,19 +65,46 @@ export async function uploadVideoToR2(
  * @param url - 삭제할 파일의 공개 URL
  */
 export async function deleteFileFromR2(url: string): Promise<void> {
-  const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
-  if (!url || !url.startsWith(r2PublicUrl)) {
-    console.log('[R2] Not an R2 URL, skipping delete:', url);
+  const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL || '';
+  
+  // URL 정규화: 트레이링 슬래시 제거
+  const normalizedPublicUrl = r2PublicUrl.replace(/\/$/, '');
+  const isR2Url = url.includes('.r2.dev') || 
+                  url.includes('r2.cloudflarestorage.com') || 
+                  (normalizedPublicUrl && url.startsWith(normalizedPublicUrl));
+
+  if (!url || !isR2Url) {
+    console.log('[R2] Not an R2 URL or empty, skipping delete:', url);
     return;
   }
 
   console.log('[R2] Attempting to delete file:', url);
-  const key = url.replace(`${r2PublicUrl}/`, '');
   
+  // 키 추출 로직 개선: 공개 URL 기반 또는 도메인 기반
+  let key = '';
+  if (normalizedPublicUrl && url.startsWith(normalizedPublicUrl)) {
+    key = url.replace(normalizedPublicUrl, '').replace(/^\//, '');
+  } else {
+    // 도메인 이후의 경로를 키로 간주
+    try {
+      const urlObj = new URL(url);
+      key = urlObj.pathname.replace(/^\//, '');
+    } catch (_e) {
+      console.error('[R2] Failed to parse URL for key extraction:', url);
+      return;
+    }
+  }
+  
+  if (!key) {
+    console.log('[R2] Key extraction failed, skipping delete:', url);
+    return;
+  }
+
   try {
-    console.log('[R2] Deleting from bucket:', import.meta.env.VITE_R2_BUCKET_NAME, 'key:', key);
+    const bucketName = import.meta.env.VITE_R2_BUCKET_NAME;
+    console.log('[R2] Deleting from bucket:', bucketName, 'key:', key);
     const command = new DeleteObjectCommand({
-      Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
+      Bucket: bucketName,
       Key: key,
     });
     await r2Client.send(command);

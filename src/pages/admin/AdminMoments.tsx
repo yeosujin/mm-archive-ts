@@ -69,13 +69,6 @@ export default function AdminMoments() {
     try {
       console.log('[AdminMoments] Calling uploadVideoToR2...');
       
-      // 구버전 파일 배경 삭제
-      const oldUrl = formData.tweet_url;
-      if (oldUrl) {
-        console.log('[AdminMoments] Old URL exists, scheduling delete:', oldUrl);
-        deleteFileFromR2(oldUrl).catch(err => console.error('Failed to delete old moment file in background:', err));
-      }
-
       // 선제적 표시
       setFormData(prev => ({ ...prev, tweet_url: '업로드 중...' }));
 
@@ -109,6 +102,13 @@ export default function AdminMoments() {
     
     try {
       if (editingId) {
+        const originalMoment = moments.find(m => m.id === editingId);
+        // URL이 변경되었고 기존 URL이 R2 파일이었다면 삭제
+        if (originalMoment && originalMoment.tweet_url !== formData.tweet_url) {
+          console.log('[AdminMoments] URL changed, checking for old R2 file cleanup:', originalMoment.tweet_url);
+          deleteFileFromR2(originalMoment.tweet_url).catch(err => console.error('Cleanup failed:', err));
+        }
+
         await updateMoment(editingId, {
           title: formData.title,
           tweet_url: formData.tweet_url,
@@ -119,9 +119,9 @@ export default function AdminMoments() {
         setEditingId(null);
       } else {
         await createMoment({
-      title: formData.title,
+          title: formData.title,
           tweet_url: formData.tweet_url,
-      date: formData.date,
+          date: formData.date,
           video_id: formData.video_id || undefined,
         });
         alert('모먼트가 추가되었어요!');
