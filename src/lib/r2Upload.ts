@@ -22,11 +22,15 @@ export async function uploadVideoToR2(file: File): Promise<string> {
   const fileName = `videos/${timestamp}-${sanitizedFileName}`;
 
   try {
+    // File을 Uint8Array로 변환 (브라우저 stream 이슈 방지)
+    const arrayBuffer = await file.arrayBuffer();
+    const body = new Uint8Array(arrayBuffer);
+
     // R2에 업로드
     const command = new PutObjectCommand({
       Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
       Key: fileName,
-      Body: file,
+      Body: body,
       ContentType: file.type,
     });
 
