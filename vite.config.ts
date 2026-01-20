@@ -13,7 +13,7 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-aws': ['@aws-sdk/client-s3', '@aws-sdk/lib-storage'],
-          'vendor-firebase': ['firebase/app', 'firebase/firestore', 'firebase/auth'],
+          'vendor-supabase': ['@supabase/supabase-js'],
         },
       },
     },
