@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Video, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import PlatformIcon from '../components/PlatformIcon';
@@ -6,6 +7,8 @@ import { detectVideoPlatform } from '../lib/platformUtils';
 import { useData } from '../context/DataContext';
 
 export default function Videos() {
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
   const { videos: cachedVideos, moments: cachedMoments, fetchVideos, fetchMoments } = useData();
   const [videoMoments, setVideoMoments] = useState<Record<string, Moment[]>>({});
   const [expandedVideo, setExpandedVideo] = useState<string | null>(null);
@@ -30,6 +33,16 @@ export default function Videos() {
   useEffect(() => {
     loadVideos();
   }, [loadVideos]);
+
+  // highlight 파라미터 처리: 해당 영상 자동 확장 + 스크롤
+  useEffect(() => {
+    if (!highlightId || loading || videos.length === 0) return;
+    setExpandedVideo(highlightId);
+    loadMomentsForVideo(highlightId);
+    setTimeout(() => {
+      document.querySelector(`[data-video-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }, [highlightId, loading, videos.length]);
 
   // Sync expanded video's moments from cache or fetch all
   const loadMomentsForVideo = useCallback(async (videoId: string) => {
@@ -131,7 +144,7 @@ export default function Videos() {
                   const moments = videoMoments[video.id] || [];
                   
                   return (
-                  <div key={video.id} className="thread-video-item">
+                  <div key={video.id} className="thread-video-item" data-video-id={video.id}>
                       <button 
                       className="thread-item-header"
                       onClick={() => toggleVideo(video.id)}

@@ -1,9 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import { useData } from '../context/DataContext';
 
 export default function Moments() {
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
   const { moments: cachedMoments, fetchMoments } = useData();
   const [moments, setMoments] = useState<Moment[]>(cachedMoments || []);
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
@@ -24,6 +27,17 @@ export default function Moments() {
   useEffect(() => {
     loadMoments();
   }, [loadMoments]);
+
+  // highlight 파라미터 처리: 해당 날짜 그룹 확장 + 스크롤
+  useEffect(() => {
+    if (!highlightId || loading || moments.length === 0) return;
+    const target = moments.find(m => m.id === highlightId);
+    if (!target) return;
+    setExpandedDate(target.date);
+    setTimeout(() => {
+      document.querySelector(`[data-moment-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }, [highlightId, loading, moments.length]);
 
   // 검색 필터링 (메모이제이션)
   const filteredMoments = useMemo(() => {
@@ -117,8 +131,9 @@ export default function Moments() {
                       {groupIdx > 0 && <hr className="moment-group-divider" />}
                       <div className="group-items">
                         {group.map((moment) => (
-                          <div key={moment.id} className="moment-item">
+                          <div key={moment.id} className="moment-item" data-moment-id={moment.id}>
                             <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} />
+                            <p className="moment-card-title">{moment.title}</p>
                           </div>
                         ))}
                       </div>

@@ -625,22 +625,10 @@
 .message-input-row input {
   min-width: 0;
   flex-shrink: 1;
+  height: 46px;
+  box-sizing: border-box;
 }
 
-.message-content-input {
-  flex: 1;
-  min-width: 0 !important;
-}
-
-.message-time-input {
-  width: 70px !important;
-  flex-shrink: 0;
-}
-
-.message-type-select {
-  width: 60px !important;
-  flex-shrink: 0;
-}
 
 /* Member settings */
 .member-settings-form {
@@ -669,18 +657,21 @@
 }
 
 .message-type-select {
-  width: 60px;
+  width: 60px !important;
   flex-shrink: 0;
 }
 
 .message-content-input {
   flex: 1;
-  padding: 0.75rem 1rem;
+  min-width: 0;
+  height: 46px !important;
+  padding: 0 1rem !important;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 0.95rem;
+  box-sizing: border-box;
 }
 
 .message-content-input:focus {
@@ -689,15 +680,17 @@
 }
 
 .message-time-input {
-  width: 100px;
+  width: 70px !important;
   flex-shrink: 0;
-  padding: 0.75rem 0.5rem;
+  height: 46px !important;
+  padding: 0 0.5rem !important;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 0.9rem;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .message-time-input:focus {
@@ -737,6 +730,86 @@
 .add-message-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Comment Messages */
+.comment-messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.comment-message-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.comment-content-input {
+  flex: 3;
+  min-width: 0;
+  height: 46px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.comment-time-input {
+  flex: 1;
+  max-width: 120px;
+  height: 46px;
+  padding: 0 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+}
+
+/* Listening Party Message Row */
+.lp-message-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.lp-sender-input {
+  flex: 1;
+  max-width: 100px;
+  height: 46px;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.lp-content-input {
+  flex: 3;
+  min-width: 0;
+  height: 46px;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.lp-time-input {
+  flex: 1;
+  max-width: 120px;
+  height: 46px;
+  padding: 0 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.8rem;
 }
 
 /* OCR Upload Section */
@@ -784,6 +857,86 @@
 }
 
 .ocr-progress {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+/* Photo Upload in Messages */
+.photo-upload-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.photo-select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 46px;
+  padding: 0 1rem;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.photo-select-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.photo-select-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.photo-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.photo-preview-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.photo-change-btn {
+  padding: 0.375rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.photo-change-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.photo-progress-bar {
+  width: 100%;
+  height: 3px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.photo-progress {
   height: 100%;
   background: var(--accent);
   transition: width 0.3s ease;
@@ -1138,31 +1291,31 @@
 
   /* Message input row */
   .message-input-row {
-    flex-direction: column;
-    align-items: stretch;
+    flex-wrap: wrap;
     width: 100%;
     max-width: 100%;
   }
 
-  .message-sender-select {
-    width: 100% !important;
+  .message-input-row .message-type-select {
+    width: 56px !important;
+    flex-shrink: 0;
   }
 
-  .message-type-select {
-    width: 100% !important;
+  .message-input-row .message-time-input {
+    flex: 1;
+    width: auto !important;
   }
 
-  .message-time-input {
-    width: 100% !important;
-  }
-  
-  .message-content-input {
-    width: 100% !important;
+  .message-input-row .remove-message-btn {
+    width: 36px;
+    flex-shrink: 0;
   }
 
-  .remove-message-btn {
-    width: 100%;
-    height: 36px;
+  .message-input-row .message-content-input,
+  .message-input-row .photo-upload-area {
+    order: 1;
+    width: 100% !important;
+    flex-basis: 100%;
   }
 }
 

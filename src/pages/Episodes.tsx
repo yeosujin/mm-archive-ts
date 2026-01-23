@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Episode, MemberSettings, Video, Moment, Post } from '../lib/database';
 import { useData } from '../context/DataContext';
 
 export default function Episodes() {
-  const { 
-    episodes: cachedEpisodes, 
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
+  const {
+    episodes: cachedEpisodes,
     memberSettings: cachedSettings,
     videos: cachedVideos,
     moments: cachedMoments,
@@ -26,6 +29,7 @@ export default function Episodes() {
   });
   const [expandedEpisode, setExpandedEpisode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'dm' | 'comment' | 'listening_party'>('dm');
   const [loading, setLoading] = useState(!cachedEpisodes || !cachedSettings);
 
   const loadData = useCallback(async () => {
@@ -53,6 +57,15 @@ export default function Episodes() {
     loadData();
   }, [loadData]);
 
+  // highlight 파라미터 처리: 해당 에피소드 자동 확장 + 스크롤
+  useEffect(() => {
+    if (!highlightId || loading || episodes.length === 0) return;
+    setExpandedEpisode(highlightId);
+    setTimeout(() => {
+      document.querySelector(`[data-episode-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }, [highlightId, loading, episodes.length]);
+
   // Sync with cache
   useEffect(() => { if (cachedEpisodes) setEpisodes(cachedEpisodes); }, [cachedEpisodes]);
   useEffect(() => { if (cachedSettings) setMemberSettings(cachedSettings); }, [cachedSettings]);
@@ -60,16 +73,19 @@ export default function Episodes() {
   useEffect(() => { if (cachedMoments) setMoments(cachedMoments); }, [cachedMoments]);
   useEffect(() => { if (cachedPosts) setPosts(cachedPosts); }, [cachedPosts]);
 
-  // 검색 필터링 (날짜, 메시지 내용, 댓글 내용)
-  const filteredEpisodes = searchQuery
-    ? episodes.filter(episode => 
-        episode.date.includes(searchQuery) ||
-        (episode.messages?.some(msg => 
-          msg.type === 'text' && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+  // 탭 + 검색 필터링
+  const filteredEpisodes = episodes
+    .filter(episode => episode.episode_type === activeTab)
+    .filter(episode => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return episode.date.includes(searchQuery) ||
+        (episode.messages?.some(msg =>
+          msg.content.toLowerCase().includes(q) ||
+          msg.sender_name?.toLowerCase().includes(q)
         )) ||
-        (episode.comment_text?.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : episodes;
+        (episode.comment_text?.toLowerCase().includes(q));
+    });
 
   const toggleEpisode = (episodeId: string) => {
     setExpandedEpisode(expandedEpisode === episodeId ? null : episodeId);
@@ -97,14 +113,14 @@ export default function Episodes() {
     return '콘텐츠';
   };
 
-  const getContentTypeName = (type?: string) => {
-    switch (type) {
-      case 'video': return '영상';
-      case 'moment': return '모먼트';
-      case 'post': return '포스트';
-      default: return '콘텐츠';
-    }
-  };
+  // const getContentTypeName = (type?: string) => {
+  //   switch (type) {
+  //     case 'video': return '영상';
+  //     case 'moment': return '모먼트';
+  //     case 'post': return '포스트';
+  //     default: return '콘텐츠';
+  //   }
+  // };
 
   const getContentTypeIcon = (type?: string) => {
     switch (type) {
@@ -121,6 +137,15 @@ export default function Episodes() {
     return memberSettings.member2_name;
   };
 
+  // 시간 포맷: "14:30" → "오후 02:30"
+  const formatTime = (time: string) => {
+    const [h, m] = time.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return time;
+    const period = h < 12 ? '오전' : '오후';
+    const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${period} ${String(hour12).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
+
   if (loading) {
     return (
       <div className="page episodes-page">
@@ -134,6 +159,20 @@ export default function Episodes() {
       <div className="page-header">
         <h1>에피소드</h1>
         <p className="page-desc">💬</p>
+        <div className="episode-tabs">
+          <button
+            className={`episode-tab ${activeTab === 'dm' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dm')}
+          >DM</button>
+          <button
+            className={`episode-tab ${activeTab === 'comment' ? 'active' : ''}`}
+            onClick={() => setActiveTab('comment')}
+          >댓글</button>
+          <button
+            className={`episode-tab ${activeTab === 'listening_party' ? 'active' : ''}`}
+            onClick={() => setActiveTab('listening_party')}
+          >리스닝파티</button>
+        </div>
         <div className="page-controls">
           <div className="search-box">
             <input
@@ -156,29 +195,37 @@ export default function Episodes() {
           {filteredEpisodes.map((episode) => {
             const senderName = getMemberName(episode.sender);
             const isComment = episode.episode_type === 'comment';
+            const isListeningParty = episode.episode_type === 'listening_party';
             const bubbleClass = episode.sender === 'member2' ? 'dm-bubble-right' : 'dm-bubble-left';
-            
+
+            const getPreview = () => {
+              if (isListeningParty) {
+                return episode.title || episode.messages?.[0]?.content || '리스닝파티';
+              }
+              if (isComment) {
+                return episode.linked_content_id
+                  ? `"${getLinkedContentTitle(episode)}" 댓글`
+                  : episode.comment_text;
+              }
+              return episode.title || (episode.messages?.[0]?.type === 'text'
+                ? episode.messages[0].content
+                : '📷 사진');
+            };
+
             return (
-              <div key={episode.id} className={`dm-thread ${isComment ? 'comment-thread' : ''}`}>
-                <button 
+              <div key={episode.id} className={`dm-thread ${isComment ? 'comment-thread' : ''} ${isListeningParty ? 'lp-thread' : ''}`} data-episode-id={episode.id}>
+                <button
                   className="dm-thread-header"
                   onClick={() => toggleEpisode(episode.id)}
-            >
+                >
                   <span className="dm-type-badge">
-                    {isComment ? '💬' : '📱'}
+                    {isListeningParty ? '🎧' : isComment ? '💬' : '📱'}
                   </span>
-                  <span className="dm-member-name">{senderName}</span>
+                  {!isListeningParty && (
+                    <span className="dm-member-name">{senderName}</span>
+                  )}
                   <time className="dm-date">{episode.date}</time>
-                  <span className="dm-preview">
-                    {isComment 
-                      ? (episode.linked_content_id 
-                          ? `${getTargetMemberName(episode.sender)}의 ${getContentTypeName(episode.linked_content_type)}에 댓글`
-                          : episode.comment_text)
-                      : (episode.title || (episode.messages?.[0]?.type === 'text' 
-                          ? episode.messages[0].content 
-                          : '📷 사진'))
-                    }
-                  </span>
+                  <span className="dm-preview">{getPreview()}</span>
                   <span className={`expand-arrow ${expandedEpisode === episode.id ? 'open' : ''}`}>
                     ▼
                   </span>
@@ -186,6 +233,23 @@ export default function Episodes() {
 
                 {expandedEpisode === episode.id && (
                   <div className="dm-messages">
+                    {/* 리스닝파티 타입 */}
+                    {isListeningParty && (
+                      <div className="lp-content">
+                        {episode.messages?.map((msg, idx) => (
+                          <div key={idx} className="comment-bubble">
+                            <div className="comment-bubble-header">
+                              <span className="comment-bubble-name">{msg.sender_name || '?'}</span>
+                              {msg.time && (
+                                <span className="comment-bubble-time">{formatTime(msg.time)}</span>
+                              )}
+                            </div>
+                            <p className="comment-bubble-text">{msg.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {/* 댓글 타입 */}
                     {isComment && (
                       <div className="comment-content">
@@ -199,18 +263,32 @@ export default function Episodes() {
                             </span>
                           </div>
                         )}
-                        <div className={`dm-row ${episode.sender === 'member2' ? 'dm-row-right' : 'dm-row-left'}`}>
-                          <div className="dm-bubble-row">
-                            <div className={`dm-bubble ${bubbleClass} dm-bubble-last`}>
-                              <p className="dm-text">{episode.comment_text}</p>
-                </div>
-              </div>
-              </div>
-        </div>
-      )}
+                        {(episode.messages && episode.messages.length > 0)
+                          ? episode.messages.map((msg, idx) => (
+                            <div key={idx} className="comment-bubble">
+                              <div className="comment-bubble-header">
+                                <span className="comment-bubble-name">{senderName}</span>
+                                {msg.time && (
+                                  <span className="comment-bubble-time">{formatTime(msg.time)}</span>
+                                )}
+                              </div>
+                              <p className="comment-bubble-text">{msg.content}</p>
+                            </div>
+                          ))
+                          : (
+                            <div className="comment-bubble">
+                              <div className="comment-bubble-header">
+                                <span className="comment-bubble-name">{senderName}</span>
+                              </div>
+                              <p className="comment-bubble-text">{episode.comment_text}</p>
+                            </div>
+                          )
+                        }
+                      </div>
+                    )}
 
                     {/* DM 타입 */}
-                    {!isComment && episode.messages?.map((msg, idx) => {
+                    {!isComment && !isListeningParty && episode.messages?.map((msg, idx) => {
                       const prevMsg = episode.messages?.[idx - 1];
                       const nextMsg = episode.messages?.[idx + 1];
                       
@@ -222,9 +300,9 @@ export default function Episodes() {
                       const isLastInGroup = !isSameGroupAsNext;
                       
                       return (
-                        <div 
-                          key={idx} 
-                          className={`dm-row ${episode.sender === 'member2' ? 'dm-row-right' : 'dm-row-left'}`}
+                        <div
+                          key={idx}
+                          className="dm-row dm-row-left"
                         >
                           <div className="dm-bubble-row">
                             <div 

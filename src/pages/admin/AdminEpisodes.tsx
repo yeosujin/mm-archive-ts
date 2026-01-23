@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  createEpisode, updateEpisode, deleteEpisode, 
+import {
+  createEpisode, updateEpisode, deleteEpisode,
   updateMemberSettings
 } from '../../lib/database';
 import type { Episode, MemberSettings, Video, Moment, Post } from '../../lib/database';
 import Tesseract from 'tesseract.js';
 import { useData } from '../../context/DataContext';
+import { uploadPhotoToR2 } from '../../lib/r2Upload';
 
 interface MessageInput {
   type: 'text' | 'image';
@@ -40,31 +41,49 @@ export default function AdminEpisodes() {
   });
   
   // 에피소드 타입
-  const [episodeType, setEpisodeType] = useState<'dm' | 'comment'>('dm');
-  
+  const [episodeType, setEpisodeType] = useState<'dm' | 'comment' | 'listening_party'>('dm');
+
+  const getToday = () => new Date().toISOString().slice(0, 10);
+
   // DM용 폼 데이터
   const [formData, setFormData] = useState({
     title: '',
-    date: '',
+    date: getToday(),
     sender: 'member1' as 'member1' | 'member2',
   });
   const [messages, setMessages] = useState<MessageInput[]>([
     { type: 'text', content: '', time: '' }
   ]);
-  
+
   // Comment용 폼 데이터
   const [commentData, setCommentData] = useState({
-    date: '',
+    date: getToday(),
     sender: 'member1' as 'member1' | 'member2',
     linked_content_type: 'video' as 'video' | 'moment' | 'post',
     linked_content_id: '',
-    comment_text: '',
   });
+  const [commentMessages, setCommentMessages] = useState<{ content: string; time: string }[]>([
+    { content: '', time: '' }
+  ]);
+
+  // Listening Party용 폼 데이터
+  const [lpData, setLpData] = useState({
+    title: '',
+    date: getToday(),
+  });
+  const [lpMessages, setLpMessages] = useState<{ sender_name: string; content: string; time: string }[]>([
+    { sender_name: '', content: '', time: '' }
+  ]);
   
   // OCR 관련 상태
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const ocrInputRef = useRef<HTMLInputElement>(null);
+
+  // 사진 업로드 상태
+  const [photoUploading, setPhotoUploading] = useState<number | null>(null); // 업로드 중인 메시지 index
+  const [photoProgress, setPhotoProgress] = useState(0);
+  const photoInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const loadData = useCallback(async () => {
     try {
@@ -111,7 +130,8 @@ export default function AdminEpisodes() {
 
   // DM용 메시지 관리
   const addMessage = () => {
-    setMessages([...messages, { type: 'text', content: '', time: '' }]);
+    const lastTime = messages[messages.length - 1]?.time || '';
+    setMessages([...messages, { type: 'text', content: '', time: lastTime }]);
   };
 
   const removeMessage = (index: number) => {
@@ -283,6 +303,25 @@ export default function AdminEpisodes() {
     }
   };
 
+  // 사진 파일 선택 → R2 업로드
+  const handlePhotoUpload = async (index: number, file: File) => {
+    setPhotoUploading(index);
+    setPhotoProgress(0);
+
+    try {
+      const url = await uploadPhotoToR2(file, (progress) => {
+        setPhotoProgress(progress);
+      });
+      updateMessage(index, 'content', url);
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      alert('사진 업로드 중 오류가 발생했어요.');
+    } finally {
+      setPhotoUploading(null);
+      setPhotoProgress(0);
+    }
+  };
+
   // DM 제출
   const handleDMSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,59 +366,112 @@ export default function AdminEpisodes() {
   // Comment 제출
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!commentData.comment_text.trim()) {
-      alert('댓글 내용을 입력해주세요.');
+
+    const validComments = commentMessages.filter(m => m.content.trim() !== '');
+    if (validComments.length === 0) {
+      alert('최소 하나의 댓글을 입력해주세요.');
       return;
     }
-    
+
     try {
-      const episodeData: Omit<Episode, 'id'> = {
+      const episodeData: Partial<Omit<Episode, 'id'>> & Pick<Episode, 'date' | 'sender' | 'episode_type'> = {
+        title: '',
         date: commentData.date,
         sender: commentData.sender,
         episode_type: 'comment',
-        comment_text: commentData.comment_text,
-        messages: [],
-        linked_content_type: commentData.linked_content_id ? commentData.linked_content_type : undefined,
-        linked_content_id: commentData.linked_content_id || undefined,
+        comment_text: validComments[0].content,
+        messages: validComments.map(m => ({ type: 'text' as const, content: m.content, time: m.time })),
       };
-      
+
+      if (commentData.linked_content_id) {
+        episodeData.linked_content_type = commentData.linked_content_type;
+        episodeData.linked_content_id = commentData.linked_content_id;
+      }
+
       if (editingId) {
         await updateEpisode(editingId, episodeData);
         alert('수정되었어요!');
         setEditingId(null);
       } else {
-        await createEpisode(episodeData);
+        await createEpisode(episodeData as Omit<Episode, 'id'>);
         alert('댓글 에피소드가 추가되었어요!');
       }
       
       resetCommentForm();
       invalidateCache('episodes');
       loadData();
-    } catch (error) {
-      console.error('Error saving episode:', error);
-      alert('저장 중 오류가 발생했어요.');
+    } catch (error: unknown) {
+      console.error('Error saving comment episode:', error);
+      const msg = error instanceof Error ? error.message : JSON.stringify(error);
+      alert(`저장 중 오류: ${msg}`);
     }
   };
 
   const resetDMForm = () => {
-    setFormData({ title: '', date: '', sender: 'member1' });
+    setFormData({ title: '', date: getToday(), sender: 'member1' });
     setMessages([{ type: 'text', content: '', time: '' }]);
+  };
+
+  // Listening Party 제출
+  const handleLPSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const validMessages = lpMessages.filter(m => m.content.trim() !== '');
+    if (validMessages.length === 0) {
+      alert('최소 하나의 메시지를 입력해주세요.');
+      return;
+    }
+
+    try {
+      const episodeData = {
+        title: lpData.title || '',
+        date: lpData.date,
+        episode_type: 'listening_party' as const,
+        messages: validMessages.map(m => ({
+          type: 'text' as const,
+          content: m.content,
+          time: m.time,
+          sender_name: m.sender_name,
+        })),
+      };
+
+      if (editingId) {
+        await updateEpisode(editingId, episodeData);
+        alert('수정되었어요!');
+        setEditingId(null);
+      } else {
+        await createEpisode(episodeData);
+        alert('리스닝파티가 추가되었어요!');
+      }
+
+      resetLPForm();
+      invalidateCache('episodes');
+      loadData();
+    } catch (error: unknown) {
+      console.error('Error saving LP episode:', error);
+      const msg = error instanceof Error ? error.message : JSON.stringify(error);
+      alert(`저장 중 오류: ${msg}`);
+    }
   };
 
   const resetCommentForm = () => {
     setCommentData({
-      date: '',
+      date: getToday(),
       sender: 'member1',
       linked_content_type: 'video',
       linked_content_id: '',
-      comment_text: '',
     });
+    setCommentMessages([{ content: '', time: '' }]);
+  };
+
+  const resetLPForm = () => {
+    setLpData({ title: '', date: getToday() });
+    setLpMessages([{ sender_name: '', content: '', time: '' }]);
   };
 
   const handleEdit = (episode: Episode) => {
     setEditingId(episode.id);
-    
+
     if (episode.episode_type === 'comment') {
       setEpisodeType('comment');
       setCommentData({
@@ -387,8 +479,23 @@ export default function AdminEpisodes() {
         sender: episode.sender || 'member1',
         linked_content_type: episode.linked_content_type || 'video',
         linked_content_id: episode.linked_content_id || '',
-        comment_text: episode.comment_text || '',
       });
+      if (episode.messages && episode.messages.length > 0) {
+        setCommentMessages(episode.messages.map(m => ({ content: m.content, time: m.time || '' })));
+      } else {
+        setCommentMessages([{ content: episode.comment_text || '', time: '' }]);
+      }
+    } else if (episode.episode_type === 'listening_party') {
+      setEpisodeType('listening_party');
+      setLpData({
+        title: episode.title || '',
+        date: episode.date,
+      });
+      setLpMessages(episode.messages?.map(m => ({
+        sender_name: m.sender_name || '',
+        content: m.content,
+        time: m.time || '',
+      })) || [{ sender_name: '', content: '', time: '' }]);
     } else {
       setEpisodeType('dm');
       setFormData({
@@ -402,7 +509,7 @@ export default function AdminEpisodes() {
         time: m.time,
       })) || [{ type: 'text', content: '', time: '' }]);
     }
-    
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -410,6 +517,7 @@ export default function AdminEpisodes() {
     setEditingId(null);
     resetDMForm();
     resetCommentForm();
+    resetLPForm();
   };
 
   const handleDelete = async (id: string) => {
@@ -536,12 +644,19 @@ export default function AdminEpisodes() {
           >
             📱 DM
           </button>
-          <button 
+          <button
             type="button"
             className={`type-tab ${episodeType === 'comment' ? 'active' : ''}`}
             onClick={() => { setEpisodeType('comment'); handleCancelEdit(); }}
           >
             💬 콘텐츠 댓글
+          </button>
+          <button
+            type="button"
+            className={`type-tab ${episodeType === 'listening_party' ? 'active' : ''}`}
+            onClick={() => { setEpisodeType('listening_party'); handleCancelEdit(); }}
+          >
+            🎧 리스닝파티
           </button>
         </div>
 
@@ -627,18 +742,61 @@ export default function AdminEpisodes() {
                     <option value="text">💬</option>
                     <option value="image">📷</option>
                   </select>
+                  {msg.type === 'image' ? (
+                    <div className="photo-upload-area">
+                      <input
+                        ref={(el) => { photoInputRefs.current[index] = el; }}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handlePhotoUpload(index, file);
+                        }}
+                        style={{ display: 'none' }}
+                      />
+                      {msg.content ? (
+                        <div className="photo-preview-row">
+                          <img src={msg.content} alt="" className="photo-preview-thumb" />
+                          <button
+                            type="button"
+                            className="photo-change-btn"
+                            onClick={() => photoInputRefs.current[index]?.click()}
+                            disabled={photoUploading === index}
+                          >
+                            변경
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="photo-select-btn"
+                          onClick={() => photoInputRefs.current[index]?.click()}
+                          disabled={photoUploading === index}
+                        >
+                          {photoUploading === index
+                            ? `업로드 중... ${photoProgress}%`
+                            : '📷 사진 선택'}
+                        </button>
+                      )}
+                      {photoUploading === index && (
+                        <div className="photo-progress-bar">
+                          <div className="photo-progress" style={{ width: `${photoProgress}%` }} />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={msg.content}
+                      onChange={(e) => updateMessage(index, 'content', e.target.value)}
+                      placeholder="메시지 내용"
+                      className="message-content-input"
+                    />
+                  )}
                   <input
-                    type={msg.type === 'image' ? 'url' : 'text'}
-                    value={msg.content}
-                    onChange={(e) => updateMessage(index, 'content', e.target.value)}
-                    placeholder={msg.type === 'image' ? '이미지 URL' : '메시지 내용'}
-                    className="message-content-input"
-                  />
-                  <input
-                    type="text"
+                    type="time"
                     value={msg.time}
                     onChange={(e) => updateMessage(index, 'time', e.target.value)}
-                    placeholder="시간"
                     className="message-time-input"
                   />
                   {messages.length > 1 && (
@@ -733,18 +891,154 @@ export default function AdminEpisodes() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="comment-text">댓글 내용 *</label>
-              <textarea
-                id="comment-text"
-                value={commentData.comment_text}
-                onChange={(e) => setCommentData({ ...commentData, comment_text: e.target.value })}
-                placeholder="댓글 내용을 입력하세요"
-                rows={3}
-                required
-                className="form-textarea"
-              />
+              <label>댓글 내용 *</label>
+              <div className="comment-messages-list">
+                {commentMessages.map((cm, idx) => (
+                  <div key={idx} className="comment-message-row">
+                    <input
+                      type="text"
+                      value={cm.content}
+                      onChange={(e) => {
+                        const updated = [...commentMessages];
+                        updated[idx].content = e.target.value;
+                        setCommentMessages(updated);
+                      }}
+                      placeholder="댓글 내용"
+                      className="comment-content-input"
+                    />
+                    <input
+                      type="time"
+                      value={cm.time}
+                      onChange={(e) => {
+                        const updated = [...commentMessages];
+                        updated[idx].time = e.target.value;
+                        setCommentMessages(updated);
+                      }}
+                      className="comment-time-input"
+                    />
+                    {commentMessages.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setCommentMessages(commentMessages.filter((_, i) => i !== idx))}
+                        className="remove-message-btn"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const lastTime = commentMessages[commentMessages.length - 1]?.time || '';
+                    setCommentMessages([...commentMessages, { content: '', time: lastTime }]);
+                  }}
+                  className="add-message-btn"
+                >
+                  + 댓글 추가
+                </button>
+              </div>
             </div>
             
+            <div className="form-buttons">
+              <button type="submit" className="admin-submit-btn">
+                {editingId ? '수정하기' : '추가하기'}
+              </button>
+              {editingId && (
+                <button type="button" className="admin-clear-btn" onClick={handleCancelEdit}>
+                  취소
+                </button>
+              )}
+            </div>
+          </form>
+        )}
+
+        {/* Listening Party 폼 */}
+        {episodeType === 'listening_party' && (
+          <form onSubmit={handleLPSubmit} className="admin-form">
+            <div className="form-group">
+              <label htmlFor="lp-date">날짜 *</label>
+              <input
+                id="lp-date"
+                type="date"
+                value={lpData.date}
+                onChange={(e) => setLpData({ ...lpData, date: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="lp-title">제목 (선택)</label>
+              <input
+                id="lp-title"
+                type="text"
+                value={lpData.title}
+                onChange={(e) => setLpData({ ...lpData, title: e.target.value })}
+                placeholder="리스닝파티 제목"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>메시지들</label>
+              <div className="comment-messages-list">
+                {lpMessages.map((msg, idx) => (
+                  <div key={idx} className="lp-message-row">
+                    <input
+                      type="text"
+                      value={msg.sender_name}
+                      onChange={(e) => {
+                        const updated = [...lpMessages];
+                        updated[idx].sender_name = e.target.value;
+                        setLpMessages(updated);
+                      }}
+                      placeholder="이름"
+                      className="lp-sender-input"
+                    />
+                    <input
+                      type="text"
+                      value={msg.content}
+                      onChange={(e) => {
+                        const updated = [...lpMessages];
+                        updated[idx].content = e.target.value;
+                        setLpMessages(updated);
+                      }}
+                      placeholder="메시지 내용"
+                      className="lp-content-input"
+                    />
+                    <input
+                      type="time"
+                      value={msg.time}
+                      onChange={(e) => {
+                        const updated = [...lpMessages];
+                        updated[idx].time = e.target.value;
+                        setLpMessages(updated);
+                      }}
+                      className="lp-time-input"
+                    />
+                    {lpMessages.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setLpMessages(lpMessages.filter((_, i) => i !== idx))}
+                        className="remove-message-btn"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const last = lpMessages[lpMessages.length - 1];
+                    setLpMessages([...lpMessages, { sender_name: last?.sender_name || '', content: '', time: last?.time || '' }]);
+                  }}
+                  className="add-message-btn"
+                >
+                  + 메시지 추가
+                </button>
+              </div>
+            </div>
+
             <div className="form-buttons">
               <button type="submit" className="admin-submit-btn">
                 {editingId ? '수정하기' : '추가하기'}
@@ -765,24 +1059,32 @@ export default function AdminEpisodes() {
         <div className="admin-list">
           {episodes.map((episode) => {
             const isComment = episode.episode_type === 'comment';
-            
+            const isLP = episode.episode_type === 'listening_party';
+
             return (
               <div key={episode.id} className="admin-list-item simple-item">
                 <div className="admin-list-info">
                   <h3>
                     <span className="episode-type-badge">
-                      {isComment ? '💬' : '📱'}
+                      {isLP ? '🎧' : isComment ? '💬' : '📱'}
                     </span>
-                    {getMemberName(episode.sender || 'member1')}
-                    {isComment && episode.linked_content_id
-                      ? ` → ${getTargetMemberName(episode.sender || 'member1')}의 ${getContentTypeName(episode.linked_content_type)}`
-                      : (episode.title ? ` · ${episode.title}` : '')
+                    {isLP
+                      ? (episode.title || '리스닝파티')
+                      : (
+                        <>
+                          {getMemberName(episode.sender || 'member1')}
+                          {isComment && episode.linked_content_id
+                            ? ` → ${getTargetMemberName(episode.sender || 'member1')}의 ${getContentTypeName(episode.linked_content_type)}`
+                            : (episode.title ? ` · ${episode.title}` : '')
+                          }
+                        </>
+                      )
                     }
                   </h3>
                   <p>
                     {episode.date}
-                    {isComment 
-                      ? (episode.linked_content_id 
+                    {isComment
+                      ? (episode.linked_content_id
                           ? ` · ${getContentTypeIcon(episode.linked_content_type)} "${getLinkedContentTitle(episode)}"`
                           : '')
                       : ` · ${episode.messages?.length || 0}개 메시지`

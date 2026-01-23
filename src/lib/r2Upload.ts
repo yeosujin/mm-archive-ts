@@ -82,6 +82,49 @@ export async function uploadVideoToR2(
 }
 
 /**
+ * 사진 파일을 Cloudflare R2에 업로드 (photos/ 프리픽스)
+ * @param file - 업로드할 이미지 파일
+ * @param onProgress - 진행률 콜백 (0-100)
+ * @returns 업로드된 파일의 공개 URL
+ */
+export async function uploadPhotoToR2(
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<string> {
+  const timestamp = Date.now();
+  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const fileName = `photos/${timestamp}-${sanitizedFileName}`;
+
+  try {
+    const parallelUploads3 = new Upload({
+      client: r2Client,
+      params: {
+        Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
+        Key: fileName,
+        Body: file,
+        ContentType: file.type,
+      },
+      leavePartsOnError: false,
+    });
+
+    parallelUploads3.on('httpUploadProgress', (progress) => {
+      if (progress.loaded && progress.total) {
+        const percent = Math.round((progress.loaded / progress.total) * 100);
+        onProgress?.(percent);
+      }
+    });
+
+    await parallelUploads3.done();
+
+    const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
+    return publicUrl;
+  } catch (error) {
+    console.error('[R2] Photo upload failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Cloudflare R2에서 파일 삭제
  * @param url - 삭제할 파일의 공개 URL
  */

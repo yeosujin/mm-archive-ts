@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Post } from '../lib/database';
 import PostEmbed from '../components/PostEmbed';
 import PlatformIcon from '../components/PlatformIcon';
@@ -6,6 +7,8 @@ import { getPlatformName } from '../lib/platformUtils';
 import { useData } from '../context/DataContext';
 
 export default function Posts() {
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
   const { posts: cachedPosts, fetchPosts } = useData();
   const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
@@ -30,6 +33,15 @@ export default function Posts() {
   useEffect(() => {
     if (cachedPosts) setPosts(cachedPosts);
   }, [cachedPosts]);
+
+  // highlight 파라미터 처리: 해당 포스트 자동 확장 + 스크롤
+  useEffect(() => {
+    if (!highlightId || loading || posts.length === 0) return;
+    setExpandedPost(highlightId);
+    setTimeout(() => {
+      document.querySelector(`[data-post-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }, [highlightId, loading, posts.length]);
 
   // 검색 필터링 (제목, 날짜)
   const filteredPosts = searchQuery
@@ -96,7 +108,7 @@ export default function Posts() {
 
               <div className="thread-content">
                 {datePosts.map((post) => (
-                  <div key={post.id} className="thread-post-item">
+                  <div key={post.id} className="thread-post-item" data-post-id={post.id}>
                     <button 
                       className="thread-item-header"
                       onClick={() => togglePost(post.id)}

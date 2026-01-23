@@ -97,7 +97,7 @@ export default function Search() {
               <h2>📹 영상 ({matchedVideos.length})</h2>
               <div className="search-list">
                 {matchedVideos.map(video => (
-                  <Link to="/videos" key={video.id} className="search-item">
+                  <Link to={`/videos?highlight=${video.id}`} key={video.id} className="search-item">
                     <span className="search-item-title">{video.title}</span>
                     <span className="search-item-date">{video.date}</span>
                   </Link>
@@ -112,7 +112,7 @@ export default function Search() {
               <h2>✨ 모먼트 ({matchedMoments.length})</h2>
               <div className="search-list">
                 {matchedMoments.map(moment => (
-                  <Link to="/moments" key={moment.id} className="search-item">
+                  <Link to={`/moments?highlight=${moment.id}`} key={moment.id} className="search-item">
                     <span className="search-item-title">{moment.title}</span>
                     <span className="search-item-date">{moment.date}</span>
                   </Link>
@@ -127,7 +127,7 @@ export default function Search() {
               <h2>📱 포스트 ({matchedPosts.length})</h2>
               <div className="search-list">
                 {matchedPosts.map(post => (
-                  <Link to="/posts" key={post.id} className="search-item">
+                  <Link to={`/posts?highlight=${post.id}`} key={post.id} className="search-item">
                     <span className="search-item-title">{post.title || post.platform}</span>
                     <span className="search-item-date">{post.date}</span>
                   </Link>
@@ -142,7 +142,7 @@ export default function Search() {
               <h2>💬 에피소드 ({matchedEpisodes.length})</h2>
               <div className="search-list">
                 {matchedEpisodes.map(episode => (
-                  <Link to="/episodes" key={episode.id} className="search-item">
+                  <Link to={`/episodes?highlight=${episode.id}`} key={episode.id} className="search-item">
                     <span className="search-item-title">{episode.title || episode.date}</span>
                     <span className="search-item-date">{episode.date}</span>
                   </Link>
