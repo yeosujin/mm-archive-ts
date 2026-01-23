@@ -21,11 +21,20 @@ function getVideoMimeType(url: string): string {
 const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => {
   const [activated, setActivated] = useState(false);
   const [showControls, setShowControls] = useState(false);
+  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handlePlay = () => {
     setActivated(true);
   };
+
+  // 썸네일 프리로드
+  useEffect(() => {
+    if (!thumbnailUrl) return;
+    const img = new Image();
+    img.onload = () => setThumbnailLoaded(true);
+    img.src = thumbnailUrl;
+  }, [thumbnailUrl]);
 
   // 비디오 활성화 시 자동 재생 시도
   useEffect(() => {
@@ -34,22 +43,19 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
     const video = videoRef.current;
     if (!video) return;
 
-    // 비디오 로드 후 재생 시도
     const tryPlay = () => {
       video.play().catch((err) => {
-        console.warn('[VideoPlayer] 자동 재생 실패, 컨트롤 표시:', err);
+        console.warn('[VideoPlayer] 자동 재생 실패:', err);
         setShowControls(true);
       });
     };
 
-    // canplay 이벤트 또는 이미 로드된 경우
     if (video.readyState >= 3) {
       tryPlay();
     } else {
       video.addEventListener('canplay', tryPlay, { once: true });
     }
 
-    // 재생 시작되면 컨트롤 표시
     const handlePlaying = () => setShowControls(true);
     video.addEventListener('playing', handlePlaying);
 
@@ -59,6 +65,17 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
     };
   }, [activated]);
 
+  // 공통 컨테이너 스타일 (레이아웃 시프트 방지)
+  const containerStyle: React.CSSProperties = {
+    position: 'relative',
+    width: '100%',
+    maxWidth: '800px',
+    aspectRatio: '16 / 9',
+    borderRadius: '8px',
+    backgroundColor: '#000',
+    overflow: 'hidden',
+  };
+
   if (!activated) {
     return (
       <div className={`video-player ${className}`}>
@@ -67,22 +84,36 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
           onClick={handlePlay}
           aria-label="영상 재생"
           style={{
-            width: '100%',
-            maxWidth: '800px',
-            aspectRatio: '16 / 9',
-            borderRadius: '8px',
-            backgroundColor: '#000',
+            ...containerStyle,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             border: 'none',
-            backgroundImage: thumbnailUrl ? `url(${thumbnailUrl})` : undefined,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
+            padding: 0,
           }}
         >
+          {/* 썸네일 이미지 */}
+          {thumbnailUrl && (
+            <img
+              src={thumbnailUrl}
+              alt=""
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                opacity: thumbnailLoaded ? 1 : 0,
+                transition: 'opacity 0.2s ease',
+              }}
+            />
+          )}
+          {/* 재생 버튼 */}
           <span style={{
+            position: 'relative',
+            zIndex: 1,
             fontSize: '48px',
             color: '#fff',
             opacity: 0.9,
@@ -95,25 +126,29 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
 
   return (
     <div className={`video-player ${className}`}>
-      <video
-        ref={videoRef}
-        controls={showControls}
-        playsInline
-        webkit-playsinline="true"
-        controlsList="nodownload"
-        preload="auto"
-        autoPlay
-        muted={false}
-        style={{
-          width: '100%',
-          maxWidth: '800px',
-          borderRadius: '8px',
-          backgroundColor: '#000',
-        }}
-      >
-        <source src={videoUrl} type={getVideoMimeType(videoUrl)} />
-        브라우저가 비디오 재생을 지원하지 않습니다.
-      </video>
+      <div style={containerStyle}>
+        <video
+          ref={videoRef}
+          controls={showControls}
+          playsInline
+          webkit-playsinline="true"
+          controlsList="nodownload"
+          preload="metadata"
+          autoPlay
+          poster={thumbnailUrl}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+          }}
+        >
+          <source src={videoUrl} type={getVideoMimeType(videoUrl)} />
+          브라우저가 비디오 재생을 지원하지 않습니다.
+        </video>
+      </div>
     </div>
   );
 });
