@@ -214,32 +214,68 @@ export async function uploadThumbnailFromVideo(file: File, videoKey: string): Pr
 
 /**
  * 비디오 파일에서 첫 프레임을 이미지로 추출
+ * 타임아웃 및 다중 이벤트 핸들러로 안정성 강화
  */
 function extractFirstFrame(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
-    video.preload = 'metadata';
+    video.preload = 'auto';  // ← 'metadata'에서 변경
     video.muted = true;
     video.playsInline = true;
 
+    let settled = false;
     const url = URL.createObjectURL(file);
-    video.src = url;
+    
+    // 10초 타임아웃 (무한 대기 방지)
+    const timeout = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        console.warn('[Thumb] 타임아웃 (10s)');
+        cleanup();
+        reject(new Error(`썸네일 추출 타임아웃 (10초): ${file.name}`));
+      }
+    }, 10000);
 
-    video.addEventListener('loadeddata', () => {
-      video.currentTime = 0.1;
-    });
+    const cleanup = () => {
+      clearTimeout(timeout);
+      URL.revokeObjectURL(url);
+      video.src = '';
+      video.load();
+    };
 
-    video.addEventListener('seeked', () => {
+    const trySeek = () => {
+      if (settled) return;
+      const seekTime = Math.min(0.1, (video.duration || 1) * 0.1);
+      video.currentTime = seekTime;
+    };
+
+    const tryCapture = () => {
+      if (settled) return;
+      if (video.videoWidth === 0 || video.videoHeight === 0) return;
+      
+      settled = true;
       captureFrame(video)
         .then(resolve)
         .catch(reject)
-        .finally(() => URL.revokeObjectURL(url));
+        .finally(cleanup);
+    };
+
+    video.addEventListener('loadedmetadata', trySeek);
+    video.addEventListener('loadeddata', () => {
+      if (video.currentTime === 0) trySeek();
+    });
+    video.addEventListener('canplay', () => {
+      if (video.currentTime === 0) trySeek();
+    });
+    video.addEventListener('seeked', tryCapture);
+    video.addEventListener('error', () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error(`비디오 로드 실패`));
     });
 
-    video.addEventListener('error', () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('비디오 로드 실패'));
-    });
+    video.src = url;
   });
 }
 
