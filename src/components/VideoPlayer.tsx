@@ -67,6 +67,16 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
     overflow: 'hidden',
   };
 
+  // 썸네일 스타일 (항상 동일)
+  const thumbnailStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  };
+
   if (!activated) {
     return (
       <div className={`video-player ${className}`}>
@@ -84,20 +94,13 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
             padding: 0,
           }}
         >
-          {/* 썸네일 이미지 (DataContext에서 프리로드됨) */}
+          {/* 썸네일: 즉시 렌더링 (DataContext에서 프리로드됨) */}
           {thumbnailUrl && (
             <img
               src={thumbnailUrl}
               alt=""
-              loading="eager"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
+              style={thumbnailStyle}
+              decoding="async"
             />
           )}
           {/* 재생 버튼 */}
