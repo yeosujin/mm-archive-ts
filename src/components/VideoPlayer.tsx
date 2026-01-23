@@ -21,20 +21,11 @@ function getVideoMimeType(url: string): string {
 const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => {
   const [activated, setActivated] = useState(false);
   const [showControls, setShowControls] = useState(false);
-  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handlePlay = () => {
     setActivated(true);
   };
-
-  // 썸네일 프리로드
-  useEffect(() => {
-    if (!thumbnailUrl) return;
-    const img = new Image();
-    img.onload = () => setThumbnailLoaded(true);
-    img.src = thumbnailUrl;
-  }, [thumbnailUrl]);
 
   // 비디오 활성화 시 자동 재생 시도
   useEffect(() => {
@@ -93,11 +84,12 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
             padding: 0,
           }}
         >
-          {/* 썸네일 이미지 */}
+          {/* 썸네일 이미지 (DataContext에서 프리로드됨) */}
           {thumbnailUrl && (
             <img
               src={thumbnailUrl}
               alt=""
+              loading="eager"
               style={{
                 position: 'absolute',
                 top: 0,
@@ -105,8 +97,6 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                opacity: thumbnailLoaded ? 1 : 0,
-                transition: 'opacity 0.2s ease',
               }}
             />
           )}
