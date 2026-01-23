@@ -29,8 +29,9 @@ export async function uploadVideoToR2(
   });
   
   const timestamp = Date.now();
-  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const fileName = `videos/${timestamp}-${sanitizedFileName}`;
+const randomId = crypto.randomUUID().slice(0, 8);
+const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+const fileName = `videos/${timestamp}-${randomId}-${sanitizedFileName}`;
 
   try {
     const parallelUploads3 = new Upload({
@@ -91,9 +92,10 @@ export async function uploadPhotoToR2(
   file: File,
   onProgress?: (progress: number) => void
 ): Promise<string> {
-  const timestamp = Date.now();
-  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const fileName = `photos/${timestamp}-${sanitizedFileName}`;
+ const timestamp = Date.now();
+const randomId = crypto.randomUUID().slice(0, 8);
+const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+const fileName = `videos/${timestamp}-${randomId}-${sanitizedFileName}`;
 
   try {
     const parallelUploads3 = new Upload({
