@@ -31,17 +31,10 @@ export default function Layout() {
           
           {/* Desktop Navigation */}
           <nav className="nav desktop-nav">
-            <NavLink 
-              to="/videos" 
+            <NavLink
+              to="/videos"
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/Videos')}
-            >
-              영상
-            </NavLink>
-            <NavLink 
-              to="/moments" 
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onMouseEnter={() => import('../pages/Moments')}
             >
               모먼트
             </NavLink>
@@ -122,15 +115,8 @@ export default function Layout() {
         {/* Mobile Navigation */}
         {showMobileMenu && (
           <nav className="mobile-nav">
-            <NavLink 
-              to="/videos" 
-              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
-              onClick={handleNavClick}
-            >
-              📹 영상
-            </NavLink>
-            <NavLink 
-              to="/moments" 
+            <NavLink
+              to="/videos"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createVideo, updateVideo, deleteVideo } from '../../lib/database';
 import type { Video } from '../../lib/database';
-import { uploadVideoToR2, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
+import { uploadVideoToR2, uploadThumbnailFromVideo, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
 import AdminModal from '../../components/AdminModal';
 import PlatformIcon from '../../components/PlatformIcon';
 import { detectVideoPlatform } from '../../lib/platformUtils';
@@ -69,6 +69,7 @@ export default function AdminVideos() {
     url: '',
     date: '',
     icon: '',
+    thumbnail_url: '',
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
@@ -158,15 +159,27 @@ export default function AdminVideos() {
         setUploadProgress(percent);
         setUploadMessage(`업로드 중... (${percent}%)`);
       });
-      
+
       if (!uploadedUrl) throw new Error('업로드된 URL이 비어있습니다.');
       setFormData(prev => ({ ...prev, url: uploadedUrl }));
+
+      // 썸네일 추출 및 업로드
+      setUploadMessage('썸네일 생성 중...');
+      try {
+        const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
+        const videoKey = uploadedUrl.replace(`${r2PublicUrl}/`, '');
+        const thumbnailUrl = await uploadThumbnailFromVideo(file, videoKey);
+        setFormData(prev => ({ ...prev, thumbnail_url: thumbnailUrl }));
+      } catch (thumbErr) {
+        console.warn('썸네일 생성 실패 (영상은 정상 업로드됨):', thumbErr);
+      }
+
       setUploadMessage('업로드 완료! ✅');
       setTimeout(() => setUploadMessage(''), 3000);
     } catch (error) {
       alert('업로드 실패: ' + (error as Error).message);
       setUploadMessage('');
-      setFormData(prev => ({ ...prev, url: '' }));
+      setFormData(prev => ({ ...prev, url: '', thumbnail_url: '' }));
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -182,6 +195,9 @@ export default function AdminVideos() {
         const originalVideo = videos.find(v => v.id === editingId);
         if (originalVideo && originalVideo.url !== formData.url) {
           deleteFileFromR2(originalVideo.url).catch(err => console.error('Cleanup failed:', err));
+          if (originalVideo.thumbnail_url) {
+            deleteFileFromR2(originalVideo.thumbnail_url).catch(err => console.error('Thumb cleanup failed:', err));
+          }
         }
 
         await updateVideo(editingId, {
@@ -189,6 +205,7 @@ export default function AdminVideos() {
           url: formData.url,
           date: formData.date,
           icon: isWeverseUrl ? formData.icon : undefined,
+          thumbnail_url: formData.thumbnail_url || undefined,
         });
         alert('수정되었어요!');
       } else {
@@ -197,8 +214,9 @@ export default function AdminVideos() {
           url: formData.url,
           date: formData.date,
           ...(isWeverseUrl && { icon: formData.icon }),
+          ...(formData.thumbnail_url && { thumbnail_url: formData.thumbnail_url }),
         });
-        alert('영상이 추가되었어요!');
+        alert('추가되었어요!');
       }
       
       invalidateCache('videos');
@@ -217,20 +235,21 @@ export default function AdminVideos() {
       url: video.url,
       date: video.date,
       icon: video.icon || '🩵',
+      thumbnail_url: video.thumbnail_url || '',
     });
     setIsModalOpen(true);
   };
 
   const handleOpenAddModal = () => {
     setEditingId(null);
-    setFormData({ title: '', url: '', date: '', icon: '🩵' });
+    setFormData({ title: '', url: '', date: '', icon: '🩵', thumbnail_url: '' });
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ title: '', url: '', date: '', icon: '🩵' });
+    setFormData({ title: '', url: '', date: '', icon: '🩵', thumbnail_url: '' });
     setUploadMessage('');
   };
 
@@ -241,6 +260,9 @@ export default function AdminVideos() {
       const video = videos.find(v => v.id === id);
       if (video?.url) {
         await deleteFileFromR2(video.url);
+      }
+      if (video?.thumbnail_url) {
+        deleteFileFromR2(video.thumbnail_url).catch(err => console.error('Thumb delete failed:', err));
       }
       
       await deleteVideo(id);
@@ -288,7 +310,7 @@ export default function AdminVideos() {
                         <span className="item-title">{video.title}</span>
                       </div>
                       <div className="thread-item-content" style={{ padding: '0 1rem 1rem' }}>
-                        <VideoEmbed url={video.url} title={video.title} icon={video.icon} />
+                        <VideoEmbed url={video.url} title={video.title} icon={video.icon} thumbnailUrl={video.thumbnail_url} />
                       </div>
                     </div>
                   </div>

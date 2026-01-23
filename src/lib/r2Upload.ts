@@ -146,6 +146,176 @@ export async function deleteFileFromR2(url: string): Promise<void> {
 }
 
 /**
+ * 비디오 파일에서 첫 프레임을 추출하여 R2에 썸네일로 업로드
+ * @param file - 비디오 파일
+ * @param videoKey - 비디오 파일의 R2 키 (썸네일 키 생성용)
+ * @returns 썸네일 공개 URL
+ */
+export async function uploadThumbnailFromVideo(file: File, videoKey: string): Promise<string> {
+  const thumbnailBlob = await extractFirstFrame(file);
+  const thumbnailKey = videoKey.replace(/\.[^.]+$/, '_thumb.jpg');
+
+  const upload = new Upload({
+    client: r2Client,
+    params: {
+      Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
+      Key: thumbnailKey,
+      Body: thumbnailBlob,
+      ContentType: 'image/jpeg',
+    },
+  });
+
+  await upload.done();
+  return `${import.meta.env.VITE_R2_PUBLIC_URL}/${thumbnailKey}`;
+}
+
+/**
+ * 비디오 파일에서 첫 프레임을 이미지로 추출
+ */
+function extractFirstFrame(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+
+    const url = URL.createObjectURL(file);
+    video.src = url;
+
+    video.addEventListener('loadeddata', () => {
+      video.currentTime = 0.1;
+    });
+
+    video.addEventListener('seeked', () => {
+      captureFrame(video)
+        .then(resolve)
+        .catch(reject)
+        .finally(() => URL.revokeObjectURL(url));
+    });
+
+    video.addEventListener('error', () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('비디오 로드 실패'));
+    });
+  });
+}
+
+/**
+ * R2 URL에서 비디오를 로드하여 첫 프레임을 추출하고 썸네일을 R2에 업로드
+ * @param videoUrl - R2 영상 공개 URL
+ * @returns 썸네일 공개 URL
+ */
+export async function generateThumbnailFromUrl(videoUrl: string): Promise<string> {
+  const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
+  const videoKey = videoUrl.replace(`${r2PublicUrl}/`, '');
+  const thumbnailKey = videoKey.replace(/\.[^.]+$/, '_thumb.jpg');
+
+  const blob = await extractFirstFrameFromUrl(videoUrl);
+
+  const upload = new Upload({
+    client: r2Client,
+    params: {
+      Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
+      Key: thumbnailKey,
+      Body: blob,
+      ContentType: 'image/jpeg',
+    },
+  });
+
+  await upload.done();
+  return `${r2PublicUrl}/${thumbnailKey}`;
+}
+
+/**
+ * URL에서 비디오를 로드하여 첫 프레임을 이미지로 추출
+ */
+function extractFirstFrameFromUrl(videoUrl: string): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'auto';
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        console.warn(`[Thumb] 타임아웃 (30s): ${videoUrl}`);
+        video.src = '';
+        reject(new Error(`타임아웃: ${videoUrl}`));
+      }
+    }, 30000);
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      video.src = '';
+    };
+
+    video.addEventListener('loadedmetadata', () => {
+      // 영상 길이에 맞춰 seek (너무 뒤로 가지 않도록)
+      const seekTime = Math.min(0.1, (video.duration || 1) * 0.1);
+      video.currentTime = seekTime;
+    });
+
+    video.addEventListener('seeked', () => {
+      if (settled) return;
+      // videoWidth가 0이면 아직 프레임이 준비 안 됨
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        settled = true;
+        cleanup();
+        reject(new Error(`비디오 프레임 없음 (0x0): ${videoUrl}`));
+        return;
+      }
+      settled = true;
+      captureFrame(video)
+        .then(resolve)
+        .catch((err) => {
+          console.error(`[Thumb] captureFrame 실패:`, err);
+          reject(err);
+        })
+        .finally(cleanup);
+    });
+
+    video.addEventListener('error', () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      const code = video.error?.code;
+      const msg = video.error?.message || '';
+      reject(new Error(`비디오 로드 실패 (code=${code}): ${msg} - ${videoUrl}`));
+    });
+
+    video.src = videoUrl;
+  });
+}
+
+/**
+ * video 요소에서 현재 프레임을 캡처
+ */
+function captureFrame(video: HTMLVideoElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      reject(new Error('Canvas context 생성 실패'));
+      return;
+    }
+    ctx.drawImage(video, 0, 0);
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('썸네일 Blob 생성 실패'));
+      },
+      'image/jpeg',
+      0.8
+    );
+  });
+}
+
+/**
  * 파일이 비디오인지 확인
  */
 export function isVideoFile(file: File): boolean {

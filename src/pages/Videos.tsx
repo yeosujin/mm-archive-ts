@@ -98,8 +98,8 @@ export default function Videos() {
   return (
     <div className="page videos-page">
       <div className="page-header">
-        <h1>영상</h1>
-        <p className="page-desc">영상 콘텐츠</p>
+        <h1>모먼트</h1>
+        <p className="page-desc">모먼트</p>
         <div className="page-controls">
           <div className="search-box">
             <input
@@ -115,7 +115,7 @@ export default function Videos() {
 
       {groupedVideos.length === 0 ? (
         <div className="empty-state">
-          <p>아직 영상이 없어요 😢</p>
+          <p>아직 모먼트가 없어요 😢</p>
         </div>
       ) : (
         <div className="video-timeline">
@@ -152,7 +152,7 @@ export default function Videos() {
                     
                     {expandedVideo === video.id && (
                       <div className="thread-item-content">
-                          <VideoEmbed url={video.url} title={video.title} icon={video.icon} />
+                          <VideoEmbed url={video.url} title={video.title} icon={video.icon} thumbnailUrl={video.thumbnail_url} />
                           
                           {moments.length > 0 && (
                             <div className="video-moments-section">
@@ -172,9 +172,10 @@ export default function Videos() {
                                   {moments.map((moment) => (
                           <div key={moment.id} className="moment-embed-item">
                                       <h4 className="moment-title">{moment.title}</h4>
-                                      <VideoEmbed 
-                                        url={moment.tweet_url} 
+                                      <VideoEmbed
+                                        url={moment.tweet_url}
                                         title={moment.title}
+                                        thumbnailUrl={moment.thumbnail_url}
                                       />
                           </div>
                         ))}

@@ -6,6 +6,7 @@ interface Props {
   url: string;
   title: string;
   icon?: string;  // 위버스 등 외부 링크용 커스텀 아이콘
+  thumbnailUrl?: string;
   className?: string;
 }
 
@@ -47,11 +48,11 @@ function getYouTubeId(url: string): string | null {
   return null;
 }
 
-const VideoEmbed = memo(({ url, title, icon, className = '' }: Props) => {
+const VideoEmbed = memo(({ url, title, icon, thumbnailUrl, className = '' }: Props) => {
   const videoType = getVideoType(url);
 
   if (videoType === 'r2') {
-    return <VideoPlayer videoUrl={url} className={className} />;
+    return <VideoPlayer videoUrl={url} thumbnailUrl={thumbnailUrl} className={className} />;
   }
 
   if (videoType === 'youtube') {

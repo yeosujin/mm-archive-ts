@@ -72,9 +72,6 @@ export default function Home() {
         
         <div className="hero-links">
           <Link to="/videos" className="hero-btn primary">
-            📹 영상
-          </Link>
-          <Link to="/moments" className="hero-btn primary">
             ✨ 모먼트
           </Link>
           <Link to="/posts" className="hero-btn primary">
@@ -97,10 +94,11 @@ export default function Home() {
         <div className="featured-section">
           {featuredItem.type === 'video' && (
             <div className="featured-content">
-              <VideoEmbed 
-                url={(featuredItem.item as Video).url} 
-                title={featuredItem.item.title} 
+              <VideoEmbed
+                url={(featuredItem.item as Video).url}
+                title={featuredItem.item.title}
                 icon={(featuredItem.item as Video).icon}
+                thumbnailUrl={(featuredItem.item as Video).thumbnail_url}
               />
         </div>
           )}
@@ -116,9 +114,10 @@ export default function Home() {
           
           {featuredItem.type === 'moment' && (
             <div className="featured-content">
-              <VideoEmbed 
-                url={(featuredItem.item as Moment).tweet_url} 
+              <VideoEmbed
+                url={(featuredItem.item as Moment).tweet_url}
                 title={(featuredItem.item as Moment).title}
+                thumbnailUrl={(featuredItem.item as Moment).thumbnail_url}
               />
             </div>
           )}

@@ -7,6 +7,7 @@ export interface Video {
   url: string;
   date: string;
   icon?: string; // 위버스 등 외부 링크용 아이콘 (💙, 🩵, 🖤, 🤍)
+  thumbnail_url?: string;
 }
 
 export interface Moment {
@@ -16,6 +17,7 @@ export interface Moment {
   date: string;
   video_id?: string;
   position?: number;
+  thumbnail_url?: string;
 }
 
 export interface Post {
