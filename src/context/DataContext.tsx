@@ -26,6 +26,25 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 const CACHE_TIME = 1000 * 60 * 5; // 5 minutes
 
+// 썸네일 프리로드 캐시 (중복 로드 방지)
+const preloadedThumbnails = new Set<string>();
+
+/**
+ * 썸네일 이미지들을 백그라운드에서 프리로드
+ * - 브라우저 캐시에 저장되어 VideoPlayer에서 즉시 표시
+ * - 이미 로드된 URL은 스킵
+ */
+function preloadThumbnails(urls: (string | undefined | null)[]) {
+  urls.forEach(url => {
+    if (!url || preloadedThumbnails.has(url)) return;
+    
+    preloadedThumbnails.add(url);
+    const img = new Image();
+    img.src = url;
+    // 로드 실패해도 무시 (백그라운드 작업)
+  });
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DataState>({
     videos: null,
@@ -47,6 +66,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const fetchVideos = useCallback(async (force = false) => {
     if (shouldFetch('videos', force)) {
       const data = await getVideos();
+      
+      // 썸네일 프리로드
+      preloadThumbnails(data.map(v => v.thumbnail_url));
+      
       setState(prev => ({
         ...prev,
         videos: data,
@@ -60,6 +83,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const fetchMoments = useCallback(async (force = false) => {
     if (shouldFetch('moments', force)) {
       const data = await getMoments();
+      
+      // 썸네일 프리로드
+      preloadThumbnails(data.map(m => m.thumbnail_url));
+      
       setState(prev => ({
         ...prev,
         moments: data,
