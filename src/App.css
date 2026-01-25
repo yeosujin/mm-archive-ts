@@ -3251,3 +3251,120 @@
   color: var(--text-primary);
   margin: 0 0 1rem 0;
 }
+
+/* 어드민 아코디언 스타일 - App.css에 추가 */
+
+.admin-accordion-list {
+display: flex;
+flex-direction: column;
+gap: 0.5rem;
+}
+
+.admin-accordion-item {
+background: var(–bg-card);
+border: 1px solid var(–border);
+border-radius: 8px;
+overflow: hidden;
+}
+
+.admin-accordion-header {
+width: 100%;
+display: flex;
+align-items: center;
+gap: 0.75rem;
+padding: 0.875rem 1rem;
+background: transparent;
+border: none;
+cursor: pointer;
+text-align: left;
+color: var(–text-primary);
+font-size: 0.95rem;
+transition: background 0.2s;
+}
+
+.admin-accordion-header:hover {
+background: var(–bg-secondary);
+}
+
+.admin-accordion-header.open {
+border-bottom: 1px solid var(–border);
+}
+
+.accordion-date {
+font-weight: 600;
+}
+
+.accordion-count {
+color: var(–text-muted);
+font-size: 0.85rem;
+}
+
+.admin-accordion-header .expand-arrow {
+margin-left: auto;
+font-size: 0.75rem;
+color: var(–text-muted);
+transition: transform 0.2s;
+}
+
+.admin-accordion-header .expand-arrow.open {
+transform: rotate(180deg);
+}
+
+.admin-accordion-content {
+padding: 0.5rem;
+}
+
+.admin-video-row {
+display: flex;
+align-items: center;
+gap: 0.75rem;
+padding: 0.625rem 0.75rem;
+border-radius: 6px;
+transition: background 0.2s;
+}
+
+.admin-video-row:hover {
+background: var(–bg-secondary);
+}
+
+.video-platform {
+flex-shrink: 0;
+}
+
+.video-title-text {
+flex: 1;
+font-size: 0.9rem;
+color: var(–text-primary);
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+
+.admin-row-actions {
+display: flex;
+gap: 0.5rem;
+flex-shrink: 0;
+}
+
+.admin-btn-sm {
+padding: 0.375rem 0.625rem;
+font-size: 0.75rem;
+border-radius: 4px;
+border: none;
+cursor: pointer;
+transition: opacity 0.2s;
+}
+
+.admin-btn-sm:hover {
+opacity: 0.8;
+}
+
+.admin-btn-sm.edit {
+background: var(–accent);
+color: white;
+}
+
+.admin-btn-sm.delete {
+background: #ff4757;
+color: white;
+}
