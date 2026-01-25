@@ -7,6 +7,7 @@ import PlatformIcon from ‘../../components/PlatformIcon’;
 import { detectVideoPlatform } from ‘../../lib/platformUtils’;
 import { useData } from ‘../../context/DataContext’;
 
+
 const HEART_OPTIONS = [
 { value: ‘💙’, label: ‘💙 파란색’ },
 { value: ‘🩵’, label: ‘🩵 하늘색’ },
