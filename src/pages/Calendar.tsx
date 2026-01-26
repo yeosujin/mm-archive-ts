@@ -269,7 +269,7 @@ export default function Calendar() {
               {selectedArchives.map((archive) => (
                 <Link
                   key={`${archive.type}-${archive.id}`}
-                  to={archive.path}
+                  to={`${archive.path}?highlight=${archive.id}`}
                   className="archive-item"
                 >
                   <span className="archive-icon">{TYPE_ICONS[archive.type]}</span>

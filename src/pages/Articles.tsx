@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Article } from '../lib/database';
 import { useData } from '../context/DataContext';
 
 export default function Articles() {
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
   const { articles: cachedArticles, fetchArticles } = useData();
   const [articles, setArticles] = useState<Article[]>(cachedArticles || []);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(!cachedArticles);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   const loadArticles = useCallback(async () => {
     try {
@@ -26,6 +30,17 @@ export default function Articles() {
   useEffect(() => {
     if (cachedArticles) setArticles(cachedArticles);
   }, [cachedArticles]);
+
+  // highlight 파라미터 처리: 해당 글 스크롤 + 강조
+  useEffect(() => {
+    if (!highlightId || loading || articles.length === 0) return;
+    setHighlightedId(highlightId);
+    setTimeout(() => {
+      document.querySelector(`[data-article-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // 3초 후 강조 해제
+      setTimeout(() => setHighlightedId(null), 3000);
+    }, 100);
+  }, [highlightId, loading, articles.length]);
 
   // 검색 필터링 (제목, 글쓴이, 태그, 날짜)
   const filteredArticles = articles.filter((article) =>
@@ -68,12 +83,13 @@ export default function Articles() {
       ) : (
         <div className="article-list">
           {filteredArticles.map((article) => (
-            <a 
-              key={article.id} 
-              href={article.url} 
-              target="_blank" 
+            <a
+              key={article.id}
+              href={article.url}
+              target="_blank"
               rel="noopener noreferrer"
-              className="article-card"
+              className={`article-card ${highlightedId === article.id ? 'highlighted' : ''}`}
+              data-article-id={article.id}
             >
               <div className="article-info">
                 <h3 className="article-title">{article.title}</h3>

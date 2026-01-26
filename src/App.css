@@ -890,6 +890,17 @@
   transform: translateX(4px);
 }
 
+.article-card.highlighted {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  animation: pulse-highlight 1s ease-in-out 3;
+}
+
+@keyframes pulse-highlight {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); }
+  50% { box-shadow: 0 0 0 4px var(--accent-soft); }
+}
+
 .article-content {
   flex: 1;
   min-width: 0;
