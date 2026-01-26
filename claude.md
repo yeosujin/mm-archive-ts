@@ -29,8 +29,9 @@
 - YouTube, Cloudflare R2, Weverse 지원
 - R2 업로드 시 멀티파트 업로드 + 진행률 표시 + 첫 프레임 썸네일 자동 생성
 - YouTube API로 메타데이터 자동 가져오기
+- 하위 Moments(순간)를 아코디언으로 연결 표시 (제목 숨김 처리됨)
 
-### 2. Moments (모먼트 - 숨김)
+### 2. Moments (순간 - 네비 숨김)
 
 | 구분 | 파일 |
 |------|------|
@@ -42,6 +43,7 @@
 - 트윗 기반 순간 포착 콘텐츠 또는 R2 직접 업로드 영상
 - Video와 연계 가능 (`video_id`)
 - 버튼 기반 위치 정렬 (position 필드, `updateMomentPositions`)
+- 어드민 목록에서 제목 상단 표시, 수정/삭제 버튼 하단 가로 배치
 
 ### 3. Posts (소셜 포스트)
 
@@ -66,8 +68,9 @@
 - DM / Comment 두 가지 타입
 - 멤버 간 메시지 배열 (text/image)
 - 다른 콘텐츠(video/moment/post)와 연결 가능
+- URL 파라미터로 탭 상태 유지 (`?tab=dm` 또는 `?tab=comment`)
 
-### 5. Articles (글/기사)
+### 5. Articles (글)
 
 | 구분 | 파일 |
 |------|------|
@@ -87,6 +90,7 @@
 
 - 2020년~현재 범위의 통합 캘린더 뷰
 - 모든 도메인 데이터를 날짜별로 집계
+- 콘텐츠 클릭 시 해당 아이템 자동 펼침/강조
 
 ### 7. Search (검색)
 
@@ -117,8 +121,12 @@
 | 플랫폼 유틸 | `src/lib/platformUtils.ts` | URL → 플랫폼 감지 |
 | 데이터 캐싱 | `src/context/DataContext.tsx` | 5분 TTL 캐시 |
 | 레이아웃 | `src/components/Layout.tsx` | 공개 페이지 레이아웃 |
+| 루트 레이아웃 | `src/components/RootLayout.tsx` | 최상위 레이아웃 |
 | 어드민 레이아웃 | `src/components/AdminLayout.tsx` | 어드민 레이아웃 |
 | 어드민 인증 | `src/components/AdminAuth.tsx` | 비밀번호 인증 |
+| 어드민 모달 | `src/components/AdminModal.tsx` | 어드민 폼 모달 |
+| 페이지 로더 | `src/components/PageLoader.tsx` | Lazy loading 폴백 |
+| 플랫폼 아이콘 | `src/components/PlatformIcon.tsx` | 플랫폼별 아이콘 표시 |
 | 라우팅 | `src/routes/index.tsx` | 8개 공개 + 6개 어드민 라우트 |
 
 ## 라우트 구조
@@ -176,3 +184,15 @@
 ```typescript
 { id, title, author, tags: string[], url, date }
 ```
+
+## CSS 구조
+
+- 모든 스타일은 `src/App.css`에 통합
+- CSS 변수 기반 테마 시스템 (`--text-primary`, `--bg-card`, `--border`, `--accent` 등)
+- 모바일 우선 반응형 디자인
+- 주요 CSS 클래스:
+  - `.moments-timeline` - 타임라인 레이아웃
+  - `.moment-date-group` - 날짜별 그룹
+  - `.moment-list` - 모먼트 목록
+  - `.admin-item-wrapper` - 어드민 아이템 컨테이너
+  - `.admin-moment-card` - 어드민 모먼트 카드 (제목 상단, 버튼 하단 배치)
