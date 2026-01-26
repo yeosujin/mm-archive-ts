@@ -1,15 +1,7 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Layout from '../components/Layout';
-import { DataProvider } from '../context/DataContext';
-
-function RootLayout() {
-  return (
-    <DataProvider>
-      <Outlet />
-    </DataProvider>
-  );
-}
+import RootLayout from '../components/RootLayout';
 
 // Pages
 const Home = lazy(() => import('../pages/Home'));

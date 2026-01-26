@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createArticle, updateArticle, deleteArticle } from '../../lib/database';
 import { supabase } from '../../lib/supabase';
 import type { Article } from '../../lib/database';
-import { useData } from '../../context/DataContext';
+import { useData } from '../../hooks/useData';
 
 export default function AdminArticles() {
   const { articles: cachedArticles, fetchArticles, invalidateCache } = useData();
@@ -132,7 +132,7 @@ export default function AdminArticles() {
       date: article.date,
       tags: article.tags.join(', '),
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    globalThis.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancelEdit = () => {

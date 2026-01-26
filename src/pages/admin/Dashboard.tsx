@@ -3,7 +3,7 @@ import {
   getFeaturedContent, setFeaturedContent
 } from '../../lib/database';
 import type { Video, Moment, Post, Episode, Article } from '../../lib/database';
-import { useData } from '../../context/DataContext';
+import { useData } from '../../hooks/useData';
 
 export default function Dashboard() {
   const { 

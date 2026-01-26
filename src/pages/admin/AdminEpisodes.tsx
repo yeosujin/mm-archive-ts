@@ -6,11 +6,25 @@ import {
 } from '../../lib/database';
 import type { Episode, MemberSettings, Video, Moment, Post, Activity } from '../../lib/database';
 import Tesseract from 'tesseract.js';
-import { useData } from '../../context/DataContext';
+import { useData } from '../../hooks/useData';
 import { uploadPhotoToR2 } from '../../lib/r2Upload';
 
 interface MessageInput {
+  id: string;
   type: 'text' | 'image';
+  content: string;
+  time: string;
+}
+
+interface CommentInput {
+  id: string;
+  content: string;
+  time: string;
+}
+
+interface LPMessageInput {
+  id: string;
+  sender_name: string;
   content: string;
   time: string;
 }
@@ -53,7 +67,7 @@ export default function AdminEpisodes() {
     sender: 'member1' as 'member1' | 'member2',
   });
   const [messages, setMessages] = useState<MessageInput[]>([
-    { type: 'text', content: '', time: '' }
+    { id: crypto.randomUUID(), type: 'text', content: '', time: '' }
   ]);
 
   // Comment용 폼 데이터
@@ -63,8 +77,8 @@ export default function AdminEpisodes() {
     linked_content_type: 'video' as 'video' | 'moment' | 'post',
     linked_content_id: '',
   });
-  const [commentMessages, setCommentMessages] = useState<{ content: string; time: string }[]>([
-    { content: '', time: '' }
+  const [commentMessages, setCommentMessages] = useState<CommentInput[]>([
+    { id: crypto.randomUUID(), content: '', time: '' }
   ]);
 
   // Listening Party용 폼 데이터
@@ -73,8 +87,8 @@ export default function AdminEpisodes() {
     date: getToday(),
     platform: 'melon' as 'weverse' | 'melon' | 'spotify' | 'apple_music',
   });
-  const [lpMessages, setLpMessages] = useState<{ sender_name: string; content: string; time: string }[]>([
-    { sender_name: '', content: '', time: '' }
+  const [lpMessages, setLpMessages] = useState<LPMessageInput[]>([
+    { id: crypto.randomUUID(), sender_name: '', content: '', time: '' }
   ]);
   
   // OCR 관련 상태
@@ -171,8 +185,8 @@ export default function AdminEpisodes() {
 
   // DM용 메시지 관리
   const addMessage = () => {
-    const lastTime = messages[messages.length - 1]?.time || '';
-    setMessages([...messages, { type: 'text', content: '', time: lastTime }]);
+    const lastTime = messages.at(-1)?.time || '';
+    setMessages([...messages, { id: crypto.randomUUID(), type: 'text', content: '', time: lastTime }]);
   };
 
   const removeMessage = (index: number) => {
@@ -267,6 +281,7 @@ export default function AdminEpisodes() {
             const content = contentBuffer.join(' ').trim();
             if (content.length >= 2) {
               parsedMessages.push({
+                id: crypto.randomUUID(),
                 type: 'text' as const,
                 content: content,
                 time: time,
@@ -450,7 +465,7 @@ export default function AdminEpisodes() {
 
   const resetDMForm = () => {
     setFormData({ title: '', date: getToday(), sender: 'member1' });
-    setMessages([{ type: 'text', content: '', time: '' }]);
+    setMessages([{ id: crypto.randomUUID(), type: 'text', content: '', time: '' }]);
   };
 
   // Listening Party 제출
@@ -503,12 +518,12 @@ export default function AdminEpisodes() {
       linked_content_type: 'video',
       linked_content_id: '',
     });
-    setCommentMessages([{ content: '', time: '' }]);
+    setCommentMessages([{ id: crypto.randomUUID(), content: '', time: '' }]);
   };
 
   const resetLPForm = () => {
     setLpData({ title: '', date: getToday(), platform: 'melon' });
-    setLpMessages([{ sender_name: '', content: '', time: '' }]);
+    setLpMessages([{ id: crypto.randomUUID(), sender_name: '', content: '', time: '' }]);
   };
 
   const handleEdit = (episode: Episode) => {
@@ -523,9 +538,9 @@ export default function AdminEpisodes() {
         linked_content_id: episode.linked_content_id || '',
       });
       if (episode.messages && episode.messages.length > 0) {
-        setCommentMessages(episode.messages.map(m => ({ content: m.content, time: m.time || '' })));
+        setCommentMessages(episode.messages.map(m => ({ id: crypto.randomUUID(), content: m.content, time: m.time || '' })));
       } else {
-        setCommentMessages([{ content: episode.comment_text || '', time: '' }]);
+        setCommentMessages([{ id: crypto.randomUUID(), content: episode.comment_text || '', time: '' }]);
       }
     } else if (episode.episode_type === 'listening_party') {
       setEpisodeType('listening_party');
@@ -535,10 +550,11 @@ export default function AdminEpisodes() {
         platform: episode.platform || 'melon',
       });
       setLpMessages(episode.messages?.map(m => ({
+        id: crypto.randomUUID(),
         sender_name: m.sender_name || '',
         content: m.content,
         time: m.time || '',
-      })) || [{ sender_name: '', content: '', time: '' }]);
+      })) || [{ id: crypto.randomUUID(), sender_name: '', content: '', time: '' }]);
     } else {
       setEpisodeType('dm');
       setFormData({
@@ -547,13 +563,14 @@ export default function AdminEpisodes() {
         sender: episode.sender || 'member1',
       });
       setMessages(episode.messages?.map(m => ({
+        id: crypto.randomUUID(),
         type: m.type,
         content: m.content,
         time: m.time,
-      })) || [{ type: 'text', content: '', time: '' }]);
+      })) || [{ id: crypto.randomUUID(), type: 'text', content: '', time: '' }]);
     }
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    globalThis.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancelEdit = () => {
@@ -844,7 +861,7 @@ export default function AdminEpisodes() {
               </div>
               
               {messages.map((msg, index) => (
-                <div key={index} className="message-input-row">
+                <div key={msg.id} className="message-input-row">
                   <select
                     value={msg.type}
                     onChange={(e) => updateMessage(index, 'type', e.target.value as 'text' | 'image')}
@@ -1005,7 +1022,7 @@ export default function AdminEpisodes() {
               <label>댓글 내용 *</label>
               <div className="comment-messages-list">
                 {commentMessages.map((cm, idx) => (
-                  <div key={idx} className="comment-message-row">
+                  <div key={cm.id} className="comment-message-row">
                     <input
                       type="text"
                       value={cm.content}
@@ -1041,8 +1058,8 @@ export default function AdminEpisodes() {
                 <button
                   type="button"
                   onClick={() => {
-                    const lastTime = commentMessages[commentMessages.length - 1]?.time || '';
-                    setCommentMessages([...commentMessages, { content: '', time: lastTime }]);
+                    const lastTime = commentMessages.at(-1)?.time || '';
+                    setCommentMessages([...commentMessages, { id: crypto.randomUUID(), content: '', time: lastTime }]);
                   }}
                   className="add-message-btn"
                 >
@@ -1114,7 +1131,7 @@ export default function AdminEpisodes() {
               <label>메시지들</label>
               <div className="comment-messages-list">
                 {lpMessages.map((msg, idx) => (
-                  <div key={idx} className="lp-message-row">
+                  <div key={msg.id} className="lp-message-row">
                     <input
                       type="text"
                       value={msg.sender_name}
@@ -1161,8 +1178,8 @@ export default function AdminEpisodes() {
                 <button
                   type="button"
                   onClick={() => {
-                    const last = lpMessages[lpMessages.length - 1];
-                    setLpMessages([...lpMessages, { sender_name: last?.sender_name || '', content: '', time: last?.time || '' }]);
+                    const last = lpMessages.at(-1);
+                    setLpMessages([...lpMessages, { id: crypto.randomUUID(), sender_name: last?.sender_name || '', content: '', time: last?.time || '' }]);
                   }}
                   className="add-message-btn"
                 >

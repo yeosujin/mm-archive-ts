@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
-import { useData } from '../context/DataContext';
+import { useData } from '../hooks/useData';
 
 export default function Moments() {
   const [searchParams] = useSearchParams();
@@ -37,6 +37,7 @@ export default function Moments() {
     setTimeout(() => {
       document.querySelector(`[data-moment-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlightId, loading, moments.length]);
 
   // 검색 필터링 (메모이제이션)
@@ -59,7 +60,7 @@ export default function Moments() {
       }
       
       const dayGroups = groups[item.date];
-      const lastGroup = dayGroups[dayGroups.length - 1];
+      const lastGroup = dayGroups.at(-1);
       
       // video_id가 있고 마지막 그룹의 video_id와 같으면 하나의 스레드로 묶음
       if (item.video_id && lastGroup && lastGroup[0].video_id === item.video_id) {
@@ -127,7 +128,7 @@ export default function Moments() {
               {expandedDate === date && (
                 <div className="moment-list">
                   {dateGroups.map((group, groupIdx) => (
-                    <div key={groupIdx} className="moment-group">
+                    <div key={`${date}-group-${group[0]?.id || groupIdx}`} className="moment-group">
                       {groupIdx > 0 && <hr className="moment-group-divider" />}
                       <div className="group-items">
                         {group.map((moment) => (

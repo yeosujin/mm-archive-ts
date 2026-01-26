@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Post } from '../lib/database';
 import PlatformIcon from '../components/PlatformIcon';
-import { useData } from '../context/DataContext';
+import { useData } from '../hooks/useData';
 
 export default function Posts() {
   const [searchParams] = useSearchParams();
@@ -13,6 +13,7 @@ export default function Posts() {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(!cachedPosts);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -48,8 +49,8 @@ export default function Posts() {
     ? posts.filter(post =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.date.includes(searchQuery) ||
-        (post.writer && post.writer.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (post.content && post.content.toLowerCase().includes(searchQuery.toLowerCase()))
+        post.writer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.content?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : posts;
 
@@ -57,12 +58,15 @@ export default function Posts() {
   const openPost = (post: Post) => {
     setSelectedPost(post);
     setCurrentMediaIndex(0);
+    dialogRef.current?.showModal();
   };
 
   const closePost = () => {
+    dialogRef.current?.close();
     setSelectedPost(null);
     setCurrentMediaIndex(0);
   };
+
 
   // 캐러셀 네비게이션
   const prevMedia = () => {
@@ -88,8 +92,9 @@ export default function Posts() {
       if (e.key === 'ArrowRight') nextMedia();
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
+    return () => globalThis.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPost, currentMediaIndex]);
 
   // 그리드 썸네일 가져오기
@@ -185,9 +190,19 @@ export default function Posts() {
       )}
 
       {/* 상세 모달 */}
-      {selectedPost && (
-        <div className="post-detail-modal" onClick={closePost}>
-          <div className="post-detail-content" onClick={(e) => e.stopPropagation()}>
+      <dialog
+        ref={dialogRef}
+        className="post-detail-modal"
+        aria-label="포스트 상세"
+      >
+        {selectedPost && (
+          <>
+            <button
+              className="modal-backdrop"
+              onClick={closePost}
+              aria-label="모달 닫기"
+            />
+            <div className="post-detail-content">
             <button className="modal-close-btn" onClick={closePost}>✕</button>
 
             {/* 미디어 캐러셀 */}
@@ -200,7 +215,9 @@ export default function Posts() {
                       controls
                       playsInline
                       preload="metadata"
-                    />
+                    >
+                      <track kind="captions" />
+                    </video>
                   ) : (
                     <img
                       src={selectedPost.media[currentMediaIndex].url}
@@ -222,11 +239,12 @@ export default function Posts() {
                       </svg>
                     </button>
                     <div className="carousel-dots">
-                      {selectedPost.media.map((_, index) => (
+                      {selectedPost.media.map((media, index) => (
                         <button
-                          key={index}
+                          key={media.url}
                           className={`carousel-dot ${index === currentMediaIndex ? 'active' : ''}`}
                           onClick={() => setCurrentMediaIndex(index)}
+                          aria-label={`미디어 ${index + 1}로 이동`}
                         />
                       ))}
                     </div>
@@ -264,8 +282,9 @@ export default function Posts() {
               )}
             </div>
           </div>
-        </div>
-      )}
+          </>
+        )}
+      </dialog>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Episode, MemberSettings, Video, Moment, Post } from '../lib/database';
-import { useData } from '../context/DataContext';
+import { useData } from '../hooks/useData';
 import PlatformIcon from '../components/PlatformIcon';
 
 export default function Episodes() {
@@ -263,7 +263,7 @@ export default function Episodes() {
                     {isListeningParty && (
                       <div className="lp-content">
                         {episode.messages?.map((msg, idx) => (
-                          <div key={idx} className="lp-message">
+                          <div key={`${msg.time || ''}-${msg.sender_name || ''}-${idx}`} className="lp-message">
                             <span className="lp-message-name">{msg.sender_name || '?'}</span>
                             {msg.time && (
                               <span className="lp-message-time">{formatTime(msg.time)}</span>
@@ -289,7 +289,7 @@ export default function Episodes() {
                         )}
                         {(episode.messages && episode.messages.length > 0)
                           ? episode.messages.map((msg, idx) => (
-                            <div key={idx} className="comment-bubble">
+                            <div key={`${msg.time || ''}-${msg.content.slice(0, 20)}-${idx}`} className="comment-bubble">
                               <div className="comment-bubble-header">
                                 <span className="comment-bubble-name">{senderName}</span>
                                 {msg.time && (
@@ -325,7 +325,7 @@ export default function Episodes() {
                       
                       return (
                         <div
-                          key={idx}
+                          key={`${msg.time || ''}-${msg.type}-${idx}`}
                           className="dm-row dm-row-left"
                         >
                           <div className="dm-bubble-row">

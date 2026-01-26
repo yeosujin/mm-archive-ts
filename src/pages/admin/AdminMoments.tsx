@@ -4,7 +4,7 @@ import type { Moment, Video } from '../../lib/database';
 import { uploadVideoToR2, uploadThumbnailFromVideo, generateThumbnailFromUrl, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
 import AdminModal from '../../components/AdminModal';
 import VideoEmbed from '../../components/VideoEmbed';
-import { useData } from '../../context/DataContext';
+import { useData } from '../../hooks/useData';
 
 export default function AdminMoments() {
   const { moments: cachedMoments, videos: cachedVideos, fetchMoments, fetchVideos, invalidateCache } = useData();

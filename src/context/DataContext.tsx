@@ -1,28 +1,7 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, useMemo, type ReactNode } from 'react';
 import { getVideos, getMoments, getPosts, getEpisodes, getArticles, getMemberSettings } from '../lib/database';
-import type { Video, Moment, Post, Episode, Article, MemberSettings } from '../lib/database';
-
-interface DataState {
-  videos: Video[] | null;
-  moments: Moment[] | null;
-  posts: Post[] | null;
-  episodes: Episode[] | null;
-  articles: Article[] | null;
-  memberSettings: MemberSettings | null;
-  lastFetched: Record<string, number>;
-}
-
-interface DataContextType extends DataState {
-  fetchVideos: (force?: boolean) => Promise<Video[]>;
-  fetchMoments: (force?: boolean) => Promise<Moment[]>;
-  fetchPosts: (force?: boolean) => Promise<Post[]>;
-  fetchEpisodes: (force?: boolean) => Promise<Episode[]>;
-  fetchArticles: (force?: boolean) => Promise<Article[]>;
-  fetchMemberSettings: (force?: boolean) => Promise<MemberSettings>;
-  invalidateCache: (key: keyof DataState) => void;
-}
-
-const DataContext = createContext<DataContextType | undefined>(undefined);
+import { DataContext } from './DataContextValue';
+import type { DataState } from './types';
 
 const CACHE_TIME = 1000 * 60 * 5;
 
@@ -157,26 +136,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const contextValue = useMemo(() => ({
+    ...state,
+    fetchVideos,
+    fetchMoments,
+    fetchPosts,
+    fetchEpisodes,
+    fetchArticles,
+    fetchMemberSettings,
+    invalidateCache
+  }), [state, fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchArticles, fetchMemberSettings, invalidateCache]);
+
   return (
-    <DataContext.Provider value={{
-      ...state,
-      fetchVideos,
-      fetchMoments,
-      fetchPosts,
-      fetchEpisodes,
-      fetchArticles,
-      fetchMemberSettings,
-      invalidateCache
-    }}>
+    <DataContext.Provider value={contextValue}>
       {children}
     </DataContext.Provider>
   );
-}
-
-export function useData() {
-  const context = useContext(DataContext);
-  if (context === undefined) {
-    throw new Error('useData must be used within a DataProvider');
-  }
-  return context;
 }

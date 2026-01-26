@@ -14,11 +14,11 @@ export default function AdminModal({ isOpen, onClose, title, children }: AdminMo
       if (e.key === 'Escape') onClose();
     };
     if (isOpen) {
-      window.addEventListener('keydown', handleEsc);
+      globalThis.addEventListener('keydown', handleEsc);
       document.body.style.overflow = 'hidden';
     }
     return () => {
-      window.removeEventListener('keydown', handleEsc);
+      globalThis.removeEventListener('keydown', handleEsc);
       document.body.style.overflow = 'unset';
     };
   }, [isOpen, onClose]);

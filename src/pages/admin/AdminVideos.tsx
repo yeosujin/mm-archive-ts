@@ -5,7 +5,7 @@ import { uploadVideoToR2, uploadThumbnailFromVideo, deleteFileFromR2, isVideoFil
 import AdminModal from '../../components/AdminModal';
 import PlatformIcon from '../../components/PlatformIcon';
 import { detectVideoPlatform } from '../../lib/platformUtils';
-import { useData } from '../../context/DataContext';
+import { useData } from '../../hooks/useData';
 
 const HEART_OPTIONS = [
   { value: '\uD83D\uDC99', label: '\uD83D\uDC99 파란색' },

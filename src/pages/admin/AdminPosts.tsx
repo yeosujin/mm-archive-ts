@@ -4,7 +4,7 @@ import type { Post, PostMedia } from '../../lib/database';
 import { detectPlatform } from '../../lib/platformUtils';
 import PlatformIcon from '../../components/PlatformIcon';
 import { getPlatformName } from '../../lib/platformUtils';
-import { useData } from '../../context/DataContext';
+import { useData } from '../../hooks/useData';
 import { uploadPhotoToR2, uploadVideoToR2, uploadThumbnailFromVideo, generateThumbnailFromUrl, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
 
 // 로컬 파일 미리보기용 타입
@@ -37,6 +37,8 @@ export default function AdminPosts() {
   const [uploadedMedia, setUploadedMedia] = useState<PostMedia[]>([]);
   // 아직 업로드되지 않은 로컬 파일들
   const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
+  const pendingMediaRef = useRef<PendingMedia[]>([]);
+  pendingMediaRef.current = pendingMedia;
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,7 +73,7 @@ export default function AdminPosts() {
   // 컴포넌트 언마운트 시 미리보기 URL 정리
   useEffect(() => {
     return () => {
-      pendingMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
+      pendingMediaRef.current.forEach(m => URL.revokeObjectURL(m.previewUrl));
     };
   }, []);
 
@@ -264,7 +266,7 @@ export default function AdminPosts() {
     });
     setUploadedMedia(post.media || []);
     setPendingMedia([]);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    globalThis.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCancelEdit = () => {

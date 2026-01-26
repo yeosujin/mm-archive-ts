@@ -4,7 +4,7 @@ import type { Video, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import PlatformIcon from '../components/PlatformIcon';
 import { detectVideoPlatform } from '../lib/platformUtils';
-import { useData } from '../context/DataContext';
+import { useData } from '../hooks/useData';
 
 export default function Videos() {
   const [searchParams] = useSearchParams();
@@ -45,6 +45,7 @@ export default function Videos() {
     setTimeout(() => {
       document.querySelector(`[data-video-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlightId, loading, videos.length]);
 
   // Sync expanded video's moments from cache or fetch all

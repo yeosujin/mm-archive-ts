@@ -250,8 +250,8 @@ export default function Calendar() {
                 <span className="day-number">{day}</span>
                 {hasArchive && (
                   <div className="day-dots">
-                    {archives[dateStr].slice(0, 3).map((a, i) => (
-                      <span key={i} className={`day-dot ${a.type}`} title={a.title}></span>
+                    {archives[dateStr].slice(0, 3).map((a) => (
+                      <span key={`${a.type}-${a.id}`} className={`day-dot ${a.type}`} title={a.title}></span>
                     ))}
                     {archives[dateStr].length > 3 && (
                       <span className="day-more">+{archives[dateStr].length - 3}</span>

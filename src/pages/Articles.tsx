@@ -2,7 +2,7 @@
 // import { useState, useEffect, useCallback } from 'react';
 // import { useSearchParams } from 'react-router-dom';
 // import type { Article } from '../lib/database';
-// import { useData } from '../context/DataContext';
+// import { useData } from '../hooks/useData';
 
 export default function Articles() {
   // 공사중 - 임시 숨김
