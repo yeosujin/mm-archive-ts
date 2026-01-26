@@ -591,14 +591,104 @@
 
 .page-controls {
   display: flex;
+  flex-direction: column;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.filter-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.filter-row .form-select {
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+}
+
+.filter-select {
+  padding: 0.75rem 1.125rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Platform Dropdown */
+.platform-dropdown {
+  position: relative;
+}
+
+.platform-dropdown-btn {
+  display: flex;
   align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  min-width: 130px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.platform-dropdown-btn:hover {
+  border-color: var(--accent);
+}
+
+.platform-dropdown-btn .dropdown-arrow {
+  font-size: 0.7rem;
+  margin-left: auto;
+  opacity: 0.6;
+}
+
+.platform-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  z-index: 100;
+  min-width: 100%;
+  overflow: hidden;
+}
+
+.platform-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.platform-dropdown-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.platform-dropdown-item.selected {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* ===== Search Box ===== */
 .search-box {
-  flex: 1;
+  width: 100%;
   min-width: 0;
 }
 
@@ -1045,11 +1135,6 @@
     padding: 1rem 1.5rem;
   }
 
-  .page-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .view-toggle {
     width: 100%;
   }
@@ -1199,11 +1284,13 @@
 }
 
 .thread-date-header .thread-marker {
+  position: relative;
   width: 10px;
   height: 10px;
   background: var(--accent);
   border-radius: 50%;
   flex-shrink: 0;
+  border: none;
 }
 
 .thread-date-header time {
@@ -3324,6 +3411,23 @@
 
 .dark .moment-item:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.moment-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.moment-card .moment-card-title {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .moment-card-title {
