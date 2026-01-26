@@ -5,7 +5,12 @@
       "Bash(npm uninstall:*)",
       "Bash(npm run build:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git tag:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(npx vercel --version)",
+      "Bash(npx vercel --prod)"
     ]
   }
 }

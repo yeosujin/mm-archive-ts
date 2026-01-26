@@ -1,55 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import type { Article } from '../lib/database';
-import { useData } from '../context/DataContext';
+// 공사중 - 임시 숨김
+// import { useState, useEffect, useCallback } from 'react';
+// import { useSearchParams } from 'react-router-dom';
+// import type { Article } from '../lib/database';
+// import { useData } from '../context/DataContext';
 
 export default function Articles() {
-  const [searchParams] = useSearchParams();
-  const highlightId = searchParams.get('highlight');
-  const { articles: cachedArticles, fetchArticles } = useData();
-  const [articles, setArticles] = useState<Article[]>(cachedArticles || []);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(!cachedArticles);
-  const [highlightedId, setHighlightedId] = useState<string | null>(null);
-
-  const loadArticles = useCallback(async () => {
-    try {
-      const data = await fetchArticles();
-      setArticles(data);
-    } catch (error) {
-      console.error('Error loading articles:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchArticles]);
-
-  useEffect(() => {
-    loadArticles();
-  }, [loadArticles]);
-
-  useEffect(() => {
-    if (cachedArticles) setArticles(cachedArticles);
-  }, [cachedArticles]);
-
-  // highlight 파라미터 처리: 해당 글 스크롤 + 강조
-  useEffect(() => {
-    if (!highlightId || loading || articles.length === 0) return;
-    setHighlightedId(highlightId);
-    setTimeout(() => {
-      document.querySelector(`[data-article-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // 3초 후 강조 해제
-      setTimeout(() => setHighlightedId(null), 3000);
-    }, 100);
-  }, [highlightId, loading, articles.length]);
-
-  // 검색 필터링 (제목, 글쓴이, 태그, 날짜)
-  const filteredArticles = articles.filter((article) =>
-    article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    article.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    article.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    article.date.includes(searchTerm)
-  );
-
   // 공사중 - 임시 숨김
   return (
     <div className="page articles-page">

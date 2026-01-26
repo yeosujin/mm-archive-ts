@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getVideos, getMoments, getPosts, getEpisodes, getArticles } from '../lib/database';
-import type { Video, Moment, Post, Episode, Article } from '../lib/database';
+import { getVideos, getMoments, getPosts, getEpisodes } from '../lib/database';
+import type { Video, Moment, Post, Episode } from '../lib/database';
 
 interface ArchiveItem {
     id: string;
@@ -53,12 +53,13 @@ export default function Calendar() {
 
   const loadAllData = async () => {
     try {
-      const [videos, moments, posts, episodes, articles] = await Promise.all([
+      const [videos, moments, posts, episodes] = await Promise.all([
         getVideos(),
         getMoments(),
         getPosts(),
-        getEpisodes(),
-        getArticles()
+        getEpisodes()
+        // 공사중 - articles 임시 숨김
+        // getArticles()
       ]);
 
       const archivesByDate: Record<string, ArchiveItem[]> = {};

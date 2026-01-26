@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { getVideos, getMoments, getPosts, getEpisodes, getArticles } from '../lib/database';
-import type { Video, Moment, Post, Episode, Article } from '../lib/database';
+import { getVideos, getMoments, getPosts, getEpisodes } from '../lib/database';
+import type { Video, Moment, Post, Episode } from '../lib/database';
 
 export default function Search() {
   const [searchParams] = useSearchParams();
@@ -11,7 +11,8 @@ export default function Search() {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [articles, setArticles] = useState<Article[]>([]);
+  // 공사중 - articles 임시 숨김
+  // const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,18 +21,20 @@ export default function Search() {
 
   const loadAllData = async () => {
     try {
-      const [videosData, momentsData, postsData, episodesData, articlesData] = await Promise.all([
+      const [videosData, momentsData, postsData, episodesData] = await Promise.all([
         getVideos(),
         getMoments(),
         getPosts(),
-        getEpisodes(),
-        getArticles()
+        getEpisodes()
+        // 공사중 - articles 임시 숨김
+        // getArticles()
       ]);
       setVideos(videosData);
       setMoments(momentsData);
       setPosts(postsData);
       setEpisodes(episodesData);
-      setArticles(articlesData);
+      // 공사중 - articles 임시 숨김
+      // setArticles(articlesData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
