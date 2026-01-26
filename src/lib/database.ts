@@ -20,12 +20,22 @@ export interface Moment {
   thumbnail_url?: string;
 }
 
+export interface PostMedia {
+  type: 'image' | 'video';
+  url: string;
+  thumbnail?: string; // 영상인 경우 썸네일
+}
+
 export interface Post {
   id: string;
   title: string;
   url: string;
   platform: 'twitter' | 'instagram' | 'weverse' | 'other';
   date: string;
+  // 새로 추가된 필드
+  writer?: string;      // 글쓴이
+  content?: string;     // 글 내용
+  media?: PostMedia[];  // 이미지/영상 배열
 }
 
 export interface Episode {

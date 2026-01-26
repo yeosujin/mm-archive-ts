@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Post } from '../lib/database';
-import PostEmbed from '../components/PostEmbed';
 import PlatformIcon from '../components/PlatformIcon';
-import { getPlatformName } from '../lib/platformUtils';
 import { useData } from '../context/DataContext';
 
 export default function Posts() {
@@ -11,7 +9,8 @@ export default function Posts() {
   const highlightId = searchParams.get('highlight');
   const { posts: cachedPosts, fetchPosts } = useData();
   const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
-  const [expandedPost, setExpandedPost] = useState<string | null>(null);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(!cachedPosts);
 
@@ -34,37 +33,73 @@ export default function Posts() {
     if (cachedPosts) setPosts(cachedPosts);
   }, [cachedPosts]);
 
-  // highlight 파라미터 처리: 해당 포스트 자동 확장 + 스크롤
+  // highlight 파라미터 처리: 해당 포스트 자동 열기
   useEffect(() => {
     if (!highlightId || loading || posts.length === 0) return;
-    setExpandedPost(highlightId);
-    setTimeout(() => {
-      document.querySelector(`[data-post-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
-  }, [highlightId, loading, posts.length]);
+    const post = posts.find(p => p.id === highlightId);
+    if (post) {
+      setSelectedPost(post);
+      setCurrentMediaIndex(0);
+    }
+  }, [highlightId, loading, posts]);
 
-  // 검색 필터링 (제목, 날짜)
+  // 검색 필터링 (제목, 날짜, 글쓴이, 내용)
   const filteredPosts = searchQuery
-    ? posts.filter(post => 
+    ? posts.filter(post =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.date.includes(searchQuery)
+        post.date.includes(searchQuery) ||
+        (post.writer && post.writer.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (post.content && post.content.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : posts;
 
-  // 날짜별 그룹화
-  const groupedPosts = (() => {
-    const groups: Record<string, Post[]> = {};
-    filteredPosts.forEach((post) => {
-      if (!groups[post.date]) {
-        groups[post.date] = [];
-      }
-      groups[post.date].push(post);
-    });
-    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  })();
+  // 포스트 클릭 핸들러
+  const openPost = (post: Post) => {
+    setSelectedPost(post);
+    setCurrentMediaIndex(0);
+  };
 
-  const togglePost = (postId: string) => {
-    setExpandedPost(expandedPost === postId ? null : postId);
+  const closePost = () => {
+    setSelectedPost(null);
+    setCurrentMediaIndex(0);
+  };
+
+  // 캐러셀 네비게이션
+  const prevMedia = () => {
+    if (!selectedPost?.media) return;
+    setCurrentMediaIndex(prev =>
+      prev === 0 ? selectedPost.media!.length - 1 : prev - 1
+    );
+  };
+
+  const nextMedia = () => {
+    if (!selectedPost?.media) return;
+    setCurrentMediaIndex(prev =>
+      prev === selectedPost.media!.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  // 키보드 네비게이션
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedPost) return;
+      if (e.key === 'Escape') closePost();
+      if (e.key === 'ArrowLeft') prevMedia();
+      if (e.key === 'ArrowRight') nextMedia();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedPost, currentMediaIndex]);
+
+  // 그리드 썸네일 가져오기
+  const getGridThumbnail = (post: Post): string | null => {
+    if (!post.media || post.media.length === 0) return null;
+    const firstMedia = post.media[0];
+    if (firstMedia.type === 'video' && firstMedia.thumbnail) {
+      return firstMedia.thumbnail;
+    }
+    return firstMedia.url;
   };
 
   if (loading) {
@@ -76,7 +111,7 @@ export default function Posts() {
   }
 
   return (
-    <div className="page posts-page">
+    <div className="page posts-page posts-grid-view">
       <div className="page-header">
         <h1>포스트</h1>
         <p className="page-desc">X, 인스타, 위버스</p>
@@ -85,7 +120,7 @@ export default function Posts() {
             <input
               type="text"
               className="search-input"
-              placeholder="제목 또는 날짜로 검색... (예: 2025-01-01)"
+              placeholder="검색... (제목, 날짜, 글쓴이)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -93,47 +128,140 @@ export default function Posts() {
         </div>
       </div>
 
-      {groupedPosts.length === 0 ? (
+      {filteredPosts.length === 0 ? (
         <div className="empty-state">
           <p>{searchQuery ? '검색 결과가 없어요 😢' : '아직 포스트가 없어요 😢'}</p>
         </div>
       ) : (
-        <div className="posts-timeline">
-          {groupedPosts.map(([date, datePosts]) => (
-            <div key={date} className="date-thread">
-              <div className="thread-date-header">
-                <span className="thread-marker"></span>
-                <time>{date}</time>
+        <div className="posts-grid">
+          {filteredPosts.map((post) => {
+            const thumbnail = getGridThumbnail(post);
+            const hasMedia = post.media && post.media.length > 0;
+            const mediaCount = post.media?.length || 0;
+            const hasMultipleMedia = mediaCount > 1;
+
+            return (
+              <button
+                key={post.id}
+                className="post-grid-item"
+                onClick={() => openPost(post)}
+              >
+                <div className="post-grid-thumb">
+                  {thumbnail ? (
+                    <img src={thumbnail} alt={post.title} loading="lazy" />
+                  ) : (
+                    <div className="post-grid-text-only">
+                      <PlatformIcon platform={post.platform} size={32} />
+                      {post.content && (
+                        <p className="text-preview">
+                          {post.content.length > 40
+                            ? post.content.slice(0, 40) + '...'
+                            : post.content}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {hasMultipleMedia && (
+                    <span className="multi-media-badge">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
+                      </svg>
+                    </span>
+                  )}
+                  {hasMedia && post.media![0].type === 'video' && (
+                    <span className="video-indicator">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 상세 모달 */}
+      {selectedPost && (
+        <div className="post-detail-modal" onClick={closePost}>
+          <div className="post-detail-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closePost}>✕</button>
+
+            {/* 미디어 캐러셀 */}
+            {selectedPost.media && selectedPost.media.length > 0 && (
+              <div className="post-carousel">
+                <div className="carousel-media">
+                  {selectedPost.media[currentMediaIndex].type === 'video' ? (
+                    <video
+                      src={selectedPost.media[currentMediaIndex].url}
+                      controls
+                      autoPlay
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      src={selectedPost.media[currentMediaIndex].url}
+                      alt={`${selectedPost.title} - ${currentMediaIndex + 1}`}
+                    />
+                  )}
+                </div>
+
+                {selectedPost.media.length > 1 && (
+                  <>
+                    <button className="carousel-btn prev" onClick={prevMedia}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                      </svg>
+                    </button>
+                    <button className="carousel-btn next" onClick={nextMedia}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                      </svg>
+                    </button>
+                    <div className="carousel-dots">
+                      {selectedPost.media.map((_, index) => (
+                        <button
+                          key={index}
+                          className={`carousel-dot ${index === currentMediaIndex ? 'active' : ''}`}
+                          onClick={() => setCurrentMediaIndex(index)}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* 포스트 정보 */}
+            <div className="post-detail-info">
+              <div className="post-detail-header">
+                <div className="post-detail-meta">
+                  <PlatformIcon platform={selectedPost.platform} size={20} />
+                  {selectedPost.writer && (
+                    <span className="post-writer">{selectedPost.writer}</span>
+                  )}
+                  <time className="post-date">{selectedPost.date}</time>
+                </div>
+                <a
+                  href={selectedPost.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="post-external-link"
+                >
+                  원본 보기 →
+                </a>
               </div>
 
-              <div className="thread-content">
-                {datePosts.map((post) => (
-                  <div key={post.id} className="thread-post-item" data-post-id={post.id}>
-                    <button 
-                      className="thread-item-header"
-                      onClick={() => togglePost(post.id)}
-                    >
-                      <span className="item-icon">
-                        <PlatformIcon platform={post.platform} size={18} />
-                      </span>
-                      <span className="item-title">
-                        {post.title || getPlatformName(post.platform)}
-                      </span>
-                      <span className={`expand-arrow ${expandedPost === post.id ? 'open' : ''}`}>
-                        ▼
-                      </span>
-                    </button>
-                    
-                    {expandedPost === post.id && (
-                      <div className="thread-item-content">
-                        <PostEmbed url={post.url} platform={post.platform} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              {selectedPost.content && (
+                <p className="post-detail-text">{selectedPost.content}</p>
+              )}
+
+              {selectedPost.title && (
+                <p className="post-detail-title">{selectedPost.title}</p>
+              )}
             </div>
-          ))}
+          </div>
         </div>
       )}
     </div>
