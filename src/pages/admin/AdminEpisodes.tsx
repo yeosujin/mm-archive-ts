@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   createEpisode, updateEpisode, deleteEpisode,
-  updateMemberSettings
+  updateMemberSettings,
+  getActivities, createActivity, deleteActivity
 } from '../../lib/database';
-import type { Episode, MemberSettings, Video, Moment, Post } from '../../lib/database';
+import type { Episode, MemberSettings, Video, Moment, Post, Activity } from '../../lib/database';
 import Tesseract from 'tesseract.js';
 import { useData } from '../../context/DataContext';
 import { uploadPhotoToR2 } from '../../lib/r2Upload';
@@ -70,6 +71,7 @@ export default function AdminEpisodes() {
   const [lpData, setLpData] = useState({
     title: '',
     date: getToday(),
+    platform: 'melon' as 'weverse' | 'melon' | 'spotify' | 'apple_music',
   });
   const [lpMessages, setLpMessages] = useState<{ sender_name: string; content: string; time: string }[]>([
     { sender_name: '', content: '', time: '' }
@@ -85,20 +87,28 @@ export default function AdminEpisodes() {
   const [photoProgress, setPhotoProgress] = useState(0);
   const photoInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
+  // 활동 & 모달 상태
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [newActivityName, setNewActivityName] = useState('');
+
   const loadData = useCallback(async () => {
     try {
-      const [episodesData, settings, videosData, momentsData, postsData] = await Promise.all([
+      const [episodesData, settings, videosData, momentsData, postsData, activitiesData] = await Promise.all([
         fetchEpisodes(),
         fetchMemberSettings(),
         fetchVideos(),
         fetchMoments(),
-        fetchPosts()
+        fetchPosts(),
+        getActivities()
       ]);
       setEpisodes(episodesData);
       setMemberSettings(settings);
       setVideos(videosData);
       setMoments(momentsData);
       setPosts(postsData);
+      setActivities(activitiesData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -122,9 +132,40 @@ export default function AdminEpisodes() {
       await updateMemberSettings(memberSettings);
       alert('멤버 이름이 저장되었어요!');
       invalidateCache('memberSettings');
+      setShowMemberModal(false);
     } catch (error) {
       console.error('Error saving member settings:', error);
       alert('저장 중 오류가 발생했어요.');
+    }
+  };
+
+  // 활동 추가
+  const handleAddActivity = async () => {
+    if (!newActivityName.trim()) {
+      alert('활동명을 입력해주세요.');
+      return;
+    }
+    try {
+      await createActivity({ name: newActivityName.trim() });
+      setNewActivityName('');
+      const activitiesData = await getActivities();
+      setActivities(activitiesData);
+    } catch (error) {
+      console.error('Error adding activity:', error);
+      alert('활동 추가 중 오류가 발생했어요.');
+    }
+  };
+
+  // 활동 삭제
+  const handleDeleteActivity = async (id: string) => {
+    if (!confirm('이 활동을 삭제하시겠어요?')) return;
+    try {
+      await deleteActivity(id);
+      const activitiesData = await getActivities();
+      setActivities(activitiesData);
+    } catch (error) {
+      console.error('Error deleting activity:', error);
+      alert('활동 삭제 중 오류가 발생했어요.');
     }
   };
 
@@ -426,6 +467,7 @@ export default function AdminEpisodes() {
       const episodeData = {
         title: lpData.title || '',
         date: lpData.date,
+        platform: lpData.platform,
         episode_type: 'listening_party' as const,
         messages: validMessages.map(m => ({
           type: 'text' as const,
@@ -465,7 +507,7 @@ export default function AdminEpisodes() {
   };
 
   const resetLPForm = () => {
-    setLpData({ title: '', date: getToday() });
+    setLpData({ title: '', date: getToday(), platform: 'melon' });
     setLpMessages([{ sender_name: '', content: '', time: '' }]);
   };
 
@@ -490,6 +532,7 @@ export default function AdminEpisodes() {
       setLpData({
         title: episode.title || '',
         date: episode.date,
+        platform: episode.platform || 'melon',
       });
       setLpMessages(episode.messages?.map(m => ({
         sender_name: m.sender_name || '',
@@ -597,40 +640,108 @@ export default function AdminEpisodes() {
 
   return (
     <div className="admin-page">
-      <h1>에피소드 관리</h1>
-
-      {/* 멤버 설정 */}
-      <div className="admin-section">
-        <h2>👥 멤버 이름 설정</h2>
-        <div className="member-settings-form">
-          <div className="member-input-row">
-            <div className="form-group">
-              <label htmlFor="member1-name">멤버 1</label>
-              <input
-                id="member1-name"
-                type="text"
-                value={memberSettings.member1_name}
-                onChange={(e) => setMemberSettings({ ...memberSettings, member1_name: e.target.value })}
-                placeholder="첫 번째 멤버 이름"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="member2-name">멤버 2</label>
-              <input
-                id="member2-name"
-                type="text"
-                value={memberSettings.member2_name}
-                onChange={(e) => setMemberSettings({ ...memberSettings, member2_name: e.target.value })}
-                placeholder="두 번째 멤버 이름"
-              />
-            </div>
-            <button type="button" className="admin-submit-btn save-member-btn" onClick={handleSaveMemberSettings}>
-              저장
-            </button>
-          </div>
+      <div className="admin-page-header">
+        <h1>에피소드 관리</h1>
+        <div className="admin-header-buttons">
+          <button
+            type="button"
+            className="admin-header-btn"
+            onClick={() => setShowMemberModal(true)}
+          >
+            👥 멤버 설정
+          </button>
+          <button
+            type="button"
+            className="admin-header-btn"
+            onClick={() => setShowActivityModal(true)}
+          >
+            🎵 활동 추가
+          </button>
         </div>
       </div>
-      
+
+      {/* 멤버 설정 모달 */}
+      {showMemberModal && (
+        <div className="admin-modal-overlay" onClick={() => setShowMemberModal(false)}>
+          <div className="admin-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h2>👥 멤버 이름 설정</h2>
+              <button className="modal-close-btn" onClick={() => setShowMemberModal(false)}>✕</button>
+            </div>
+            <div className="admin-modal-body">
+              <div className="form-group">
+                <label htmlFor="member1-name">멤버 1</label>
+                <input
+                  id="member1-name"
+                  type="text"
+                  value={memberSettings.member1_name}
+                  onChange={(e) => setMemberSettings({ ...memberSettings, member1_name: e.target.value })}
+                  placeholder="첫 번째 멤버 이름"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="member2-name">멤버 2</label>
+                <input
+                  id="member2-name"
+                  type="text"
+                  value={memberSettings.member2_name}
+                  onChange={(e) => setMemberSettings({ ...memberSettings, member2_name: e.target.value })}
+                  placeholder="두 번째 멤버 이름"
+                />
+              </div>
+              <button type="button" className="admin-submit-btn" onClick={handleSaveMemberSettings}>
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 활동 관리 모달 */}
+      {showActivityModal && (
+        <div className="admin-modal-overlay" onClick={() => setShowActivityModal(false)}>
+          <div className="admin-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h2>🎵 활동 관리</h2>
+              <button className="modal-close-btn" onClick={() => setShowActivityModal(false)}>✕</button>
+            </div>
+            <div className="admin-modal-body">
+              <div className="activity-add-row">
+                <input
+                  type="text"
+                  value={newActivityName}
+                  onChange={(e) => setNewActivityName(e.target.value)}
+                  placeholder="활동명 입력 (예: Super Real Me)"
+                  className="activity-input"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddActivity()}
+                />
+                <button type="button" className="admin-submit-btn" onClick={handleAddActivity}>
+                  추가
+                </button>
+              </div>
+              <div className="activity-list">
+                {activities.length === 0 ? (
+                  <p className="empty-text">등록된 활동이 없어요</p>
+                ) : (
+                  activities.map((activity) => (
+                    <div key={activity.id} className="activity-item">
+                      <span>{activity.name}</span>
+                      <button
+                        type="button"
+                        className="delete-btn small"
+                        onClick={() => handleDeleteActivity(activity.id)}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 에피소드 추가 폼 */}
       <div className="admin-section">
         <h2>{editingId ? '에피소드 수정' : '새 에피소드 추가'}</h2>
@@ -968,14 +1079,35 @@ export default function AdminEpisodes() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="lp-title">제목 (선택)</label>
-              <input
-                id="lp-title"
-                type="text"
+              <label htmlFor="lp-platform">플랫폼 *</label>
+              <select
+                id="lp-platform"
+                value={lpData.platform}
+                onChange={(e) => setLpData({ ...lpData, platform: e.target.value as 'weverse' | 'melon' | 'spotify' | 'apple_music' })}
+                className="form-select"
+              >
+                <option value="melon">🍈 멜론</option>
+                <option value="spotify">🎵 스포티파이</option>
+                <option value="apple_music">🍎 애플뮤직</option>
+                <option value="weverse">💚 위버스</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="lp-activity">활동 (선택)</label>
+              <select
+                id="lp-activity"
                 value={lpData.title}
                 onChange={(e) => setLpData({ ...lpData, title: e.target.value })}
-                placeholder="리스닝파티 제목"
-              />
+                className="form-select"
+              >
+                <option value="">선택안함</option>
+                {activities.map((activity) => (
+                  <option key={activity.id} value={activity.name}>
+                    {activity.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">

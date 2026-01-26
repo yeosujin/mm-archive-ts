@@ -44,6 +44,7 @@ export interface Episode {
   date: string;
   episode_type: 'dm' | 'comment' | 'listening_party';
   sender?: 'member1' | 'member2'; // DM/comment용
+  platform?: 'weverse' | 'melon' | 'spotify' | 'apple_music'; // 리스닝파티용
   // DM/comment/listening_party 공용
   messages?: {
     type: 'text' | 'image';
@@ -75,6 +76,12 @@ export interface Article {
 export interface FeaturedContent {
   type: 'video' | 'post' | 'moment' | 'episode' | null;
   content_id: string | null;
+}
+
+export interface Activity {
+  id: string;
+  name: string;
+  created_at?: string;
 }
 
 // ============ Videos ============
@@ -369,6 +376,37 @@ export async function updateMemberSettings(settings: MemberSettings): Promise<vo
   const { error } = await supabase
     .from('settings')
     .upsert({ id: 1, ...settings, updated_at: new Date().toISOString() });
-  
+
+  if (error) throw error;
+}
+
+// ============ Activities ============
+export async function getActivities(): Promise<Activity[]> {
+  const { data, error } = await supabase
+    .from('activities')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createActivity(activity: Omit<Activity, 'id' | 'created_at'>): Promise<Activity> {
+  const { data, error } = await supabase
+    .from('activities')
+    .insert(activity)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteActivity(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('activities')
+    .delete()
+    .eq('id', id);
+
   if (error) throw error;
 }

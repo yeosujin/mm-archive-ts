@@ -2043,17 +2043,17 @@
   }
 
   .day-dots {
-    display: none;
+    gap: 2px;
+    bottom: 2px;
   }
 
-  .cal-day.has-archive::after {
-    content: "";
-    position: absolute;
-    bottom: 4px;
+  .day-dot {
     width: 4px;
     height: 4px;
-    background: var(--accent);
-    border-radius: 50%;
+  }
+
+  .day-more {
+    display: none;
   }
 }
 
@@ -2198,6 +2198,9 @@
 }
 
 .episode-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.4rem 0.9rem;
   border-radius: 16px;
   border: none;
@@ -2353,9 +2356,9 @@
   border-radius: 4px 16px 16px 16px;
 }
 
-/* 오른쪽 말풍선 (멤버2) - 연보라색 */
+/* 오른쪽 말풍선 (멤버2) - 연파랑색 💙 */
 .dm-bubble-right {
-  background: linear-gradient(135deg, #f3e8ff 0%, #ede4ff 100%);
+  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
   border-radius: 4px 16px 16px 16px;
 }
 
@@ -2387,8 +2390,8 @@
 [data-theme="dark"] .dm-bubble-right {
   background: linear-gradient(
     135deg,
-    rgba(168, 85, 247, 0.2) 0%,
-    rgba(168, 85, 247, 0.15) 100%
+    rgba(59, 130, 246, 0.2) 0%,
+    rgba(59, 130, 246, 0.15) 100%
   );
 }
 
@@ -2421,6 +2424,9 @@
 .dm-type-badge {
   font-size: 1rem;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .comment-content {
@@ -2502,14 +2508,43 @@
 
 /* ===== Listening Party ===== */
 .lp-thread .dm-thread-header {
-  border-left: 2px solid #a78bfa;
+  border-left: 3px solid var(--accent);
+  padding-left: 0.75rem;
+  margin-left: 0.25rem;
 }
 
 .lp-content {
+  padding: 0.5rem 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.75rem 0.5rem;
+}
+
+.lp-message {
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  margin: 0 0.5rem;
+}
+
+.lp-message-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-right: 0.5rem;
+}
+
+.lp-message-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.lp-message-text {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 /* ===== Photo Modal ===== */
@@ -3481,6 +3516,104 @@
 .admin-modal-body {
   padding: 1.25rem;
   overflow-y: auto;
+}
+
+.admin-modal-body .form-group {
+  margin-bottom: 1rem;
+}
+
+.admin-modal-body .admin-submit-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+/* Admin Page Header with Buttons */
+.admin-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-page-header h1 {
+  margin: 0;
+  flex: 1;
+}
+
+.admin-header-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-header-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.admin-header-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent);
+}
+
+/* Activity Modal Styles */
+.activity-add-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.activity-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.activity-add-row .admin-submit-btn {
+  padding: 0.75rem 1.25rem;
+  white-space: nowrap;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.activity-item span {
+  font-size: 0.95rem;
+}
+
+.activity-item .delete-btn.small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.empty-text {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2rem 0;
 }
 
 /* Edit Mode Controls for Sorting */

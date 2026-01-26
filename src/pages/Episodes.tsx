@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Episode, MemberSettings, Video, Moment, Post } from '../lib/database';
 import { useData } from '../context/DataContext';
+import PlatformIcon from '../components/PlatformIcon';
 
 export default function Episodes() {
   const [searchParams] = useSearchParams();
@@ -122,6 +123,27 @@ export default function Episodes() {
     }
   };
 
+  // 댓글의 연결 콘텐츠에서 플랫폼 가져오기
+  const getCommentPlatform = (episode: Episode): 'twitter' | 'instagram' | 'weverse' | 'youtube' | 'other' | null => {
+    if (!episode.linked_content_id) return null;
+
+    if (episode.linked_content_type === 'video') {
+      const video = videos.find(v => v.id === episode.linked_content_id);
+      if (video?.url?.includes('youtube.com') || video?.url?.includes('youtu.be')) {
+        return 'youtube';
+      }
+      return 'weverse'; // 위버스 영상
+    }
+    if (episode.linked_content_type === 'moment') {
+      return 'twitter'; // 모먼트는 트윗 기반
+    }
+    if (episode.linked_content_type === 'post') {
+      const post = posts.find(p => p.id === episode.linked_content_id);
+      return post?.platform || 'other';
+    }
+    return null;
+  };
+
   // 댓글 대상 멤버 이름 (sender의 반대)
   const getTargetMemberName = (sender?: 'member1' | 'member2') => {
     if (sender === 'member2') return memberSettings.member1_name;
@@ -154,7 +176,10 @@ export default function Episodes() {
           <button
             className={`episode-tab ${activeTab === 'dm' ? 'active' : ''}`}
             onClick={() => setActiveTab('dm')}
-          >DM</button>
+          >
+            <PlatformIcon platform="weverse" size={16} />
+            <span>DM</span>
+          </button>
           <button
             className={`episode-tab ${activeTab === 'comment' ? 'active' : ''}`}
             onClick={() => setActiveTab('comment')}
@@ -210,7 +235,17 @@ export default function Episodes() {
                   onClick={() => toggleEpisode(episode.id)}
                 >
                   <span className="dm-type-badge">
-                    {isListeningParty ? '🎧' : isComment ? '💬' : '📱'}
+                    {isListeningParty ? (
+                      episode.platform ? (
+                        <PlatformIcon platform={episode.platform} size={16} />
+                      ) : '🎧'
+                    ) : isComment ? (
+                      getCommentPlatform(episode) ? (
+                        <PlatformIcon platform={getCommentPlatform(episode)!} size={16} />
+                      ) : '💬'
+                    ) : (
+                      <PlatformIcon platform="weverse" size={16} />
+                    )}
                   </span>
                   {!isListeningParty && (
                     <span className="dm-member-name">{senderName}</span>
@@ -228,14 +263,12 @@ export default function Episodes() {
                     {isListeningParty && (
                       <div className="lp-content">
                         {episode.messages?.map((msg, idx) => (
-                          <div key={idx} className="comment-bubble">
-                            <div className="comment-bubble-header">
-                              <span className="comment-bubble-name">{msg.sender_name || '?'}</span>
-                              {msg.time && (
-                                <span className="comment-bubble-time">{formatTime(msg.time)}</span>
-                              )}
-                            </div>
-                            <p className="comment-bubble-text">{msg.content}</p>
+                          <div key={idx} className="lp-message">
+                            <span className="lp-message-name">{msg.sender_name || '?'}</span>
+                            {msg.time && (
+                              <span className="lp-message-time">{formatTime(msg.time)}</span>
+                            )}
+                            <p className="lp-message-text">{msg.content}</p>
                           </div>
                         ))}
                       </div>

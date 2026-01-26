@@ -96,9 +96,11 @@ export default function Posts() {
   const getGridThumbnail = (post: Post): string | null => {
     if (!post.media || post.media.length === 0) return null;
     const firstMedia = post.media[0];
-    if (firstMedia.type === 'video' && firstMedia.thumbnail) {
-      return firstMedia.thumbnail;
+    if (firstMedia.type === 'video') {
+      // 영상은 썸네일이 있을 때만 반환, 없으면 null
+      return firstMedia.thumbnail || null;
     }
+    // 이미지는 URL 그대로 반환
     return firstMedia.url;
   };
 

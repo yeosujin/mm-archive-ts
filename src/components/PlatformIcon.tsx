@@ -1,5 +1,5 @@
 interface Props {
-  platform: 'twitter' | 'instagram' | 'weverse' | 'youtube' | 'other';
+  platform: 'twitter' | 'instagram' | 'weverse' | 'youtube' | 'melon' | 'spotify' | 'apple_music' | 'other';
   size?: number;
   className?: string;
 }
@@ -49,17 +49,51 @@ export default function PlatformIcon({ platform, size = 24, className = '' }: Pr
     );
   }
 
-  // Weverse 로고
+  // Weverse 로고 (이미지 파일 사용)
   if (platform === 'weverse') {
     return (
-      <svg 
-        viewBox="0 0 24 24" 
-        style={style} 
+      <img
+        src="/weverse-icon.png"
+        alt="Weverse"
+        style={{ ...style, borderRadius: '20%' }}
         className={`platform-icon weverse-icon ${className}`}
-        fill="currentColor"
-      >
-        <path d="M3.5 6L7.5 18H9.5L12 10.5L14.5 18H16.5L20.5 6H18L15.5 14.5L13 6H11L8.5 14.5L6 6H3.5Z" />
-      </svg>
+      />
+    );
+  }
+
+  // Melon 로고
+  if (platform === 'melon') {
+    return (
+      <img
+        src="/melon-icon.png"
+        alt="Melon"
+        style={{ ...style, borderRadius: '20%' }}
+        className={`platform-icon melon-icon ${className}`}
+      />
+    );
+  }
+
+  // Spotify 로고
+  if (platform === 'spotify') {
+    return (
+      <img
+        src="/spotify-icon.png"
+        alt="Spotify"
+        style={{ ...style, borderRadius: '50%' }}
+        className={`platform-icon spotify-icon ${className}`}
+      />
+    );
+  }
+
+  // Apple Music 로고
+  if (platform === 'apple_music') {
+    return (
+      <img
+        src="/apple-music-icon.png"
+        alt="Apple Music"
+        style={{ ...style, borderRadius: '20%' }}
+        className={`platform-icon apple-music-icon ${className}`}
+      />
     );
   }
 

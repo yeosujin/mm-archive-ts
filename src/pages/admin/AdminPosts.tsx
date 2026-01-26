@@ -5,7 +5,7 @@ import { detectPlatform } from '../../lib/platformUtils';
 import PlatformIcon from '../../components/PlatformIcon';
 import { getPlatformName } from '../../lib/platformUtils';
 import { useData } from '../../context/DataContext';
-import { uploadPhotoToR2, uploadVideoToR2, uploadThumbnailFromVideo, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
+import { uploadPhotoToR2, uploadVideoToR2, uploadThumbnailFromVideo, generateThumbnailFromUrl, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
 
 // 로컬 파일 미리보기용 타입
 interface PendingMedia {
@@ -40,6 +40,8 @@ export default function AdminPosts() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [thumbGenerating, setThumbGenerating] = useState(false);
+  const [thumbProgress, setThumbProgress] = useState('');
 
   // 통합 미디어 리스트 (업로드된 것 + 대기 중인 것)
   const mediaItems: MediaItem[] = [
@@ -299,6 +301,55 @@ export default function AdminPosts() {
     }
   };
 
+  // 포스트 내 영상 중 썸네일 없는 항목들에 대해 일괄 생성
+  const handleGenerateThumbnails = async () => {
+    const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
+    const isR2Url = (url: string) =>
+      (r2PublicUrl && url.startsWith(r2PublicUrl)) || url.includes('.r2.dev');
+
+    // 썸네일이 없는 R2 영상을 가진 포스트 찾기
+    const targets: { post: Post; mediaIndex: number; videoUrl: string }[] = [];
+    for (const post of posts) {
+      if (!post.media) continue;
+      post.media.forEach((media, idx) => {
+        if (media.type === 'video' && !media.thumbnail && isR2Url(media.url)) {
+          targets.push({ post, mediaIndex: idx, videoUrl: media.url });
+        }
+      });
+    }
+
+    if (targets.length === 0) {
+      alert('썸네일이 필요한 R2 영상이 없어요.');
+      return;
+    }
+
+    if (!confirm(`${targets.length}개 영상의 썸네일을 생성할까요?`)) return;
+
+    setThumbGenerating(true);
+    let success = 0;
+
+    for (let i = 0; i < targets.length; i++) {
+      const { post, mediaIndex, videoUrl } = targets[i];
+      setThumbProgress(`${i + 1}/${targets.length}: ${post.title}`);
+      try {
+        const thumbnailUrl = await generateThumbnailFromUrl(videoUrl);
+        // 해당 미디어의 썸네일 업데이트
+        const updatedMedia = [...(post.media || [])];
+        updatedMedia[mediaIndex] = { ...updatedMedia[mediaIndex], thumbnail: thumbnailUrl };
+        await updatePost(post.id, { media: updatedMedia });
+        success++;
+      } catch (err) {
+        console.error(`썸네일 생성 실패 (${post.title}):`, err);
+      }
+    }
+
+    setThumbGenerating(false);
+    setThumbProgress('');
+    invalidateCache('posts');
+    loadPosts();
+    alert(`완료! ${success}/${targets.length}개 썸네일 생성됨`);
+  };
+
   // 미디어 아이템의 썸네일/미리보기 URL 가져오기
   const getPreviewUrl = (item: MediaItem): string | null => {
     if (item.kind === 'uploaded') {
@@ -318,7 +369,17 @@ export default function AdminPosts() {
 
   return (
     <div className="admin-page">
-      <h1>포스트 관리</h1>
+      <div className="admin-header-actions">
+        <h1>포스트 관리</h1>
+        <button
+          className="admin-add-btn-header"
+          onClick={handleGenerateThumbnails}
+          disabled={thumbGenerating}
+          style={{ fontSize: '12px' }}
+        >
+          {thumbGenerating ? thumbProgress || '생성 중...' : '🖼️ 썸네일 일괄 생성'}
+        </button>
+      </div>
 
       <div className="admin-section">
         <h2>{editingId ? '포스트 수정' : '새 포스트 추가'}</h2>
