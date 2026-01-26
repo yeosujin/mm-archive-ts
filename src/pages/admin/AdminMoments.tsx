@@ -28,6 +28,14 @@ export default function AdminMoments() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
 
+  // 이전 선택 영상 기억
+  const lastVideoIdRef = useRef<string>('');
+
+  // Searchable select 상태
+  const [videoSearchQuery, setVideoSearchQuery] = useState('');
+  const [isVideoDropdownOpen, setIsVideoDropdownOpen] = useState(false);
+  const videoDropdownRef = useRef<HTMLDivElement>(null);
+
   const [moments, setMoments] = useState<Moment[]>(cachedMoments || []);
   const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
 
@@ -58,6 +66,29 @@ export default function AdminMoments() {
   useEffect(() => {
     if (cachedVideos) setVideos(cachedVideos);
   }, [cachedVideos]);
+
+  // 검색어로 필터링된 비디오 목록
+  const filteredVideos = useMemo(() => {
+    if (!videoSearchQuery.trim()) return videos;
+    const query = videoSearchQuery.toLowerCase();
+    return videos.filter(v =>
+      v.title.toLowerCase().includes(query) ||
+      v.date.includes(query)
+    );
+  }, [videos, videoSearchQuery]);
+
+  // 드롭다운 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (videoDropdownRef.current && !videoDropdownRef.current.contains(e.target as Node)) {
+        setIsVideoDropdownOpen(false);
+      }
+    };
+    if (isVideoDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isVideoDropdownOpen]);
 
   // 타임라인 그룹화 로직
   const groupedMoments = useMemo(() => {
@@ -225,7 +256,17 @@ export default function AdminMoments() {
 
   const handleOpenAddModal = () => {
     setEditingId(null);
-    setFormData({ title: '', tweet_url: '', date: '', video_id: '', position: 0, thumbnail_url: '' });
+    const lastVideo = lastVideoIdRef.current ? videos.find(v => v.id === lastVideoIdRef.current) : null;
+    setFormData({
+      title: '',
+      tweet_url: '',
+      date: lastVideo ? lastVideo.date : '',
+      video_id: lastVideoIdRef.current || '',
+      position: 0,
+      thumbnail_url: ''
+    });
+    setVideoSearchQuery('');
+    setIsVideoDropdownOpen(false);
     setIsModalOpen(true);
   };
 
@@ -260,11 +301,16 @@ export default function AdminMoments() {
 
   const handleVideoSelect = (videoId: string) => {
     const selectedVideo = videos.find(v => v.id === videoId);
+    if (videoId) {
+      lastVideoIdRef.current = videoId;
+    }
     setFormData(prev => ({
       ...prev,
       video_id: videoId,
       date: selectedVideo ? selectedVideo.date : prev.date,
     }));
+    setVideoSearchQuery('');
+    setIsVideoDropdownOpen(false);
   };
 
   // R2 영상(moments) 중 썸네일 없는 항목들에 대해 일괄 생성
@@ -444,19 +490,52 @@ export default function AdminMoments() {
           
           <div className="form-group">
             <label htmlFor="moment-video">연결할 영상</label>
-            <select
-              id="moment-video"
-              value={formData.video_id}
-              onChange={(e) => handleVideoSelect(e.target.value)}
-              className="form-select"
-            >
-              <option value="">영상 선택 (선택사항)</option>
-              {videos.map((video) => (
-                <option key={video.id} value={video.id}>
-                  [{video.date}] {video.title}
-                </option>
-              ))}
-            </select>
+            <div className="searchable-select" ref={videoDropdownRef}>
+              <input
+                type="text"
+                placeholder={formData.video_id
+                  ? `[${videos.find(v => v.id === formData.video_id)?.date}] ${videos.find(v => v.id === formData.video_id)?.title}`
+                  : '영상 검색 (날짜/제목)'}
+                value={videoSearchQuery}
+                onChange={(e) => {
+                  setVideoSearchQuery(e.target.value);
+                  setIsVideoDropdownOpen(true);
+                }}
+                onFocus={() => setIsVideoDropdownOpen(true)}
+                className="searchable-select-input"
+              />
+              {formData.video_id && (
+                <button
+                  type="button"
+                  className="searchable-select-clear"
+                  onClick={() => handleVideoSelect('')}
+                >
+                  ✕
+                </button>
+              )}
+              {isVideoDropdownOpen && (
+                <div className="searchable-select-dropdown">
+                  <div
+                    className={`searchable-select-option ${!formData.video_id ? 'selected' : ''}`}
+                    onClick={() => handleVideoSelect('')}
+                  >
+                    선택 안함
+                  </div>
+                  {filteredVideos.map((video) => (
+                    <div
+                      key={video.id}
+                      className={`searchable-select-option ${formData.video_id === video.id ? 'selected' : ''}`}
+                      onClick={() => handleVideoSelect(video.id)}
+                    >
+                      [{video.date}] {video.title}
+                    </div>
+                  ))}
+                  {filteredVideos.length === 0 && (
+                    <div className="searchable-select-empty">검색 결과 없음</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="form-group">

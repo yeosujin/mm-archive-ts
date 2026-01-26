@@ -113,15 +113,6 @@ export default function Episodes() {
     return '콘텐츠';
   };
 
-  // const getContentTypeName = (type?: string) => {
-  //   switch (type) {
-  //     case 'video': return '영상';
-  //     case 'moment': return '모먼트';
-  //     case 'post': return '포스트';
-  //     default: return '콘텐츠';
-  //   }
-  // };
-
   const getContentTypeIcon = (type?: string) => {
     switch (type) {
       case 'video': return '📹';
