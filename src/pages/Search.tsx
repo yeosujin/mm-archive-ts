@@ -54,18 +54,18 @@ export default function Search() {
   const matchedEpisodes = episodes.filter(e => 
     e.title?.toLowerCase().includes(searchLower) || e.date.includes(query)
   );
-  const matchedArticles = articles.filter(a => 
-    a.title.toLowerCase().includes(searchLower) ||
-    a.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
-    a.date.includes(query)
-  );
+  // 공사중 - articles 임시 숨김
+  // const matchedArticles = articles.filter(a =>
+  //   a.title.toLowerCase().includes(searchLower) ||
+  //   a.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
+  //   a.date.includes(query)
+  // );
 
-  const totalResults = 
-    matchedVideos.length + 
-    matchedMoments.length + 
-    matchedPosts.length + 
-    matchedEpisodes.length + 
-    matchedArticles.length;
+  const totalResults =
+    matchedVideos.length +
+    matchedMoments.length +
+    matchedPosts.length +
+    matchedEpisodes.length;
 
   if (loading) {
     return (
@@ -151,7 +151,7 @@ export default function Search() {
             </div>
           )}
 
-          {/* 글 결과 */}
+          {/* 공사중 - 글 결과 임시 숨김
           {matchedArticles.length > 0 && (
             <div className="search-section">
               <h2>📝 글 ({matchedArticles.length})</h2>
@@ -165,6 +165,7 @@ export default function Search() {
               </div>
             </div>
           )}
+          */}
         </div>
       )}
     </div>

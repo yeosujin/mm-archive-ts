@@ -50,6 +50,23 @@ export default function Articles() {
     article.date.includes(searchTerm)
   );
 
+  // 공사중 - 임시 숨김
+  return (
+    <div className="page articles-page">
+      <div className="page-header">
+        <h1>글</h1>
+      </div>
+      <div className="empty-state" style={{ marginTop: '3rem' }}>
+        <p style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚧</p>
+        <p>공사중이에요!</p>
+        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+          곧 새로운 모습으로 찾아올게요
+        </p>
+      </div>
+    </div>
+  );
+
+  /* 원래 코드 - 공사 완료 후 복구
   if (loading) {
     return (
       <div className="page articles-page">
@@ -62,7 +79,7 @@ export default function Articles() {
     <div className="page articles-page">
       <div className="page-header">
         <h1>글</h1>
-        
+
         <div className="page-controls">
           <div className="search-box">
             <input
@@ -107,4 +124,5 @@ export default function Articles() {
       )}
     </div>
   );
+  */
 }

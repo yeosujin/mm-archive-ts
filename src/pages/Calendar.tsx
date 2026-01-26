@@ -85,10 +85,11 @@ export default function Calendar() {
         archivesByDate[e.date].push({ id: e.id, type: 'episode', title: e.title || e.date, path: '/episodes' });
       });
 
-      articles.forEach((a: Article) => {
-        if (!archivesByDate[a.date]) archivesByDate[a.date] = [];
-        archivesByDate[a.date].push({ id: a.id, type: 'article', title: a.title, path: '/articles' });
-      });
+      // 공사중 - articles 임시 숨김
+      // articles.forEach((a: Article) => {
+      //   if (!archivesByDate[a.date]) archivesByDate[a.date] = [];
+      //   archivesByDate[a.date].push({ id: a.id, type: 'article', title: a.title, path: '/articles' });
+      // });
 
       setArchives(archivesByDate);
     } catch (error) {
