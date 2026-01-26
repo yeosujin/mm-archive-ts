@@ -59,6 +59,10 @@ export default function AdminEpisodes() {
   const [episodeType, setEpisodeType] = useState<'dm' | 'comment' | 'listening_party'>('dm');
 
   const getToday = () => new Date().toISOString().slice(0, 10);
+  const getCurrentTime = () => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  };
 
   // DM용 폼 데이터
   const [formData, setFormData] = useState({
@@ -67,7 +71,7 @@ export default function AdminEpisodes() {
     sender: 'member1' as 'member1' | 'member2',
   });
   const [messages, setMessages] = useState<MessageInput[]>([
-    { id: crypto.randomUUID(), type: 'text', content: '', time: '' }
+    { id: crypto.randomUUID(), type: 'text', content: '', time: getCurrentTime() }
   ]);
 
   // Comment용 폼 데이터
@@ -185,7 +189,7 @@ export default function AdminEpisodes() {
 
   // DM용 메시지 관리
   const addMessage = () => {
-    const lastTime = messages.at(-1)?.time || '';
+    const lastTime = messages.at(-1)?.time || getCurrentTime();
     setMessages([...messages, { id: crypto.randomUUID(), type: 'text', content: '', time: lastTime }]);
   };
 
@@ -193,6 +197,14 @@ export default function AdminEpisodes() {
     if (messages.length > 1) {
       setMessages(messages.filter((_, i) => i !== index));
     }
+  };
+
+  const moveMessage = (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= messages.length) return;
+    const updated = [...messages];
+    [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
+    setMessages(updated);
   };
 
   const updateMessage = (index: number, field: keyof MessageInput, value: string) => {
@@ -465,7 +477,7 @@ export default function AdminEpisodes() {
 
   const resetDMForm = () => {
     setFormData({ title: '', date: getToday(), sender: 'member1' });
-    setMessages([{ id: crypto.randomUUID(), type: 'text', content: '', time: '' }]);
+    setMessages([{ id: crypto.randomUUID(), type: 'text', content: '', time: getCurrentTime() }]);
   };
 
   // Listening Party 제출
@@ -764,8 +776,8 @@ export default function AdminEpisodes() {
         <h2>{editingId ? '에피소드 수정' : '새 에피소드 추가'}</h2>
         
         {/* 타입 선택 탭 */}
-        <div className="episode-type-tabs">
-          <button 
+        <div className="episode-type-tabs" style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem' }}>
+          <button
             type="button"
             className={`type-tab ${episodeType === 'dm' ? 'active' : ''}`}
             onClick={() => { setEpisodeType('dm'); handleCancelEdit(); }}
@@ -777,14 +789,14 @@ export default function AdminEpisodes() {
             className={`type-tab ${episodeType === 'comment' ? 'active' : ''}`}
             onClick={() => { setEpisodeType('comment'); handleCancelEdit(); }}
           >
-            💬 콘텐츠 댓글
+            💬 댓글
           </button>
           <button
             type="button"
             className={`type-tab ${episodeType === 'listening_party' ? 'active' : ''}`}
             onClick={() => { setEpisodeType('listening_party'); handleCancelEdit(); }}
           >
-            🎧 리스닝파티
+            🎧 LP
           </button>
         </div>
 
@@ -862,76 +874,82 @@ export default function AdminEpisodes() {
               
               {messages.map((msg, index) => (
                 <div key={msg.id} className="message-input-row">
-                  <select
-                    value={msg.type}
-                    onChange={(e) => updateMessage(index, 'type', e.target.value as 'text' | 'image')}
-                    className="form-select message-type-select"
-                  >
-                    <option value="text">💬</option>
-                    <option value="image">📷</option>
-                  </select>
-                  {msg.type === 'image' ? (
-                    <div className="photo-upload-area">
+                  <div className="message-order-btns">
+                    <button type="button" onClick={() => moveMessage(index, 'up')} disabled={index === 0} className="message-order-btn">▲</button>
+                    <button type="button" onClick={() => moveMessage(index, 'down')} disabled={index === messages.length - 1} className="message-order-btn">▼</button>
+                  </div>
+                  <div className="message-card">
+                    <div className="message-row-controls">
+                      <select
+                        value={msg.type}
+                        onChange={(e) => updateMessage(index, 'type', e.target.value as 'text' | 'image')}
+                        className="form-select message-type-select"
+                      >
+                        <option value="text">💬 텍스트</option>
+                        <option value="image">📷 사진</option>
+                      </select>
                       <input
-                        ref={(el) => { photoInputRefs.current[index] = el; }}
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handlePhotoUpload(index, file);
-                        }}
-                        style={{ display: 'none' }}
+                        type="time"
+                        value={msg.time}
+                        onChange={(e) => updateMessage(index, 'time', e.target.value)}
+                        className="message-time-input"
                       />
-                      {msg.content ? (
-                        <div className="photo-preview-row">
-                          <img src={msg.content} alt="" className="photo-preview-thumb" />
+                      {messages.length > 1 && (
+                        <button type="button" onClick={() => removeMessage(index)} className="remove-message-btn">✕</button>
+                      )}
+                    </div>
+                    {msg.type === 'image' ? (
+                      <div className="photo-upload-area">
+                        <input
+                          ref={(el) => { photoInputRefs.current[index] = el; }}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePhotoUpload(index, file);
+                          }}
+                          style={{ display: 'none' }}
+                        />
+                        {msg.content ? (
+                          <div className="photo-preview-row">
+                            <img src={msg.content} alt="" className="photo-preview-thumb" />
+                            <button
+                              type="button"
+                              className="photo-change-btn"
+                              onClick={() => photoInputRefs.current[index]?.click()}
+                              disabled={photoUploading === index}
+                            >
+                              변경
+                            </button>
+                          </div>
+                        ) : (
                           <button
                             type="button"
-                            className="photo-change-btn"
+                            className="photo-select-btn"
                             onClick={() => photoInputRefs.current[index]?.click()}
                             disabled={photoUploading === index}
                           >
-                            변경
+                            {photoUploading === index
+                              ? `업로드 중... ${photoProgress}%`
+                              : '📷 사진 선택'}
                           </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          className="photo-select-btn"
-                          onClick={() => photoInputRefs.current[index]?.click()}
-                          disabled={photoUploading === index}
-                        >
-                          {photoUploading === index
-                            ? `업로드 중... ${photoProgress}%`
-                            : '📷 사진 선택'}
-                        </button>
-                      )}
-                      {photoUploading === index && (
-                        <div className="photo-progress-bar">
-                          <div className="photo-progress" style={{ width: `${photoProgress}%` }} />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <input
-                      type="text"
-                      value={msg.content}
-                      onChange={(e) => updateMessage(index, 'content', e.target.value)}
-                      placeholder="메시지 내용"
-                      className="message-content-input"
-                    />
-                  )}
-                  <input
-                    type="time"
-                    value={msg.time}
-                    onChange={(e) => updateMessage(index, 'time', e.target.value)}
-                    className="message-time-input"
-                  />
-                  {messages.length > 1 && (
-                    <button type="button" onClick={() => removeMessage(index)} className="remove-message-btn">
-                      ✕
-                    </button>
-                  )}
+                        )}
+                        {photoUploading === index && (
+                          <div className="photo-progress-bar">
+                            <div className="photo-progress" style={{ width: `${photoProgress}%` }} />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={msg.content}
+                        onChange={(e) => updateMessage(index, 'content', e.target.value)}
+                        placeholder="메시지 내용"
+                        className="message-content-input"
+                      />
+                    )}
+                  </div>
                 </div>
               ))}
               <button type="button" onClick={addMessage} className="add-message-btn">

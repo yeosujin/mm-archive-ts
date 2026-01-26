@@ -1187,6 +1187,7 @@
 
 .date-thread {
   position: relative;
+  margin-bottom: 0;
 }
 
 .thread-date-header {
@@ -3061,6 +3062,7 @@
 }
 
 .twitter-embed {
+  width: 100%;
   max-width: 550px;
   margin: 0 auto;
 }
@@ -3214,39 +3216,6 @@
   height: 24px;
 }
 
-/* Date Thread (Posts, Moments) */
-.date-thread {
-  margin-bottom: 0;
-}
-
-.thread-date-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 0;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.thread-date-header .thread-marker {
-  width: 8px;
-  height: 8px;
-  background: var(--accent);
-  border-radius: 50%;
-}
-
-.thread-date-header time {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-/* ===== Twitter Embed ===== */
-.twitter-embed {
-  width: 100%;
-  max-width: 550px;
-  margin: 0 auto;
-}
-
 .twitter-embed .tweet-loading {
   display: flex;
   align-items: center;
@@ -3266,13 +3235,7 @@
   color: var(--accent);
 }
 
-/* 모먼트 타임라인 */
-.moments-timeline {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
+/* 모먼트 타임라인 (어드민) */
 .moment-date-group {
   margin-bottom: 0;
 }
@@ -3518,6 +3481,135 @@
   text-align: center;
 }
 
+/* 어드민 에피소드 타입 탭 */
+.episode-type-tabs {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.type-tab {
+  flex: 1;
+  padding: 0.6rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.type-tab:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.type-tab.active {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* DM 메시지 입력 UI */
+.message-input-row {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: stretch;
+}
+
+.message-order-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.message-order-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.message-order-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.message-order-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.message-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.message-row-controls {
+  display: flex;
+  width: 100%;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.message-card input,
+.message-card select {
+  height: 40px !important;
+  padding: 0.5rem !important;
+  font-size: 0.9rem !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  box-sizing: border-box !important;
+}
+
+.message-type-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.message-time-input {
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.message-content-input {
+  width: 100%;
+}
+
+.remove-message-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.remove-message-btn:hover {
+  color: #ef4444;
+}
+
 .admin-control-btn {
   padding: 0.4rem 0.8rem;
   font-size: 0.85rem;
@@ -3594,9 +3686,13 @@
   font-size: 1.25rem;
 }
 
-.modal-close-btn {
+.admin-modal-header .modal-close-btn {
+  position: static;
+  width: auto;
+  height: auto;
   background: none;
   border: none;
+  border-radius: 0;
   font-size: 1.5rem;
   color: var(--text-muted);
   cursor: pointer;

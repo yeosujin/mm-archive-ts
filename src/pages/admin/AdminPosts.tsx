@@ -427,20 +427,6 @@ export default function AdminPosts() {
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="post-platform">플랫폼</label>
-              <select
-                id="post-platform"
-                value={formData.platform}
-                onChange={(e) => setFormData({ ...formData, platform: e.target.value as Post['platform'] })}
-                className="form-select"
-              >
-                <option value="twitter">X (Twitter)</option>
-                <option value="instagram">Instagram</option>
-                <option value="weverse">Weverse</option>
-                <option value="other">기타</option>
-              </select>
-            </div>
           </div>
 
           <div className="form-group">
