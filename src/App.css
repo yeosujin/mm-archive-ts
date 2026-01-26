@@ -2916,6 +2916,11 @@
   animation: fadeIn 0.2s ease;
 }
 
+/* 기존 스타일은 그대로 두고, 이 규칙을 추가 */
+.post-detail-modal:not([open]) {
+  display: none;
+}
+
 .post-detail-modal::backdrop {
   background: rgba(0, 0, 0, 0.9);
 }
