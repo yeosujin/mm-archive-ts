@@ -397,7 +397,7 @@ export default function AdminMoments() {
 
             <div className="moment-list">
               {dateMoments.map((moment, idx) => (
-                <div key={moment.id} className="admin-item-wrapper">
+                <div key={moment.id} className="admin-item-wrapper admin-moment-card">
                   {isSortMode && (
                     <div className="sort-buttons" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginRight: '8px' }}>
                       <button
@@ -416,16 +416,16 @@ export default function AdminMoments() {
                   )}
                   <div className="admin-item-content">
                     <div className="moment-item">
+                      <div className="admin-moment-title">{moment.title}</div>
                       <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} />
-                      {isSortMode && <div className="moment-title" style={{ marginTop: '0.5rem' }}>{moment.title}</div>}
                     </div>
+                    {!isSortMode && (
+                      <div className="admin-moment-actions">
+                        <button className="admin-control-btn edit" onClick={() => handleEdit(moment)}>수정</button>
+                        <button className="admin-control-btn delete" onClick={() => handleDelete(moment.id)}>삭제</button>
+                      </div>
+                    )}
                   </div>
-                  {!isSortMode && (
-                    <div className="admin-item-controls">
-                      <button className="admin-control-btn edit" onClick={() => handleEdit(moment)}>수정</button>
-                      <button className="admin-control-btn delete" onClick={() => handleDelete(moment.id)}>삭제</button>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
