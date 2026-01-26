@@ -2269,13 +2269,14 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0;
+  padding: 0.5rem 0.5rem 0.5rem 0;
   cursor: pointer;
   transition: color 0.2s;
   background: none;
   border: none;
   width: 100%;
   text-align: left;
+  box-sizing: border-box;
 }
 
 .dm-thread-header:hover {
@@ -2309,6 +2310,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   transition: color 0.2s;
+  min-width: 0;
+}
+
+.dm-thread-header .expand-arrow {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .dm-messages {
@@ -2446,8 +2453,7 @@
 /* Comment Episode Type */
 .comment-thread .dm-thread-header {
   border-left: 3px solid var(--accent);
-  padding-left: 0.75rem;
-  margin-left: 0.25rem;
+  padding-left: 1rem;
 }
 
 .dm-type-badge {
@@ -2485,11 +2491,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+}
+
+.comment-context-link {
+  margin-left: auto;
+  padding: 0.25rem 0.5rem;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.comment-context-link:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .comment-bubble {
   position: relative;
-  background: #292929;
+  background: #353535;
   border-radius: 16px;
   padding: 0.875rem 1rem;
   width: fit-content;
@@ -2506,7 +2528,7 @@
   height: 0;
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
-  border-right: 6px solid #292929;
+  border-right: 6px solid #353535;
 }
 
 .comment-bubble-header {
@@ -2538,22 +2560,32 @@
 /* ===== Listening Party ===== */
 .lp-thread .dm-thread-header {
   border-left: 3px solid var(--accent);
-  padding-left: 0.75rem;
-  margin-left: 0.25rem;
+  padding-left: 1rem;
 }
 
 .lp-content {
   padding: 0.5rem 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
 .lp-message {
   padding: 0.5rem 1rem;
-  background: var(--bg-secondary);
-  border-radius: 12px;
+  background: #353535;
+  border-radius: 0;
   margin: 0 0.5rem;
+}
+
+.lp-message:first-child {
+  border-radius: 12px 12px 0 0;
+}
+
+.lp-message:last-child {
+  border-radius: 0 0 12px 12px;
+}
+
+.lp-message:only-child {
+  border-radius: 12px;
 }
 
 .lp-message-name {
@@ -2571,7 +2603,7 @@
 .lp-message-text {
   margin: 0.25rem 0 0 0;
   font-size: 0.95rem;
-  color: var(--text-primary);
+  color: #fff;
   line-height: 1.5;
   white-space: pre-wrap;
 }

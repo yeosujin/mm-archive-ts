@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import type { Episode, MemberSettings, Video, Moment, Post } from '../lib/database';
 import { useData } from '../hooks/useData';
 import PlatformIcon from '../components/PlatformIcon';
 
 export default function Episodes() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
+  const tabParam = searchParams.get('tab') as 'dm' | 'comment' | 'listening_party' | null;
   const {
     episodes: cachedEpisodes,
     memberSettings: cachedSettings,
@@ -30,8 +31,16 @@ export default function Episodes() {
   });
   const [expandedEpisode, setExpandedEpisode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'dm' | 'comment' | 'listening_party'>('dm');
+  const activeTab = tabParam && ['dm', 'comment', 'listening_party'].includes(tabParam) ? tabParam : 'dm';
   const [loading, setLoading] = useState(!cachedEpisodes || !cachedSettings);
+
+  const setActiveTab = (tab: 'dm' | 'comment' | 'listening_party') => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set('tab', tab);
+      return newParams;
+    });
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -150,6 +159,17 @@ export default function Episodes() {
     return memberSettings.member2_name;
   };
 
+  // 연결된 콘텐츠로 이동하는 경로
+  const getLinkedContentPath = (episode: Episode) => {
+    if (!episode.linked_content_id) return null;
+    switch (episode.linked_content_type) {
+      case 'video': return `/videos?highlight=${episode.linked_content_id}`;
+      case 'moment': return `/moments?highlight=${episode.linked_content_id}`;
+      case 'post': return `/posts?highlight=${episode.linked_content_id}`;
+      default: return null;
+    }
+  };
+
   // 시간 포맷: "14:30" → "오후 02:30"
   const formatTime = (time: string) => {
     const [h, m] = time.split(':').map(Number);
@@ -234,19 +254,19 @@ export default function Episodes() {
                   className="dm-thread-header"
                   onClick={() => toggleEpisode(episode.id)}
                 >
-                  <span className="dm-type-badge">
-                    {isListeningParty ? (
-                      episode.platform ? (
-                        <PlatformIcon platform={episode.platform} size={16} />
-                      ) : '🎧'
-                    ) : isComment ? (
-                      getCommentPlatform(episode) ? (
-                        <PlatformIcon platform={getCommentPlatform(episode)!} size={16} />
-                      ) : '💬'
-                    ) : (
-                      <PlatformIcon platform="weverse" size={16} />
-                    )}
-                  </span>
+                  {(isListeningParty || isComment) && (
+                    <span className="dm-type-badge">
+                      {isListeningParty ? (
+                        episode.platform ? (
+                          <PlatformIcon platform={episode.platform} size={16} />
+                        ) : '🎧'
+                      ) : (
+                        getCommentPlatform(episode) ? (
+                          <PlatformIcon platform={getCommentPlatform(episode)!} size={16} />
+                        ) : '💬'
+                      )}
+                    </span>
+                  )}
                   {!isListeningParty && (
                     <span className="dm-member-name">{senderName}</span>
                   )}
@@ -285,6 +305,11 @@ export default function Episodes() {
                             <span className="comment-context-text">
                               {getTargetMemberName(episode.sender)}의 "{getLinkedContentTitle(episode)}"
                             </span>
+                            {getLinkedContentPath(episode) && (
+                              <Link to={getLinkedContentPath(episode)!} className="comment-context-link">
+                                →
+                              </Link>
+                            )}
                           </div>
                         )}
                         {(episode.messages && episode.messages.length > 0)
