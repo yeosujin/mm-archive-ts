@@ -7,6 +7,19 @@ import { getPlatformName } from '../../lib/platformUtils';
 import { useData } from '../../context/DataContext';
 import { uploadPhotoToR2, uploadVideoToR2, uploadThumbnailFromVideo, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
 
+// 로컬 파일 미리보기용 타입
+interface PendingMedia {
+  id: string; // 고유 ID (순서 변경용)
+  file: File;
+  previewUrl: string;
+  type: 'image' | 'video';
+}
+
+// 통합 미디어 아이템 (업로드된 것 + 대기 중인 것)
+type MediaItem =
+  | { kind: 'uploaded'; data: PostMedia }
+  | { kind: 'pending'; data: PendingMedia };
+
 export default function AdminPosts() {
   const { posts: cachedPosts, fetchPosts, invalidateCache } = useData();
   const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
@@ -20,10 +33,19 @@ export default function AdminPosts() {
     writer: '',
     content: '',
   });
-  const [mediaList, setMediaList] = useState<PostMedia[]>([]);
+  // 이미 업로드된 미디어 (수정 시 기존 미디어)
+  const [uploadedMedia, setUploadedMedia] = useState<PostMedia[]>([]);
+  // 아직 업로드되지 않은 로컬 파일들
+  const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 통합 미디어 리스트 (업로드된 것 + 대기 중인 것)
+  const mediaItems: MediaItem[] = [
+    ...uploadedMedia.map((m): MediaItem => ({ kind: 'uploaded', data: m })),
+    ...pendingMedia.map((m): MediaItem => ({ kind: 'pending', data: m })),
+  ];
 
   const loadPosts = useCallback(async () => {
     try {
@@ -44,32 +66,106 @@ export default function AdminPosts() {
     if (cachedPosts) setPosts(cachedPosts);
   }, [cachedPosts]);
 
+  // 컴포넌트 언마운트 시 미리보기 URL 정리
+  useEffect(() => {
+    return () => {
+      pendingMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
+    };
+  }, []);
+
   // URL 변경 시 플랫폼 자동 감지
   const handleUrlChange = (url: string) => {
     const platform = detectPlatform(url);
     setFormData({ ...formData, url, platform });
   };
 
-  // 미디어 파일 업로드 핸들러
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 파일 선택 핸들러 (업로드 X, 로컬 미리보기만)
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    const newPending: PendingMedia[] = Array.from(files).map(file => ({
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      type: isVideoFile(file) ? 'video' : 'image',
+    }));
+
+    setPendingMedia(prev => [...prev, ...newPending]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // 미디어 삭제 (업로드된 것 vs 대기 중인 것 구분)
+  const handleRemoveMedia = async (index: number) => {
+    const item = mediaItems[index];
+
+    if (item.kind === 'uploaded') {
+      // R2에서 파일 삭제
+      try {
+        await deleteFileFromR2(item.data.url);
+        if (item.data.thumbnail) {
+          await deleteFileFromR2(item.data.thumbnail);
+        }
+      } catch (error) {
+        console.error('R2 파일 삭제 실패:', error);
+      }
+      // uploadedMedia에서 해당 아이템 제거
+      const uploadedIndex = uploadedMedia.findIndex(m => m.url === item.data.url);
+      setUploadedMedia(prev => prev.filter((_, i) => i !== uploadedIndex));
+    } else {
+      // 로컬 미리보기 URL 정리
+      URL.revokeObjectURL(item.data.previewUrl);
+      // pendingMedia에서 해당 아이템 제거
+      setPendingMedia(prev => prev.filter(m => m.id !== item.data.id));
+    }
+  };
+
+  // 미디어 순서 변경
+  const moveMedia = (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= mediaItems.length) return;
+
+    // 두 리스트를 합쳐서 순서 변경
+    const combined = [...mediaItems];
+    [combined[index], combined[newIndex]] = [combined[newIndex], combined[index]];
+
+    // 다시 분리
+    const newUploaded: PostMedia[] = [];
+    const newPending: PendingMedia[] = [];
+    combined.forEach(item => {
+      if (item.kind === 'uploaded') {
+        newUploaded.push(item.data);
+      } else {
+        newPending.push(item.data);
+      }
+    });
+
+    setUploadedMedia(newUploaded);
+    setPendingMedia(newPending);
+  };
+
+  // 폼 제출 (여기서 실제 R2 업로드 수행)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     setUploading(true);
     setUploadProgress(0);
 
     try {
-      const totalFiles = files.length;
+      // 1. 대기 중인 파일들을 R2에 업로드
+      const totalFiles = pendingMedia.length;
       let completedFiles = 0;
+      const newlyUploadedMedia: PostMedia[] = [];
 
-      for (const file of Array.from(files)) {
-        const isVideo = isVideoFile(file);
+      for (const pending of pendingMedia) {
         let url: string;
         let thumbnail: string | undefined;
 
-        if (isVideo) {
-          // 비디오 업로드
-          url = await uploadVideoToR2(file, (progress) => {
+        if (pending.type === 'video') {
+          url = await uploadVideoToR2(pending.file, (progress) => {
             const overallProgress = ((completedFiles + progress / 100) / totalFiles) * 100;
             setUploadProgress(Math.round(overallProgress));
           });
@@ -78,68 +174,40 @@ export default function AdminPosts() {
           try {
             const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
             const videoKey = url.replace(`${r2PublicUrl}/`, '');
-            thumbnail = await uploadThumbnailFromVideo(file, videoKey);
+            thumbnail = await uploadThumbnailFromVideo(pending.file, videoKey);
           } catch (thumbErr) {
             console.warn('썸네일 생성 실패:', thumbErr);
           }
 
-          setMediaList(prev => [...prev, { type: 'video', url, thumbnail }]);
+          newlyUploadedMedia.push({ type: 'video', url, thumbnail });
         } else {
-          // 이미지 업로드
-          url = await uploadPhotoToR2(file, (progress) => {
+          url = await uploadPhotoToR2(pending.file, (progress) => {
             const overallProgress = ((completedFiles + progress / 100) / totalFiles) * 100;
             setUploadProgress(Math.round(overallProgress));
           });
-          setMediaList(prev => [...prev, { type: 'image', url }]);
+          newlyUploadedMedia.push({ type: 'image', url });
         }
 
+        // 미리보기 URL 정리
+        URL.revokeObjectURL(pending.previewUrl);
         completedFiles++;
       }
 
-      setUploadProgress(100);
-    } catch (error) {
-      console.error('파일 업로드 실패:', error);
-      alert('파일 업로드 중 오류가 발생했어요.');
-    } finally {
-      setUploading(false);
-      setUploadProgress(0);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
+      // 2. 기존 미디어 + 새로 업로드된 미디어 합치기 (순서 유지)
+      const finalMedia: PostMedia[] = [];
+      mediaItems.forEach(item => {
+        if (item.kind === 'uploaded') {
+          finalMedia.push(item.data);
+        } else {
+          // pending 아이템의 위치에 새로 업로드된 미디어 삽입
+          const uploadedItem = newlyUploadedMedia.shift();
+          if (uploadedItem) {
+            finalMedia.push(uploadedItem);
+          }
+        }
+      });
 
-  // 미디어 삭제
-  const handleRemoveMedia = async (index: number) => {
-    const media = mediaList[index];
-
-    // R2에서 파일 삭제
-    try {
-      await deleteFileFromR2(media.url);
-      if (media.thumbnail) {
-        await deleteFileFromR2(media.thumbnail);
-      }
-    } catch (error) {
-      console.error('R2 파일 삭제 실패:', error);
-    }
-
-    setMediaList(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // 미디어 순서 변경
-  const moveMedia = (index: number, direction: 'up' | 'down') => {
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= mediaList.length) return;
-
-    const newList = [...mediaList];
-    [newList[index], newList[newIndex]] = [newList[newIndex], newList[index]];
-    setMediaList(newList);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
+      // 3. 포스트 저장
       const postData = {
         title: formData.title,
         url: formData.url,
@@ -147,7 +215,7 @@ export default function AdminPosts() {
         platform: formData.platform,
         writer: formData.writer || undefined,
         content: formData.content || undefined,
-        media: mediaList.length > 0 ? mediaList : undefined,
+        media: finalMedia.length > 0 ? finalMedia : undefined,
       };
 
       if (editingId) {
@@ -165,15 +233,24 @@ export default function AdminPosts() {
     } catch (error) {
       console.error('Error saving post:', error);
       alert('저장 중 오류가 발생했어요.');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 
   const resetForm = () => {
+    // 남은 미리보기 URL 정리
+    pendingMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
     setFormData({ title: '', url: '', date: '', platform: 'twitter', writer: '', content: '' });
-    setMediaList([]);
+    setUploadedMedia([]);
+    setPendingMedia([]);
   };
 
   const handleEdit = (post: Post) => {
+    // 기존 pending 미리보기 정리
+    pendingMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
+
     setEditingId(post.id);
     setFormData({
       title: post.title,
@@ -183,7 +260,8 @@ export default function AdminPosts() {
       writer: post.writer || '',
       content: post.content || '',
     });
-    setMediaList(post.media || []);
+    setUploadedMedia(post.media || []);
+    setPendingMedia([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -218,6 +296,15 @@ export default function AdminPosts() {
     } catch (error) {
       console.error('Error deleting post:', error);
       alert('삭제 중 오류가 발생했어요.');
+    }
+  };
+
+  // 미디어 아이템의 썸네일/미리보기 URL 가져오기
+  const getPreviewUrl = (item: MediaItem): string | null => {
+    if (item.kind === 'uploaded') {
+      return item.data.type === 'video' ? item.data.thumbnail || null : item.data.url;
+    } else {
+      return item.data.previewUrl;
     }
   };
 
@@ -300,7 +387,7 @@ export default function AdminPosts() {
               type="text"
               value={formData.writer}
               onChange={(e) => setFormData({ ...formData, writer: e.target.value })}
-              placeholder="예: 지민, RM, 정국..."
+              placeholder="예: 민주, 모카"
             />
           </div>
 
@@ -323,7 +410,7 @@ export default function AdminPosts() {
                 type="file"
                 accept="image/*,video/*"
                 multiple
-                onChange={handleFileUpload}
+                onChange={handleFileSelect}
                 disabled={uploading}
                 className="file-input"
                 id="media-upload"
@@ -342,60 +429,66 @@ export default function AdminPosts() {
               )}
             </div>
 
-            {mediaList.length > 0 && (
+            {mediaItems.length > 0 && (
               <div className="media-preview-list">
-                {mediaList.map((media, index) => (
-                  <div key={index} className="media-preview-item">
-                    <div className="media-preview-thumb">
-                      {media.type === 'video' ? (
-                        media.thumbnail ? (
-                          <img src={media.thumbnail} alt={`미디어 ${index + 1}`} />
+                {mediaItems.map((item, index) => {
+                  const previewUrl = getPreviewUrl(item);
+                  const isVideo = item.kind === 'uploaded'
+                    ? item.data.type === 'video'
+                    : item.data.type === 'video';
+                  const isPending = item.kind === 'pending';
+
+                  return (
+                    <div key={item.kind === 'uploaded' ? item.data.url : item.data.id} className={`media-preview-item ${isPending ? 'pending' : ''}`}>
+                      <div className="media-preview-thumb">
+                        {previewUrl ? (
+                          <img src={previewUrl} alt={`미디어 ${index + 1}`} />
                         ) : (
                           <div className="video-placeholder">🎬</div>
-                        )
-                      ) : (
-                        <img src={media.url} alt={`미디어 ${index + 1}`} />
-                      )}
-                      {media.type === 'video' && <span className="video-badge">영상</span>}
+                        )}
+                        {isVideo && <span className="video-badge">영상</span>}
+                        {isPending && <span className="pending-badge">대기</span>}
+                      </div>
+                      <div className="media-preview-actions">
+                        <span className="media-index">#{index + 1}</span>
+                        <button
+                          type="button"
+                          className="move-btn"
+                          onClick={() => moveMedia(index, 'up')}
+                          disabled={index === 0 || uploading}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          className="move-btn"
+                          onClick={() => moveMedia(index, 'down')}
+                          disabled={index === mediaItems.length - 1 || uploading}
+                        >
+                          ▼
+                        </button>
+                        <button
+                          type="button"
+                          className="remove-btn"
+                          onClick={() => handleRemoveMedia(index)}
+                          disabled={uploading}
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
-                    <div className="media-preview-actions">
-                      <span className="media-index">#{index + 1}</span>
-                      <button
-                        type="button"
-                        className="move-btn"
-                        onClick={() => moveMedia(index, 'up')}
-                        disabled={index === 0}
-                      >
-                        ▲
-                      </button>
-                      <button
-                        type="button"
-                        className="move-btn"
-                        onClick={() => moveMedia(index, 'down')}
-                        disabled={index === mediaList.length - 1}
-                      >
-                        ▼
-                      </button>
-                      <button
-                        type="button"
-                        className="remove-btn"
-                        onClick={() => handleRemoveMedia(index)}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
 
           <div className="form-buttons">
             <button type="submit" className="admin-submit-btn" disabled={uploading}>
-              {editingId ? '수정하기' : '추가하기'}
+              {uploading ? '업로드 중...' : (editingId ? '수정하기' : '추가하기')}
             </button>
             {editingId && (
-              <button type="button" className="admin-clear-btn" onClick={handleCancelEdit}>
+              <button type="button" className="admin-clear-btn" onClick={handleCancelEdit} disabled={uploading}>
                 취소
               </button>
             )}

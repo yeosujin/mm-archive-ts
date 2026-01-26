@@ -1564,6 +1564,23 @@
   border-radius: 4px;
 }
 
+.media-preview-thumb .pending-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 2px 6px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.6rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.media-preview-item.pending {
+  border: 2px dashed var(--accent);
+  background: var(--bg-secondary);
+}
+
 .media-preview-actions {
   display: flex;
   align-items: center;

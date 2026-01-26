@@ -196,8 +196,8 @@ export default function Posts() {
                     <video
                       src={selectedPost.media[currentMediaIndex].url}
                       controls
-                      autoPlay
                       playsInline
+                      preload="metadata"
                     />
                   ) : (
                     <img
