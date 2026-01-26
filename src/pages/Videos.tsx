@@ -19,20 +19,23 @@ export default function Videos() {
   // Sync videos from cache
   const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
 
-  const loadVideos = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const data = await fetchVideos();
-      setVideos(data);
+      const [videosData] = await Promise.all([
+        fetchVideos(),
+        fetchMoments() // 검색용으로 모먼트도 미리 로드
+      ]);
+      setVideos(videosData);
     } catch (error) {
-      console.error('Error loading videos:', error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
-  }, [fetchVideos]);
+  }, [fetchVideos, fetchMoments]);
 
   useEffect(() => {
-    loadVideos();
-  }, [loadVideos]);
+    loadData();
+  }, [loadData]);
 
   // highlight 파라미터 처리: 해당 영상 자동 확장 + 스크롤
   useEffect(() => {
@@ -64,15 +67,23 @@ export default function Videos() {
     }
   }, [videoMoments, cachedMoments, fetchMoments]);
   
-  // 검색 필터링 (메모이제이션)
-  const filteredVideos = useMemo(() => {
-    if (!searchQuery) return videos;
+  // 검색 필터링 (메모이제이션) - 영상 제목 + 모먼트 제목 둘 다 검색
+  const { filteredVideos, matchedMoments } = useMemo(() => {
+    if (!searchQuery) return { filteredVideos: videos, matchedMoments: [] as Moment[] };
     const query = searchQuery.toLowerCase();
-    return videos.filter(video => 
-      video.title.toLowerCase().includes(query) ||
-      video.date.includes(searchQuery)
+
+    // 모먼트 제목 매칭 검색
+    const momentMatches = cachedMoments?.filter(m =>
+      m.title.toLowerCase().includes(query)
+    ) || [];
+
+    // 영상 제목/날짜 매칭
+    const videoMatches = videos.filter(video =>
+      video.title.toLowerCase().includes(query) || video.date.includes(searchQuery)
     );
-  }, [videos, searchQuery]);
+
+    return { filteredVideos: videoMatches, matchedMoments: momentMatches };
+  }, [videos, searchQuery, cachedMoments]);
 
   // 그룹화 필터링 (메모이제이션)
   const groupedVideos = useMemo(() => {
@@ -126,12 +137,45 @@ export default function Videos() {
         </div>
       </div>
 
-      {groupedVideos.length === 0 ? (
+      {/* 검색 결과가 없을 때 */}
+      {searchQuery && matchedMoments.length === 0 && groupedVideos.length === 0 && (
+        <div className="empty-state">
+          <p>검색 결과가 없어요 😢</p>
+        </div>
+      )}
+
+      {/* 검색어가 없고 영상도 없을 때 */}
+      {!searchQuery && groupedVideos.length === 0 && (
         <div className="empty-state">
           <p>아직 모먼트가 없어요 😢</p>
         </div>
-      ) : (
+      )}
+
+      {/* 모먼트 검색 결과: 카드만 직접 표시 */}
+      {matchedMoments.length > 0 && (
+        <div className="moment-search-results">
+          <p className="search-result-count">모먼트 검색 결과 {matchedMoments.length}개</p>
+          <div className="video-moments-grid">
+            {matchedMoments.map((moment) => (
+              <div key={moment.id} className="moment-embed-item">
+                <h4 className="moment-title">{moment.title}</h4>
+                <VideoEmbed
+                  url={moment.tweet_url}
+                  title={moment.title}
+                  thumbnailUrl={moment.thumbnail_url}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 영상 검색 결과 */}
+      {groupedVideos.length > 0 && (
         <div className="video-timeline">
+          {searchQuery && (
+            <p className="search-result-count">영상 검색 결과 {filteredVideos.length}개</p>
+          )}
           {groupedVideos.map(([date, dateVideos]) => (
             <div key={date} className="date-thread">
               <div className="thread-date-header">
@@ -142,7 +186,7 @@ export default function Videos() {
               <div className="thread-content">
                 {dateVideos.map((video) => {
                   const moments = videoMoments[video.id] || [];
-                  
+
                   return (
                   <div key={video.id} className="thread-video-item" data-video-id={video.id}>
                       <button 

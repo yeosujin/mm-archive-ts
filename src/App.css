@@ -1352,6 +1352,24 @@
   border-color: var(--accent);
 }
 
+/* 모먼트 검색 결과 */
+.moment-search-results {
+  padding: 0 1rem;
+}
+
+.moment-search-results .search-result-count,
+.video-timeline .search-result-count {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.moment-search-results .video-moments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
 .moment-label {
   font-size: 0.85rem;
   font-weight: 500;
