@@ -5,8 +5,7 @@ interface Props {
   readonly children: React.ReactNode;
 }
 
-// 비밀번호 설정 (나중에 환경변수로 옮기거나 변경하세요)
-const ADMIN_PASSWORD = '1008';
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
 export default function AdminAuth({ children }: Props) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
