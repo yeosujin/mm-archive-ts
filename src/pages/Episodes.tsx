@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import type { Episode, MemberSettings, Video, Moment, Post } from '../lib/database';
 import { useData } from '../hooks/useData';
 import PlatformIcon from '../components/PlatformIcon';
+import { ArrowRightIcon } from '../components/Icons';
 
 export default function Episodes() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -307,7 +308,7 @@ export default function Episodes() {
                             </span>
                             {getLinkedContentPath(episode) && (
                               <Link to={getLinkedContentPath(episode)!} className="comment-context-link">
-                                →
+                                <ArrowRightIcon size={14} />
                               </Link>
                             )}
                           </div>

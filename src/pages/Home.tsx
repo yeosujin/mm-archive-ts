@@ -4,6 +4,14 @@ import { getVideos, getPosts, getMoments, getFeaturedContent } from '../lib/data
 import type { Video, Post, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import PostEmbed from '../components/PostEmbed';
+import { SearchIcon, CalendarIcon } from '../components/Icons';
+
+const NAV_ITEMS = [
+  { to: '/videos', label: '모먼트' },
+  { to: '/posts', label: '포스트' },
+  { to: '/episodes', label: '에피소드' },
+  { to: '/articles', label: '글' },
+];
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,10 +26,10 @@ export default function Home() {
   const loadFeaturedContent = async () => {
     try {
       const featured = await getFeaturedContent();
-      
+
       if (featured.type && featured.content_id) {
         let item: Video | Post | Moment | undefined;
-        
+
         if (featured.type === 'video') {
           const videos = await getVideos();
           item = videos.find(v => v.id === featured.content_id);
@@ -32,7 +40,7 @@ export default function Home() {
           const moments = await getMoments();
           item = moments.find(m => m.id === featured.content_id);
         }
-        
+
         if (item) {
           setFeaturedItem({ type: featured.type, item });
         }
@@ -52,76 +60,71 @@ export default function Home() {
   };
 
   return (
-    <div className="page home-page">
-      <div className="hero">
-        <h1 className="hero-title">
-          <span className="gradient-text">mmemory</span>
-        </h1>
-        <p className="hero-subtitle">지나간 시간을 모아두는 곳</p>
-        
-        <form onSubmit={handleSearch} className="home-search">
-          <input
-            type="text"
-            className="home-search-input"
-            placeholder="무엇을 찾고 있나요?"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button type="submit" className="home-search-btn">🔍</button>
-        </form>
-        
-        <div className="hero-links">
-          <Link to="/videos" className="hero-btn primary">
-            ✨ 모먼트
-          </Link>
-          <Link to="/posts" className="hero-btn primary">
-            📱 포스트
-          </Link>
-          <Link to="/episodes" className="hero-btn primary">
-            💬 에피소드
-          </Link>
-          <Link to="/articles" className="hero-btn secondary">
-            📝 글
-          </Link>
-          <Link to="/calendar" className="hero-btn secondary">
-            📅 캘린더
+    <div className="home-page">
+      {/* Hero Section */}
+      <section className="home-hero">
+        <div className="home-hero-bg" />
+        <h1 className="home-title">mmemory</h1>
+        <p className="home-subtitle">지나간 시간을 모아두는 곳</p>
+
+        <div className="home-search-row">
+          <form onSubmit={handleSearch} className="home-search">
+            <input
+              type="text"
+              className="home-search-input"
+              placeholder="검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button type="submit" className="home-search-btn" aria-label="검색">
+              <SearchIcon size={16} />
+            </button>
+          </form>
+          <Link to="/calendar" className="home-calendar-btn" aria-label="캘린더">
+            <CalendarIcon size={18} />
           </Link>
         </div>
-      </div>
+      </section>
 
-      {/* 메인 걸기 (하나만) */}
+      {/* Navigation */}
+      <nav className="home-nav">
+        {NAV_ITEMS.map((item) => (
+          <Link key={item.to} to={item.to} className="home-nav-link">
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
+      {/* Featured Content */}
       {!loading && featuredItem?.item && (
-        <div className="featured-section">
-          {featuredItem.type === 'video' && (
-            <div className="featured-content">
+        <section className="home-featured">
+          <div className="home-featured-header">
+            <span className="home-featured-badge">PICK</span>
+          </div>
+          <div className="home-featured-content">
+            {featuredItem.type === 'video' && (
               <VideoEmbed
                 url={(featuredItem.item as Video).url}
                 title={featuredItem.item.title}
                 icon={(featuredItem.item as Video).icon}
                 thumbnailUrl={(featuredItem.item as Video).thumbnail_url}
               />
-        </div>
-          )}
-          
-          {featuredItem.type === 'post' && (
-            <div className="featured-content">
-              <PostEmbed 
-                url={(featuredItem.item as Post).url} 
+            )}
+            {featuredItem.type === 'post' && (
+              <PostEmbed
+                url={(featuredItem.item as Post).url}
                 platform={(featuredItem.item as Post).platform}
               />
-        </div>
-          )}
-          
-          {featuredItem.type === 'moment' && (
-            <div className="featured-content">
+            )}
+            {featuredItem.type === 'moment' && (
               <VideoEmbed
                 url={(featuredItem.item as Moment).tweet_url}
                 title={(featuredItem.item as Moment).title}
                 thumbnailUrl={(featuredItem.item as Moment).thumbnail_url}
               />
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </section>
       )}
     </div>
   );

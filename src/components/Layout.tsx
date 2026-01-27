@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, MenuIcon, CloseIcon } from './Icons';
 
 export default function Layout() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -59,39 +60,39 @@ export default function Layout() {
             >
               글
             </NavLink>
-            <NavLink 
-              to="/calendar" 
+            <NavLink
+              to="/calendar"
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/Calendar')}
             >
-              📅
+              <CalendarIcon size={16} />
             </NavLink>
           </nav>
 
           <div className="header-actions">
-            <button 
+            <button
               className="search-toggle"
               onClick={() => setShowSearch(!showSearch)}
               aria-label="검색"
             >
-              🔍
+              <SearchIcon size={18} />
             </button>
 
-          <button 
+          <button
             className="theme-toggle"
             onClick={() => setIsDarkMode(!isDarkMode)}
             aria-label="테마 변경"
           >
-            {isDarkMode ? '☀️' : '🌙'}
+            {isDarkMode ? <SunIcon size={18} /> : <MoonIcon size={18} />}
           </button>
 
             {/* Mobile Menu Toggle */}
-            <button 
+            <button
               className="mobile-menu-toggle"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
               aria-label="메뉴"
             >
-              {showMobileMenu ? '✕' : '☰'}
+              {showMobileMenu ? <CloseIcon size={20} /> : <MenuIcon size={20} />}
             </button>
 
             {showSearch && (
@@ -105,7 +106,7 @@ export default function Layout() {
                   autoFocus
                 />
                 <button type="button" className="search-close" onClick={() => setShowSearch(false)}>
-                  ✕
+                  <CloseIcon size={16} />
                 </button>
               </form>
             )}
@@ -120,35 +121,35 @@ export default function Layout() {
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              ✨ 모먼트
+              모먼트
             </NavLink>
-            <NavLink 
-              to="/posts" 
+            <NavLink
+              to="/posts"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              📱 포스트
+              포스트
             </NavLink>
-            <NavLink 
-              to="/episodes" 
+            <NavLink
+              to="/episodes"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              💬 에피소드
+              에피소드
             </NavLink>
-            <NavLink 
-              to="/articles" 
+            <NavLink
+              to="/articles"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              📝 글
+              글
             </NavLink>
-            <NavLink 
-              to="/calendar" 
+            <NavLink
+              to="/calendar"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              📅 캘린더
+              캘린더
             </NavLink>
           </nav>
         )}

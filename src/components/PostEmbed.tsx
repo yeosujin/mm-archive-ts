@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import PlatformIcon from './PlatformIcon';
 import { getPlatformName } from '../lib/platformUtils';
+import { ArrowRightIcon } from './Icons';
 
 interface Props {
   url: string;
@@ -106,7 +107,7 @@ export default function PostEmbed({ url, platform, className = '' }: Props) {
         <div className={`post-embed twitter-embed error ${className}`}>
           <p>⚠️ 올바른 트위터 URL이 아닙니다</p>
           <a href={url} target="_blank" rel="noopener noreferrer">
-            링크 열기 →
+            링크 열기 <ArrowRightIcon size={14} />
           </a>
         </div>
       );
@@ -156,7 +157,7 @@ export default function PostEmbed({ url, platform, className = '' }: Props) {
             <span className="external-post-desc">위버스에서 보기</span>
           </div>
           <a href={url} target="_blank" rel="noopener noreferrer" className="external-post-btn">
-            열기 →
+            열기 <ArrowRightIcon size={14} />
           </a>
         </div>
       </div>
@@ -175,7 +176,7 @@ export default function PostEmbed({ url, platform, className = '' }: Props) {
           <span className="external-post-desc">링크 열기</span>
         </div>
         <a href={url} target="_blank" rel="noopener noreferrer" className="external-post-btn">
-          열기 →
+          열기 <ArrowRightIcon size={14} />
         </a>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getVideos, getMoments, getPosts, getEpisodes } from '../lib/database';
 import type { Video, Moment, Post, Episode } from '../lib/database';
+import { CalendarIcon, ArrowRightIcon } from '../components/Icons';
 
 interface ArchiveItem {
     id: string;
@@ -266,7 +267,7 @@ export default function Calendar() {
         {/* 선택된 날짜의 아카이브 목록 */}
         {selectedArchives && (
           <div className="calendar-details">
-            <h3>📅 {selectedDate}</h3>
+            <h3><CalendarIcon size={18} /> {selectedDate}</h3>
             <div className="archive-list">
               {selectedArchives.map((archive) => (
                 <Link
@@ -276,7 +277,7 @@ export default function Calendar() {
                 >
                   <span className="archive-icon">{TYPE_ICONS[archive.type]}</span>
                   <span className="archive-title">{archive.title}</span>
-                  <span className="archive-arrow">→</span>
+                  <span className="archive-arrow"><ArrowRightIcon size={14} /></span>
                 </Link>
               ))}
             </div>

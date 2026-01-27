@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import TweetEmbed from './TweetEmbed';
 import VideoPlayer from './VideoPlayer';
+import { ExternalLinkIcon, ArrowRightIcon } from './Icons';
 
 interface Props {
   url: string;
@@ -136,7 +137,7 @@ const VideoEmbed = memo(({ url, title, icon, thumbnailUrl, className = '' }: Pro
             <span className="external-title">{title}</span>
           </div>
           <a href={url} target="_blank" rel="noopener noreferrer" className="external-btn">
-            보러가기 →
+            보러가기 <ArrowRightIcon size={14} />
           </a>
         </div>
         <p className="external-note">위버스 영상은 앱/웹에서 직접 확인해주세요</p>
@@ -147,13 +148,13 @@ const VideoEmbed = memo(({ url, title, icon, thumbnailUrl, className = '' }: Pro
   return (
     <div className={`video-embed-external ${className}`}>
       <div className="external-link-card">
-        <span className="external-icon">🔗</span>
+        <span className="external-icon"><ExternalLinkIcon size={20} /></span>
         <div className="external-info">
           <span className="external-platform">외부 링크</span>
           <span className="external-title">{title}</span>
         </div>
         <a href={url} target="_blank" rel="noopener noreferrer" className="external-btn">
-          보러가기 →
+          보러가기 <ArrowRightIcon size={14} />
       </a>
       </div>
     </div>

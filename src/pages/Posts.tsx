@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { Post } from '../lib/database';
 import PlatformIcon from '../components/PlatformIcon';
 import { useData } from '../hooks/useData';
+import { CloseIcon } from '../components/Icons';
 
 export default function Posts() {
   const [searchParams] = useSearchParams();
@@ -203,7 +204,7 @@ export default function Posts() {
               aria-label="모달 닫기"
             />
             <div className="post-detail-content">
-            <button className="modal-close-btn" onClick={closePost}>✕</button>
+            <button className="modal-close-btn" onClick={closePost}><CloseIcon size={18} /></button>
 
             {/* 미디어 캐러셀 */}
             {selectedPost.media && selectedPost.media.length > 0 && (
