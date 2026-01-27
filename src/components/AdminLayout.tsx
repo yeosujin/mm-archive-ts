@@ -6,9 +6,6 @@ export default function AdminLayout() {
     <AdminAuth>
       <div className="admin-container">
         <aside className="admin-sidebar">
-          <div className="admin-logo">
-            <NavLink to="/">← 사이트로</NavLink>
-          </div>
           <nav className="admin-nav">
             <NavLink 
               to="/admin" 

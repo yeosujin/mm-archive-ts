@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface Props {
   readonly children: React.ReactNode;
@@ -63,9 +64,10 @@ export default function AdminAuth({ children }: Props) {
     <div className="admin-wrapper">
       <div className="admin-header">
         <span>👤 관리자 모드</span>
-        <button onClick={handleLogout} className="logout-btn">
-          로그아웃
-        </button>
+        <div className="admin-header-actions-top">
+          <Link to="/" className="admin-header-link">사이트로</Link>
+          <button onClick={handleLogout} className="logout-btn">로그아웃</button>
+        </div>
       </div>
       {children}
     </div>

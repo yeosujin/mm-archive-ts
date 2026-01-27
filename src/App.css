@@ -3523,6 +3523,67 @@
   margin-bottom: 2rem;
 }
 
+.admin-header-btns {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-header-btn {
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-header-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.admin-header-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-header-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.admin-header-btn.primary:hover {
+  opacity: 0.9;
+}
+
+.admin-search-box {
+  margin-bottom: 1rem;
+}
+
+.admin-search-input {
+  width: 100%;
+  padding: 0.75rem 1.125rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.admin-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.admin-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 .admin-add-btn-fixed {
   position: fixed;
   bottom: 2rem;
@@ -3594,6 +3655,10 @@
 }
 
 /* 어드민 모먼트 카드 스타일 */
+.admin-moment-card {
+  align-items: stretch;
+}
+
 .admin-moment-card .admin-item-content {
   flex-direction: column;
 }
@@ -3871,22 +3936,6 @@
   gap: 0.5rem;
 }
 
-.admin-header-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  cursor: pointer;
-  color: var(--text-primary);
-  transition: all 0.2s;
-}
-
-.admin-header-btn:hover {
-  background: var(--bg-secondary);
-  border-color: var(--accent);
-}
-
 /* Activity Modal Styles */
 .activity-add-row {
   display: flex;
@@ -3958,6 +4007,58 @@
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.sort-date-btn {
+  margin-left: auto;
+  padding: 0.35rem 0.6rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sort-date-btn:hover {
+  border-color: var(--accent);
+}
+
+.sort-date-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.sort-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 8px;
+}
+
+.sort-arrow-btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sort-arrow-btn:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sort-arrow-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .moment-item .moment-title {

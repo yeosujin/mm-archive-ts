@@ -67,6 +67,7 @@ export default function AdminVideos() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const isYouTubeUrl = formData.url.includes('youtube.com') || formData.url.includes('youtu.be');
   const isWeverseUrl = formData.url.includes('weverse.io');
@@ -86,13 +87,22 @@ export default function AdminVideos() {
   useEffect(() => { if (cachedVideos) setVideos(cachedVideos); }, [cachedVideos]);
 
   const groupedVideos = useMemo(() => {
+    let filtered = videos;
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = videos.filter(video =>
+        video.title.toLowerCase().includes(query) || video.date.includes(query)
+      );
+    }
+
     const groups: Record<string, Video[]> = {};
-    videos.forEach((video) => {
+    filtered.forEach((video) => {
       if (!groups[video.date]) groups[video.date] = [];
       groups[video.date].push(video);
     });
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  }, [videos]);
+  }, [videos, searchQuery]);
 
   const toggleDate = (date: string) => {
     setExpandedDate(prev => prev === date ? null : date);
@@ -247,6 +257,16 @@ export default function AdminVideos() {
         <button className="admin-add-btn-header" onClick={handleOpenAddModal}>+ 추가</button>
       </div>
 
+      <div className="admin-search-box">
+        <input
+          type="text"
+          className="admin-search-input"
+          placeholder="제목 또는 날짜로 검색..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
       <div className="admin-accordion-list">
         {groupedVideos.map(([date, dateVideos]) => (
           <div key={date} className="admin-accordion-item">
@@ -357,6 +377,8 @@ export default function AdminVideos() {
           </div>
         </form>
       </AdminModal>
+
+      <button className="admin-add-btn-fixed" onClick={handleOpenAddModal}>+ 영상 추가</button>
     </div>
   );
 }

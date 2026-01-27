@@ -14,7 +14,7 @@ export default function AdminMoments() {
   const [uploadMessage, setUploadMessage] = useState<string>('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSortMode, setIsSortMode] = useState(false);
+  const [sortingDate, setSortingDate] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     tweet_url: '',
@@ -299,6 +299,33 @@ export default function AdminMoments() {
     }
   };
 
+  const handleGenerateThumbnail = async (moment: Moment) => {
+    const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
+
+    // R2 영상 URL인지 확인
+    if (!moment.tweet_url || !moment.tweet_url.startsWith(r2PublicUrl)) {
+      return;
+    }
+
+    try {
+      setThumbGenerating(true);
+
+      const thumbnailUrl = await generateThumbnailFromUrl(moment.tweet_url);
+
+      await updateMoment(moment.id, {
+        ...moment,
+        thumbnail_url: thumbnailUrl,
+      });
+
+      invalidateCache('moments');
+      loadData();
+    } catch (error) {
+      console.error('Error generating thumbnail:', error);
+    } finally {
+      setThumbGenerating(false);
+    }
+  };
+
   const handleVideoSelect = (videoId: string) => {
     const selectedVideo = videos.find(v => v.id === videoId);
     if (videoId) {
@@ -363,20 +390,13 @@ export default function AdminMoments() {
     <div className="admin-page">
       <div className="admin-header-actions">
         <h1>모먼트 관리</h1>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="admin-header-btns">
           <button
-            className="admin-add-btn-header"
+            className="admin-header-btn"
             onClick={handleGenerateThumbnails}
             disabled={thumbGenerating}
-            style={{ fontSize: '12px' }}
           >
-            {thumbGenerating ? '생성 중...' : '🖼️ 썸네일 일괄 생성'}
-          </button>
-          <button
-            className={`sort-mode-toggle ${isSortMode ? 'active' : ''}`}
-            onClick={() => setIsSortMode(!isSortMode)}
-          >
-            {isSortMode ? '정렬 완료' : '순서 편집'}
+            {thumbGenerating ? '생성 중...' : '썸네일 일괄'}
           </button>
           <button className="admin-add-btn-header" onClick={handleOpenAddModal}>+ 추가</button>
         </div>
@@ -390,42 +410,55 @@ export default function AdminMoments() {
       <div className="moments-timeline">
         {groupedMoments.map(([date, dateMoments]) => (
           <div key={date} className="moment-date-group">
-            <div className="moment-date-header expanded" style={{ cursor: 'default' }}>
+            <div className="moment-date-header expanded">
               <span className="date-marker">✨</span>
               <time>{date}</time>
+              <button
+                className={`sort-date-btn ${sortingDate === date ? 'active' : ''}`}
+                onClick={() => setSortingDate(sortingDate === date ? null : date)}
+              >
+                {sortingDate === date ? '완료' : '순서'}
+              </button>
             </div>
 
             <div className="moment-list">
               {dateMoments.map((moment, idx) => (
                 <div key={moment.id} className="admin-item-wrapper admin-moment-card">
-                  {isSortMode && (
-                    <div className="sort-buttons" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginRight: '8px' }}>
-                      <button
-                        className="admin-control-btn"
-                        onClick={() => handleMove(moment.id, 'up')}
-                        disabled={idx === 0}
-                        style={{ padding: '4px 8px', fontSize: '14px' }}
-                      >▲</button>
-                      <button
-                        className="admin-control-btn"
-                        onClick={() => handleMove(moment.id, 'down')}
-                        disabled={idx === dateMoments.length - 1}
-                        style={{ padding: '4px 8px', fontSize: '14px' }}
-                      >▼</button>
-                    </div>
-                  )}
                   <div className="admin-item-content">
                     <div className="moment-item">
                       <div className="admin-moment-title">{moment.title}</div>
                       <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} />
                     </div>
-                    {!isSortMode && (
+                    {sortingDate !== date && (
                       <div className="admin-moment-actions">
                         <button className="admin-control-btn edit" onClick={() => handleEdit(moment)}>수정</button>
+                        {moment.tweet_url?.startsWith(import.meta.env.VITE_R2_PUBLIC_URL) && (
+                          <button
+                            className="admin-control-btn"
+                            onClick={() => handleGenerateThumbnail(moment)}
+                            disabled={thumbGenerating}
+                          >
+                            {thumbGenerating ? '생성중...' : '썸네일'}
+                          </button>
+                        )}
                         <button className="admin-control-btn delete" onClick={() => handleDelete(moment.id)}>삭제</button>
                       </div>
                     )}
                   </div>
+                  {sortingDate === date && (
+                    <div className="sort-buttons">
+                      <button
+                        className="sort-arrow-btn"
+                        onClick={() => handleMove(moment.id, 'up')}
+                        disabled={idx === 0}
+                      >▲</button>
+                      <button
+                        className="sort-arrow-btn"
+                        onClick={() => handleMove(moment.id, 'down')}
+                        disabled={idx === dateMoments.length - 1}
+                      >▼</button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
