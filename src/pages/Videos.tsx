@@ -345,6 +345,7 @@ export default function Videos() {
                 <button
                   type="button"
                   className="platform-dropdown-btn"
+                  style={{ minWidth: '80px' }}
                   onClick={() => setIsYoutubeCategoryDropdownOpen(!isYoutubeCategoryDropdownOpen)}
                 >
                   <span>{YOUTUBE_CATEGORIES.find(c => c.value === youtubeCategoryFilter)?.label}</span>
