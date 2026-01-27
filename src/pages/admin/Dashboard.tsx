@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
+import {
   getFeaturedContent, setFeaturedContent
 } from '../../lib/database';
+
+declare const __APP_VERSION__: string;
 import type { Video, Moment, Post, Episode, Article } from '../../lib/database';
 import { useData } from '../../hooks/useData';
 
@@ -277,6 +279,10 @@ export default function Dashboard() {
             ➕ 글
           </a>
         </div>
+      </div>
+
+      <div className="admin-version">
+        v{__APP_VERSION__}
       </div>
     </div>
   );

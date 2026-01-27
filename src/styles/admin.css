@@ -1757,3 +1757,13 @@
     width: 80px;
   }
 }
+
+/* ===== Admin Version ===== */
+.admin-version {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
