@@ -23,13 +23,6 @@ const PLATFORM_OPTIONS = [
   { value: 'other', label: '기타', icon: 'other' as const },
 ] as const;
 
-// 콘텐츠 타입 옵션
-const CONTENT_TYPE_OPTIONS = [
-  { value: 'all', label: '영상+모먼트' },
-  { value: 'videos', label: '영상만' },
-  { value: 'moments', label: '모먼트만' },
-] as const;
-
 export default function Videos() {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
@@ -43,11 +36,9 @@ export default function Videos() {
   const [memberFilter, setMemberFilter] = useState<string>('all');
   const [isPlatformDropdownOpen, setIsPlatformDropdownOpen] = useState(false);
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
-  const [isContentTypeDropdownOpen, setIsContentTypeDropdownOpen] = useState(false);
-  const [contentTypeFilter, setContentTypeFilter] = useState<'all' | 'videos' | 'moments'>('all');
+  const [contentTypeFilter, setContentTypeFilter] = useState<'videos' | 'moments'>('videos');
   const platformDropdownRef = useRef<HTMLDivElement>(null);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
-  const contentTypeDropdownRef = useRef<HTMLDivElement>(null);
 
   // Sync videos from cache
   const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
@@ -79,15 +70,12 @@ export default function Videos() {
       if (memberDropdownRef.current && !memberDropdownRef.current.contains(e.target as Node)) {
         setIsMemberDropdownOpen(false);
       }
-      if (contentTypeDropdownRef.current && !contentTypeDropdownRef.current.contains(e.target as Node)) {
-        setIsContentTypeDropdownOpen(false);
-      }
     };
-    if (isPlatformDropdownOpen || isMemberDropdownOpen || isContentTypeDropdownOpen) {
+    if (isPlatformDropdownOpen || isMemberDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isPlatformDropdownOpen, isMemberDropdownOpen, isContentTypeDropdownOpen]);
+  }, [isPlatformDropdownOpen, isMemberDropdownOpen]);
 
   // highlight 파라미터 처리: 해당 영상 자동 확장 + 스크롤
   useEffect(() => {
@@ -142,9 +130,9 @@ export default function Videos() {
       );
     }
 
-    // 모먼트 필터링 (검색어 또는 모먼트만 보기)
+    // 모먼트 필터링 (모먼트 선택 시)
     let moments: Moment[] = [];
-    if (contentTypeFilter === 'moments' || searchQuery) {
+    if (contentTypeFilter === 'moments') {
       moments = cachedMoments || [];
 
       // 플랫폼/멤버 필터: 모먼트의 귀속 영상 기준으로 필터링
@@ -238,31 +226,21 @@ export default function Videos() {
             />
           </div>
           <div className="filter-row">
-            <div className="platform-dropdown" ref={contentTypeDropdownRef}>
+            <div className="segment-control">
               <button
                 type="button"
-                className="platform-dropdown-btn"
-                onClick={() => setIsContentTypeDropdownOpen(!isContentTypeDropdownOpen)}
+                className={`segment-btn ${contentTypeFilter === 'videos' ? 'active' : ''}`}
+                onClick={() => setContentTypeFilter('videos')}
               >
-                <span>{CONTENT_TYPE_OPTIONS.find(c => c.value === contentTypeFilter)?.label}</span>
-                <span className="dropdown-arrow">▼</span>
+                영상
               </button>
-              {isContentTypeDropdownOpen && (
-                <div className="platform-dropdown-menu">
-                  {CONTENT_TYPE_OPTIONS.map((option) => (
-                    <div
-                      key={option.value}
-                      className={`platform-dropdown-item ${contentTypeFilter === option.value ? 'selected' : ''}`}
-                      onClick={() => {
-                        setContentTypeFilter(option.value);
-                        setIsContentTypeDropdownOpen(false);
-                      }}
-                    >
-                      <span>{option.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <button
+                type="button"
+                className={`segment-btn ${contentTypeFilter === 'moments' ? 'active' : ''}`}
+                onClick={() => setContentTypeFilter('moments')}
+              >
+                모먼트
+              </button>
             </div>
             <div className="platform-dropdown" ref={platformDropdownRef}>
               <button

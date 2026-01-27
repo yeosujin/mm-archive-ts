@@ -598,8 +598,8 @@
 
 .filter-row {
   display: flex;
-  gap: 0.5rem;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 0.375rem;
 }
 
 .filter-row .form-select {
@@ -631,14 +631,13 @@
 .platform-dropdown-btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 0.875rem;
-  min-width: 130px;
+  gap: 0.35rem;
+  padding: 0.5rem 0.6rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -684,6 +683,37 @@
 .platform-dropdown-item.selected {
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+.segment-control {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.segment-btn {
+  padding: 0.5rem 0.6rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.segment-btn:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.segment-btn:hover {
+  background: var(--bg-card-hover);
+}
+
+.segment-btn.active {
+  background: var(--accent);
+  color: white;
 }
 
 /* ===== Search Box ===== */
@@ -3430,9 +3460,9 @@
 .moment-card .moment-card-title {
   margin-top: 0;
   margin-bottom: 0.75rem;
-  font-size: 0.95rem;
-  color: var(--text-primary);
-  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 400;
   line-height: 1.4;
 }
 
