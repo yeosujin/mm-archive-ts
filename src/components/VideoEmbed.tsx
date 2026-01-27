@@ -10,8 +10,45 @@ interface Props {
   className?: string;
 }
 
+// 허용된 도메인 목록
+const ALLOWED_DOMAINS = [
+  'youtube.com',
+  'www.youtube.com',
+  'youtu.be',
+  'twitter.com',
+  'x.com',
+  'weverse.io',
+  'www.weverse.io',
+];
+
+// URL 유효성 검증
+function isValidUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    // http/https만 허용
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return false;
+    }
+    // R2 URL 검증
+    const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
+    if (r2PublicUrl && url.startsWith(r2PublicUrl)) {
+      return true;
+    }
+    if (parsed.hostname.includes('.r2.dev') || parsed.hostname.includes('.r2.cloudflarestorage.com')) {
+      return true;
+    }
+    // 허용된 도메인 검증
+    return ALLOWED_DOMAINS.some(domain => parsed.hostname === domain || parsed.hostname.endsWith('.' + domain));
+  } catch {
+    return false;
+  }
+}
+
 // URL 타입 감지
-function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'r2' | 'unknown' {
+function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'r2' | 'invalid' | 'unknown' {
+  if (!isValidUrl(url)) {
+    return 'invalid';
+  }
   const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
   if (r2PublicUrl && url.startsWith(r2PublicUrl)) {
     return 'r2';
@@ -50,6 +87,14 @@ function getYouTubeId(url: string): string | null {
 
 const VideoEmbed = memo(({ url, title, icon, thumbnailUrl, className = '' }: Props) => {
   const videoType = getVideoType(url);
+
+  if (videoType === 'invalid') {
+    return (
+      <div className={`video-embed-error ${className}`}>
+        <p>유효하지 않은 URL입니다</p>
+      </div>
+    );
+  }
 
   if (videoType === 'r2') {
     return <VideoPlayer videoUrl={url} thumbnailUrl={thumbnailUrl} className={className} />;

@@ -31,18 +31,47 @@ function extractYouTubeId(url: string): string | null {
 }
 
 async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date: string } | null> {
-  try {
-    const response = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`
-    );
-    const data = await response.json();
-    if (data.items && data.items.length > 0) {
-      const snippet = data.items[0].snippet;
-      return { title: snippet.title, date: snippet.publishedAt.split('T')[0] };
-    }
+  // videoId 검증 (11자 영숫자와 -_만 허용)
+  if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
     return null;
-  } catch (error) {
-    console.error('YouTube API error:', error);
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${encodeURIComponent(videoId)}&key=${YOUTUBE_API_KEY}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+
+    // 응답 구조 검증
+    if (!data || typeof data !== 'object') {
+      return null;
+    }
+    if (!Array.isArray(data.items) || data.items.length === 0) {
+      return null;
+    }
+
+    const snippet = data.items[0]?.snippet;
+    if (!snippet || typeof snippet.title !== 'string' || typeof snippet.publishedAt !== 'string') {
+      return null;
+    }
+
+    // XSS 방지: 제목에서 위험한 문자 제거
+    const safeTitle = snippet.title.replaceAll(/[<>]/g, '');
+    const dateMatch = snippet.publishedAt.match(/^\d{4}-\d{2}-\d{2}/);
+    const safeDate = dateMatch ? dateMatch[0] : '';
+
+    return { title: safeTitle, date: safeDate };
+  } catch {
     return null;
   }
 }

@@ -6,20 +6,43 @@ interface Props {
 }
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
+const AUTH_SECRET = import.meta.env.VITE_AUTH_SECRET || 'mm-archive-2026';
+
+// 간단한 해시 함수 (세션 토큰 생성용)
+function generateToken(password: string): string {
+  const data = password + AUTH_SECRET + new Date().toDateString();
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return `mm_${Math.abs(hash).toString(36)}_${AUTH_SECRET.slice(0, 4)}`;
+}
+
+// 토큰 검증
+function validateToken(token: string | null): boolean {
+  if (!token) return false;
+  const expectedToken = generateToken(ADMIN_PASSWORD);
+  return token === expectedToken;
+}
 
 export default function AdminAuth({ children }: Props) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return typeof window !== 'undefined' ? sessionStorage.getItem('adminAuth') === 'true' : false;
+    if (typeof window === 'undefined') return false;
+    const token = sessionStorage.getItem('adminAuth');
+    return validateToken(token);
   });
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password === ADMIN_PASSWORD) {
+      const token = generateToken(password);
       setIsAuthenticated(true);
-      sessionStorage.setItem('adminAuth', 'true');
+      sessionStorage.setItem('adminAuth', token);
       setError('');
     } else {
       setError('비밀번호가 틀렸습니다');

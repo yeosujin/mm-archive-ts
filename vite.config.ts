@@ -22,6 +22,10 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 1000,
+    minify: 'esbuild',
+  },
+  esbuild: {
+    drop: ['console', 'debugger'],
   },
   server: {
     port: 3000,
