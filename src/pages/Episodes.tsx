@@ -214,7 +214,7 @@ export default function Episodes() {
             <input
               type="text"
               className="search-input"
-              placeholder="날짜 또는 내용으로 검색... (예: 2025-01-01)"
+              placeholder="날짜 또는 내용으로 검색"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />

@@ -95,7 +95,7 @@ export default function Moments() {
             <input
               type="text"
               className="search-input"
-              placeholder="제목 또는 날짜로 검색... (예: 2025-01-01)"
+              placeholder="제목 또는 날짜로 검색"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
