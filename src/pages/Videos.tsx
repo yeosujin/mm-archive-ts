@@ -23,6 +23,15 @@ const PLATFORM_OPTIONS = [
   { value: 'other', label: '기타', icon: 'other' as const },
 ] as const;
 
+// YouTube 카테고리 옵션
+const YOUTUBE_CATEGORIES = [
+  { value: 'all', label: '전체', pattern: null },
+  { value: 'shorts', label: 'Shorts', pattern: '#ILLIT' },
+  { value: 'behind', label: '비하인드', pattern: ['비하인드', '[BEHIND-IT]'] },
+  { value: 'super', label: '슈일릿', pattern: 'SUPER ILLIT' },
+  { value: 'litpouch', label: '릿파우치', pattern: '[lit-pouch]' },
+] as const;
+
 export default function Videos() {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
@@ -36,9 +45,12 @@ export default function Videos() {
   const [memberFilter, setMemberFilter] = useState<string>('all');
   const [isPlatformDropdownOpen, setIsPlatformDropdownOpen] = useState(false);
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
+  const [isYoutubeCategoryDropdownOpen, setIsYoutubeCategoryDropdownOpen] = useState(false);
   const [contentTypeFilter, setContentTypeFilter] = useState<'videos' | 'moments'>('videos');
+  const [youtubeCategoryFilter, setYoutubeCategoryFilter] = useState<string>('all');
   const platformDropdownRef = useRef<HTMLDivElement>(null);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
+  const youtubeCategoryDropdownRef = useRef<HTMLDivElement>(null);
 
   // Sync videos from cache
   const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
@@ -70,12 +82,15 @@ export default function Videos() {
       if (memberDropdownRef.current && !memberDropdownRef.current.contains(e.target as Node)) {
         setIsMemberDropdownOpen(false);
       }
+      if (youtubeCategoryDropdownRef.current && !youtubeCategoryDropdownRef.current.contains(e.target as Node)) {
+        setIsYoutubeCategoryDropdownOpen(false);
+      }
     };
-    if (isPlatformDropdownOpen || isMemberDropdownOpen) {
+    if (isPlatformDropdownOpen || isMemberDropdownOpen || isYoutubeCategoryDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isPlatformDropdownOpen, isMemberDropdownOpen]);
+  }, [isPlatformDropdownOpen, isMemberDropdownOpen, isYoutubeCategoryDropdownOpen]);
 
   // highlight 파라미터 처리: 해당 영상 자동 확장 + 스크롤
   useEffect(() => {
@@ -122,6 +137,20 @@ export default function Videos() {
       filtered = filtered.filter(video => video.icon === memberFilter);
     }
 
+    // YouTube 카테고리 필터
+    if (platformFilter === 'youtube' && youtubeCategoryFilter !== 'all') {
+      const category = YOUTUBE_CATEGORIES.find(c => c.value === youtubeCategoryFilter);
+      if (category?.pattern) {
+        filtered = filtered.filter(video => {
+          const title = video.title;
+          if (Array.isArray(category.pattern)) {
+            return category.pattern.some(p => title.includes(p));
+          }
+          return title.includes(category.pattern as string);
+        });
+      }
+    }
+
     // 검색어 필터
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -160,7 +189,7 @@ export default function Videos() {
     }
 
     return { filteredVideos: filtered, filteredMoments: moments };
-  }, [videos, searchQuery, cachedMoments, platformFilter, memberFilter, contentTypeFilter]);
+  }, [videos, searchQuery, cachedMoments, platformFilter, memberFilter, contentTypeFilter, youtubeCategoryFilter]);
 
   // 그룹화 필터링 (메모이제이션)
   const groupedVideos = useMemo(() => {
@@ -263,6 +292,7 @@ export default function Videos() {
                       onClick={() => {
                         setPlatformFilter(option.value as typeof platformFilter);
                         if (option.value !== 'weverse') setMemberFilter('all');
+                        if (option.value !== 'youtube') setYoutubeCategoryFilter('all');
                         setIsPlatformDropdownOpen(false);
                       }}
                     >
@@ -304,6 +334,34 @@ export default function Videos() {
                         }}
                       >
                         <span>{m.icon} {m.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {platformFilter === 'youtube' && (
+              <div className="platform-dropdown" ref={youtubeCategoryDropdownRef}>
+                <button
+                  type="button"
+                  className="platform-dropdown-btn"
+                  onClick={() => setIsYoutubeCategoryDropdownOpen(!isYoutubeCategoryDropdownOpen)}
+                >
+                  <span>{YOUTUBE_CATEGORIES.find(c => c.value === youtubeCategoryFilter)?.label}</span>
+                  <span className="dropdown-arrow">▼</span>
+                </button>
+                {isYoutubeCategoryDropdownOpen && (
+                  <div className="platform-dropdown-menu">
+                    {YOUTUBE_CATEGORIES.map(category => (
+                      <div
+                        key={category.value}
+                        className={`platform-dropdown-item ${youtubeCategoryFilter === category.value ? 'selected' : ''}`}
+                        onClick={() => {
+                          setYoutubeCategoryFilter(category.value);
+                          setIsYoutubeCategoryDropdownOpen(false);
+                        }}
+                      >
+                        <span>{category.label}</span>
                       </div>
                     ))}
                   </div>
