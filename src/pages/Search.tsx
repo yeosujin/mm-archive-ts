@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { getVideos, getMoments, getPosts, getEpisodes } from '../lib/database';
 import type { Video, Moment, Post, Episode } from '../lib/database';
+import VideoEmbed from '../components/VideoEmbed';
+import { ArrowRightIcon } from '../components/Icons';
 
 export default function Search() {
   const [searchParams] = useSearchParams();
@@ -113,12 +115,23 @@ export default function Search() {
           {matchedMoments.length > 0 && (
             <div className="search-section">
               <h2>✨ 모먼트 ({matchedMoments.length})</h2>
-              <div className="search-list">
+              <div className="search-moments-grid">
                 {matchedMoments.map(moment => (
-                  <Link to={`/moments?highlight=${moment.id}`} key={moment.id} className="search-item">
-                    <span className="search-item-title">{moment.title}</span>
-                    <span className="search-item-date">{moment.date}</span>
-                  </Link>
+                  <div key={moment.id} className="moment-card">
+                    <div className="moment-card-header">
+                      <h4 className="moment-card-title">{moment.title}</h4>
+                      {moment.video_id && (
+                        <Link to={`/videos?highlight=${moment.video_id}`} className="moment-card-link">
+                          영상 보러가기 <ArrowRightIcon size={14} />
+                        </Link>
+                      )}
+                    </div>
+                    <VideoEmbed
+                      url={moment.tweet_url}
+                      title={moment.title}
+                      thumbnailUrl={moment.thumbnail_url}
+                    />
+                  </div>
                 ))}
               </div>
             </div>

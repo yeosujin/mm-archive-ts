@@ -11,7 +11,7 @@ const WEVERSE_MEMBERS = [
   { icon: '🤍', name: '둘만' },
   { icon: '💙', name: '모카' },
   { icon: '🩵', name: '민주' },
-  { icon: '🖤', name: '단체' },
+  { icon: '🖤', name: '여러명' },
 ] as const;
 
 // 플랫폼 옵션
@@ -48,6 +48,7 @@ export default function Videos() {
   const [isYoutubeCategoryDropdownOpen, setIsYoutubeCategoryDropdownOpen] = useState(false);
   const [contentTypeFilter, setContentTypeFilter] = useState<'videos' | 'moments'>('videos');
   const [youtubeCategoryFilter, setYoutubeCategoryFilter] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const platformDropdownRef = useRef<HTMLDivElement>(null);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
   const youtubeCategoryDropdownRef = useRef<HTMLDivElement>(null);
@@ -201,8 +202,10 @@ export default function Videos() {
       }
       groups[video.date].push(video);
     });
-    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  }, [filteredVideos, contentTypeFilter]);
+    return Object.entries(groups).sort(([a], [b]) =>
+      sortOrder === 'newest' ? b.localeCompare(a) : a.localeCompare(b)
+    );
+  }, [filteredVideos, contentTypeFilter, sortOrder]);
 
   // 모먼트 그룹화 (날짜별)
   const groupedMoments = useMemo(() => {
@@ -214,8 +217,10 @@ export default function Videos() {
       }
       groups[moment.date].push(moment);
     });
-    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  }, [filteredMoments, contentTypeFilter]);
+    return Object.entries(groups).sort(([a], [b]) =>
+      sortOrder === 'newest' ? b.localeCompare(a) : a.localeCompare(b)
+    );
+  }, [filteredMoments, contentTypeFilter, sortOrder]);
 
   const toggleVideo = useCallback(async (videoId: string) => {
     if (expandedVideo === videoId) {
@@ -370,6 +375,16 @@ export default function Videos() {
               </div>
             )}
           </div>
+          <div className="sort-toggle-wrapper">
+            <button
+              type="button"
+              className="sort-toggle"
+              onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+            >
+              <span className="sort-icon">{sortOrder === 'newest' ? '▼' : '▲'}</span>
+              {sortOrder === 'newest' ? '최신순' : '오래된순'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -442,8 +457,10 @@ export default function Videos() {
                         </span>
                         <span className="item-title">
                           {video.title}
-                          {moments.length > 0 && (
-                            <span className="moment-badge">✨ {moments.length}</span>
+                          {video.icon && detectVideoPlatform(video.url) === 'weverse' && (
+                            <span className={`member-tag member-tag-${video.icon === '🤍' ? 'both' : video.icon === '💙' ? 'moka' : video.icon === '🩵' ? 'minju' : 'group'}`}>
+                              {WEVERSE_MEMBERS.find(m => m.icon === video.icon)?.name}
+                            </span>
                           )}
                         </span>
                       <span className={`expand-arrow ${expandedVideo === video.id ? 'open' : ''}`}>
@@ -453,7 +470,7 @@ export default function Videos() {
                     
                     {expandedVideo === video.id && (
                       <div className="thread-item-content">
-                          <VideoEmbed url={video.url} title={video.title} icon={video.icon} thumbnailUrl={video.thumbnail_url} />
+                          <VideoEmbed url={video.url} title={video.title} icon={video.icon} iconText={video.icon_text} thumbnailUrl={video.thumbnail_url} />
                           
                           {moments.length > 0 && (
                             <div className="video-moments-section">
@@ -462,7 +479,7 @@ export default function Videos() {
                                 onClick={() => toggleMoments(video.id)}
                     >
                       <span className="item-icon">✨</span>
-                                <span className="item-title">모먼트 ({moments.length})</span>
+                                <span className="item-title">모먼트 펼쳐 보기 ({moments.length})</span>
                                 <span className={`expand-arrow ${expandedMoments === video.id ? 'open' : ''}`}>
                         ▼
                       </span>

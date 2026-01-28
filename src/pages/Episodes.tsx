@@ -32,6 +32,7 @@ export default function Episodes() {
   });
   const [expandedEpisode, setExpandedEpisode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const activeTab = tabParam && ['dm', 'comment', 'listening_party'].includes(tabParam) ? tabParam : 'dm';
   const [loading, setLoading] = useState(!cachedEpisodes || !cachedSettings);
 
@@ -84,6 +85,17 @@ export default function Episodes() {
   useEffect(() => { if (cachedMoments) setMoments(cachedMoments); }, [cachedMoments]);
   useEffect(() => { if (cachedPosts) setPosts(cachedPosts); }, [cachedPosts]);
 
+  // 이미지 프리로딩
+  useEffect(() => {
+    if (!episodes.length) return;
+    const imageUrls = episodes
+      .flatMap(ep => ep.messages?.filter(m => m.type === 'image').map(m => m.content) || []);
+    imageUrls.forEach(url => {
+      const img = new Image();
+      img.src = url;
+    });
+  }, [episodes]);
+
   // 탭 + 검색 필터링
   const filteredEpisodes = episodes
     .filter(episode => episode.episode_type === activeTab)
@@ -96,7 +108,10 @@ export default function Episodes() {
           msg.sender_name?.toLowerCase().includes(q)
         )) ||
         (episode.comment_text?.toLowerCase().includes(q));
-    });
+    })
+    .sort((a, b) =>
+      sortOrder === 'newest' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)
+    );
 
   const toggleEpisode = (episodeId: string) => {
     setExpandedEpisode(expandedEpisode === episodeId ? null : episodeId);
@@ -220,6 +235,16 @@ export default function Episodes() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <div className="sort-toggle-wrapper">
+            <button
+              type="button"
+              className="sort-toggle"
+              onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+            >
+              <span className="sort-icon">{sortOrder === 'newest' ? '▼' : '▲'}</span>
+              {sortOrder === 'newest' ? '최신순' : '오래된순'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -269,7 +294,7 @@ export default function Episodes() {
                     </span>
                   )}
                   {!isListeningParty && (
-                    <span className="dm-member-name">{senderName}</span>
+                    <span className={`dm-member-name dm-member-name-${episode.sender || 'member1'}`}>{senderName}</span>
                   )}
                   <time className="dm-date">{episode.date}</time>
                   <span className="dm-preview">{getPreview()}</span>
@@ -355,15 +380,15 @@ export default function Episodes() {
                           className="dm-row dm-row-left"
                         >
                           <div className="dm-bubble-row">
-                            <div 
-                              className={`dm-bubble ${bubbleClass} ${!isFirstInGroup ? 'dm-bubble-grouped' : ''} ${isLastInGroup ? 'dm-bubble-last' : ''}`}
+                            <div
+                              className={`dm-bubble ${bubbleClass} ${!isFirstInGroup ? 'dm-bubble-grouped' : ''} ${isLastInGroup ? 'dm-bubble-last' : ''} ${msg.type === 'image' ? 'dm-bubble-image' : ''}`}
                             >
                               {msg.type === 'text' && (
                                 <p className="dm-text">{msg.content}</p>
                               )}
                               {msg.type === 'image' && (
                                 <div className="dm-image">
-                                  <img src={msg.content} alt="" />
+                                  <img src={msg.content} alt="" loading="eager" />
                                 </div>
                               )}
                             </div>
