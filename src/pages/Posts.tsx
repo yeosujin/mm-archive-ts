@@ -12,6 +12,7 @@ export default function Posts() {
   const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [isTextExpanded, setIsTextExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [loading, setLoading] = useState(!cachedPosts);
@@ -70,6 +71,7 @@ export default function Posts() {
     dialogRef.current?.close();
     setSelectedPost(null);
     setCurrentMediaIndex(0);
+    setIsTextExpanded(false);
   };
 
 
@@ -289,7 +291,20 @@ export default function Posts() {
               </div>
 
               {selectedPost.content && (
-                <p className="post-detail-text">{selectedPost.content}</p>
+                <div className="post-detail-text-wrapper">
+                  <p className={`post-detail-text ${isTextExpanded ? 'expanded' : ''}`}>
+                    {selectedPost.content}
+                  </p>
+                  {selectedPost.content.length > 150 && !isTextExpanded && (
+                    <button
+                      type="button"
+                      className="text-expand-btn"
+                      onClick={() => setIsTextExpanded(true)}
+                    >
+                      더보기
+                    </button>
+                  )}
+                </div>
               )}
 
               {selectedPost.title && (

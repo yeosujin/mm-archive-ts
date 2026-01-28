@@ -334,8 +334,8 @@
 
 .home-hero-bg {
   position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 50% 0%, var(--accent-soft) 0%, transparent 60%);
+  inset: -80px 0 0 0;
+  background: radial-gradient(ellipse at 50% 80px, var(--accent-soft) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -3525,12 +3525,44 @@
   text-decoration: underline;
 }
 
+.post-detail-text-wrapper {
+  position: relative;
+}
+
 .post-detail-text {
   font-size: 0.95rem;
   line-height: 1.6;
   color: var(--text-primary);
-  white-space: pre-wrap;
   word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.post-detail-text.expanded {
+  display: block;
+  white-space: pre-wrap;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.text-expand-btn {
+  display: block;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  margin-top: 0.25rem;
+}
+
+.text-expand-btn:hover {
+  text-decoration: underline;
 }
 
 .post-detail-title {
@@ -3547,8 +3579,8 @@
 
   .post-detail-content {
     max-width: 100%;
-    max-height: 100vh;
-    border-radius: 0;
+    max-height: 95vh;
+    border-radius: 16px;
   }
 
   .carousel-btn {
