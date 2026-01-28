@@ -470,7 +470,7 @@ export default function Videos() {
                     
                     {expandedVideo === video.id && (
                       <div className="thread-item-content">
-                          <VideoEmbed url={video.url} title={video.title} icon={video.icon} thumbnailUrl={video.thumbnail_url} />
+                          <VideoEmbed url={video.url} title={video.title} icon={video.icon} iconText={video.icon_text} thumbnailUrl={video.thumbnail_url} />
                           
                           {moments.length > 0 && (
                             <div className="video-moments-section">
@@ -479,7 +479,7 @@ export default function Videos() {
                                 onClick={() => toggleMoments(video.id)}
                     >
                       <span className="item-icon">✨</span>
-                                <span className="item-title">모먼트 ({moments.length})</span>
+                                <span className="item-title">모먼트 펼쳐 보기 ({moments.length})</span>
                                 <span className={`expand-arrow ${expandedMoments === video.id ? 'open' : ''}`}>
                         ▼
                       </span>

@@ -91,6 +91,7 @@ export default function AdminVideos() {
     url: '',
     date: '',
     icon: '',
+    icon_text: '',
     thumbnail_url: '',
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -212,6 +213,7 @@ export default function AdminVideos() {
           url: formData.url,
           date: formData.date,
           icon: isWeverseUrl ? formData.icon : undefined,
+          icon_text: isWeverseUrl && formData.icon === '🖤' ? formData.icon_text : undefined,
           thumbnail_url: formData.thumbnail_url || undefined,
         });
         alert('수정되었어요!');
@@ -221,6 +223,7 @@ export default function AdminVideos() {
           url: formData.url,
           date: formData.date,
           ...(isWeverseUrl && { icon: formData.icon }),
+          ...(isWeverseUrl && formData.icon === '🖤' && formData.icon_text && { icon_text: formData.icon_text }),
           ...(formData.thumbnail_url && { thumbnail_url: formData.thumbnail_url }),
         });
         alert('추가되었어요!');
@@ -241,6 +244,7 @@ export default function AdminVideos() {
       url: video.url,
       date: video.date,
       icon: video.icon || '',
+      icon_text: video.icon_text || '',
       thumbnail_url: video.thumbnail_url || '',
     });
     setIsModalOpen(true);
@@ -248,14 +252,14 @@ export default function AdminVideos() {
 
   const handleOpenAddModal = () => {
     setEditingId(null);
-    setFormData({ title: '', url: '', date: '', icon: '', thumbnail_url: '' });
+    setFormData({ title: '', url: '', date: '', icon: '', icon_text: '', thumbnail_url: '' });
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ title: '', url: '', date: '', icon: '', thumbnail_url: '' });
+    setFormData({ title: '', url: '', date: '', icon: '', icon_text: '', thumbnail_url: '' });
     setUploadMessage('');
   };
 
@@ -404,6 +408,19 @@ export default function AdminVideos() {
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {isWeverseUrl && formData.icon === '🖤' && (
+            <div className="form-group">
+              <label htmlFor="video-icon-text">멤버 표시</label>
+              <input
+                id="video-icon-text"
+                type="text"
+                value={formData.icon_text}
+                onChange={(e) => setFormData(prev => ({ ...prev, icon_text: e.target.value }))}
+                placeholder="예: 둘만+모카"
+              />
             </div>
           )}
 

@@ -7,6 +7,7 @@ export interface Video {
   url: string;
   date: string;
   icon?: string; // 위버스 등 외부 링크용 아이콘 (💙, 🩵, 🖤, 🤍)
+  icon_text?: string; // 🖤(여러명) 선택 시 구체적인 멤버 표시
   thumbnail_url?: string;
 }
 

@@ -1,12 +1,12 @@
 import { memo } from 'react';
-import TweetEmbed from './TweetEmbed';
 import VideoPlayer from './VideoPlayer';
-import { ExternalLinkIcon, ArrowRightIcon } from './Icons';
+import { ArrowRightIcon } from './Icons';
 
 interface Props {
   url: string;
-  title: string;
-  icon?: string;  // 위버스 등 외부 링크용 커스텀 아이콘
+  title?: string;  // 현재 미사용 (하위 호환성 유지)
+  icon?: string;   // 위버스 멤버 아이콘
+  iconText?: string; // 🖤(여러명) 선택 시 구체적인 멤버 표시
   thumbnailUrl?: string;
   className?: string;
 }
@@ -70,23 +70,7 @@ function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'r2' | '
   return 'unknown';
 }
 
-// YouTube URL에서 비디오 ID 추출
-function getYouTubeId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
-  ];
-  
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
-  return null;
-}
-
-const VideoEmbed = memo(({ url, title, icon, thumbnailUrl, className = '' }: Props) => {
+const VideoEmbed = memo(({ url, icon, iconText, thumbnailUrl, className = '' }: Props) => {
   const videoType = getVideoType(url);
 
   if (videoType === 'invalid') {
@@ -101,62 +85,38 @@ const VideoEmbed = memo(({ url, title, icon, thumbnailUrl, className = '' }: Pro
     return <VideoPlayer videoUrl={url} thumbnailUrl={thumbnailUrl} className={className} />;
   }
 
-  if (videoType === 'youtube') {
-    const videoId = getYouTubeId(url);
-    if (!videoId) {
-      return (
-        <div className={`video-embed-error ${className}`}>
-          <p>⚠️ 올바른 YouTube URL이 아닙니다</p>
-        </div>
-      );
-    }
+  // 위버스 멤버 이름 매핑
+  const WEVERSE_MEMBERS: Record<string, string> = {
+    '🤍': '둘만',
+    '💙': '모카',
+    '🩵': '민주',
+    '🖤': '여러명',
+  };
 
-    return (
-      <div className={`video-embed youtube-embed ${className}`}>
-        <iframe
-          src={`https://www.youtube.com/embed/${videoId}?playsinline=1`}
-          title={title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
-    );
-  }
+  const platformNames: Record<string, string> = {
+    youtube: 'YouTube',
+    twitter: 'X',
+    weverse: 'Weverse',
+    unknown: '외부 링크',
+  };
 
-  if (videoType === 'twitter') {
-    return <TweetEmbed tweetUrl={url} className={className} />;
-  }
-
-  if (videoType === 'weverse') {
-    return (
-      <div className={`video-embed-external weverse-link ${className}`}>
-        <div className="external-link-card">
-          <span className="external-icon">{icon || '🩵'}</span>
-          <div className="external-info">
-            <span className="external-platform">Weverse</span>
-            <span className="external-title">{title}</span>
-          </div>
-          <a href={url} target="_blank" rel="noopener noreferrer" className="external-btn">
-            보러가기 <ArrowRightIcon size={14} />
-          </a>
-        </div>
-        <p className="external-note">위버스 영상은 앱/웹에서 직접 확인해주세요</p>
-      </div>
-    );
-  }
+  const isWeverseMember = videoType === 'weverse' && icon && WEVERSE_MEMBERS[icon];
+  // 🖤인 경우 iconText가 있으면 그 텍스트를, 없으면 '여러명' 표시
+  const memberName = icon === '🖤' && iconText ? iconText : WEVERSE_MEMBERS[icon || ''];
 
   return (
-    <div className={`video-embed-external ${className}`}>
-      <div className="external-link-card">
-        <span className="external-icon"><ExternalLinkIcon size={20} /></span>
-        <div className="external-info">
-          <span className="external-platform">외부 링크</span>
-          <span className="external-title">{title}</span>
-        </div>
-        <a href={url} target="_blank" rel="noopener noreferrer" className="external-btn">
-          보러가기 <ArrowRightIcon size={14} />
+    <div className={`video-embed-compact ${videoType}-link ${className}`}>
+      {isWeverseMember ? (
+        <span className="compact-label compact-label-weverse">
+          <span className="weverse-icon">{icon}</span>
+          <span className="weverse-member">{memberName}</span>
+        </span>
+      ) : (
+        <span className="compact-label">{platformNames[videoType] || '외부 링크'}</span>
+      )}
+      <a href={url} target="_blank" rel="noopener noreferrer" className="compact-btn">
+        보러가기 <ArrowRightIcon size={14} />
       </a>
-      </div>
     </div>
   );
 });

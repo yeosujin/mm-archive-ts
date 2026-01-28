@@ -10,7 +10,15 @@
       "Bash(git checkout:*)",
       "Bash(git merge:*)",
       "Bash(npx vercel --version)",
-      "Bash(npx vercel --prod)"
+      "Bash(npx vercel --prod)",
+      "mcp__chrome-devtools__take_screenshot",
+      "mcp__chrome-devtools__list_pages",
+      "mcp__chrome-devtools__new_page",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(git restore:*)",
+      "Bash(git reset:*)",
+      "Bash(supabase init:*)"
     ]
   }
 }

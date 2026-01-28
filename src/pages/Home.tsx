@@ -2,9 +2,25 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getVideos, getPosts, getMoments, getFeaturedContent } from '../lib/database';
 import type { Video, Post, Moment } from '../lib/database';
-import VideoEmbed from '../components/VideoEmbed';
 import PostEmbed from '../components/PostEmbed';
-import { SearchIcon, CalendarIcon } from '../components/Icons';
+import { SearchIcon, CalendarIcon, ArrowRightIcon, ExternalLinkIcon } from '../components/Icons';
+import { detectVideoPlatform } from '../lib/platformUtils';
+
+// 위버스 멤버 매핑
+const WEVERSE_MEMBERS: Record<string, string> = {
+  '🤍': '둘만',
+  '💙': '모카',
+  '🩵': '민주',
+  '🖤': '단체',
+};
+
+// 플랫폼 이름 매핑
+const PLATFORM_NAMES: Record<string, string> = {
+  youtube: 'YouTube',
+  twitter: 'X',
+  weverse: 'Weverse',
+  other: '외부 링크',
+};
 
 const NAV_ITEMS = [
   { to: '/videos', label: '모먼트' },
@@ -102,27 +118,55 @@ export default function Home() {
             <span className="home-featured-badge">PICK</span>
           </div>
           <div className="home-featured-content">
-            {featuredItem.type === 'video' && (
-              <VideoEmbed
-                url={(featuredItem.item as Video).url}
-                title={featuredItem.item.title}
-                icon={(featuredItem.item as Video).icon}
-                thumbnailUrl={(featuredItem.item as Video).thumbnail_url}
-              />
-            )}
+            {featuredItem.type === 'video' && (() => {
+              const video = featuredItem.item as Video;
+              const platform = detectVideoPlatform(video.url);
+              const isWeverse = platform === 'weverse';
+
+              return (
+                <div className={`video-embed-external ${isWeverse ? 'weverse-link' : ''}`}>
+                  <div className="external-link-card">
+                    <span className="external-icon">
+                      {isWeverse ? (video.icon || '🩵') : <ExternalLinkIcon size={20} />}
+                    </span>
+                    <div className="external-info">
+                      <span className="external-platform">{PLATFORM_NAMES[platform] || '외부 링크'}</span>
+                      <span className="external-title">{video.title}</span>
+                      {isWeverse && video.icon && (
+                        <span className="external-member">{video.icon} {video.icon_text || WEVERSE_MEMBERS[video.icon]}</span>
+                      )}
+                    </div>
+                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="external-btn">
+                      보러가기 <ArrowRightIcon size={14} />
+                    </a>
+                  </div>
+                </div>
+              );
+            })()}
             {featuredItem.type === 'post' && (
               <PostEmbed
                 url={(featuredItem.item as Post).url}
                 platform={(featuredItem.item as Post).platform}
               />
             )}
-            {featuredItem.type === 'moment' && (
-              <VideoEmbed
-                url={(featuredItem.item as Moment).tweet_url}
-                title={(featuredItem.item as Moment).title}
-                thumbnailUrl={(featuredItem.item as Moment).thumbnail_url}
-              />
-            )}
+            {featuredItem.type === 'moment' && (() => {
+              const moment = featuredItem.item as Moment;
+
+              return (
+                <div className="video-embed-external">
+                  <div className="external-link-card">
+                    <span className="external-icon">✨</span>
+                    <div className="external-info">
+                      <span className="external-platform">모먼트</span>
+                      <span className="external-title">{moment.title}</span>
+                    </div>
+                    <a href={moment.tweet_url} target="_blank" rel="noopener noreferrer" className="external-btn">
+                      보러가기 <ArrowRightIcon size={14} />
+                    </a>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </section>
       )}
