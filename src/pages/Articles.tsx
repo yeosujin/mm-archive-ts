@@ -9,13 +9,13 @@ export default function Articles() {
   return (
     <div className="page articles-page">
       <div className="page-header">
-        <h1>글</h1>
+        <h1>도서관</h1>
       </div>
       <div className="empty-state" style={{ marginTop: '3rem' }}>
         <p style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚧</p>
         <p>공사중이에요!</p>
         <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-          곧 새로운 모습으로 찾아올게요
+          책 찾는 중..
         </p>
       </div>
     </div>
@@ -33,7 +33,7 @@ export default function Articles() {
   return (
     <div className="page articles-page">
       <div className="page-header">
-        <h1>글</h1>
+        <h1>도서관</h1>
 
         <div className="page-controls">
           <div className="search-box">

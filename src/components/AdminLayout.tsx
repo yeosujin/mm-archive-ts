@@ -47,7 +47,7 @@ export default function AdminLayout() {
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/admin/AdminArticles')}
             >
-              📰 글
+              📰 도서관
             </NavLink>
           </nav>
         </aside>

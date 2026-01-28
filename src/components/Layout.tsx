@@ -66,7 +66,7 @@ export default function Layout() {
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/Articles')}
             >
-              글
+              도서관
             </NavLink>
             <NavLink
               to="/calendar"
@@ -150,7 +150,7 @@ export default function Layout() {
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              글
+              도서관
             </NavLink>
             <NavLink
               to="/calendar"
