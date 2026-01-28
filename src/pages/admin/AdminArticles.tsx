@@ -164,7 +164,7 @@ export default function AdminArticles() {
 
   return (
     <div className="admin-page">
-      <h1>글 관리</h1>
+      <h1>도서관 관리</h1>
       
       <div className="admin-section">
         <h2>{editingId ? '글 수정' : '새 글 추가'}</h2>

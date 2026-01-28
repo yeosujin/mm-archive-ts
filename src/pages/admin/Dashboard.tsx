@@ -188,7 +188,7 @@ export default function Dashboard() {
           <span className="admin-stat-icon">📝</span>
           <div className="admin-stat-info">
             <span className="admin-stat-number">{articles.length}</span>
-            <span className="admin-stat-label">글</span>
+            <span className="admin-stat-label">도서관</span>
           </div>
         </div>
       </div>
@@ -276,7 +276,7 @@ export default function Dashboard() {
             ➕ 에피소드
           </a>
           <a href="/admin/articles" className="quick-action-btn">
-            ➕ 글
+            ➕ 도서관
           </a>
         </div>
       </div>
