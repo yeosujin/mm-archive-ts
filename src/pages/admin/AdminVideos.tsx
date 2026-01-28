@@ -8,10 +8,10 @@ import { detectVideoPlatform } from '../../lib/platformUtils';
 import { useData } from '../../hooks/useData';
 
 const HEART_OPTIONS = [
-  { value: '\uD83D\uDC99', label: '\uD83D\uDC99 파란색' },
-  { value: '\uD83E\uDE75', label: '\uD83E\uDE75 하늘색' },
-  { value: '\uD83D\uDDA4', label: '\uD83D\uDDA4 검은색' },
-  { value: '\uD83E\uDD0D', label: '\uD83E\uDD0D 흰색' },
+  { value: '🤍', label: '🤍 둘만' },
+  { value: '💙', label: '💙 모카' },
+  { value: '🩵', label: '🩵 민주' },
+  { value: '🖤', label: '🖤 여러명' },
 ];
 
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
@@ -336,7 +336,14 @@ export default function AdminVideos() {
               <input
                 type="text"
                 value={formData.url}
-                onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                onChange={(e) => {
+                  const newUrl = e.target.value;
+                  setFormData(prev => ({
+                    ...prev,
+                    url: newUrl,
+                    icon: newUrl.includes('weverse.io') && !prev.icon ? '🤍' : prev.icon
+                  }));
+                }}
                 placeholder="YouTube, Weverse URL 또는 파일 업로드"
                 required
                 disabled={uploading}

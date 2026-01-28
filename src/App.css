@@ -8,9 +8,9 @@
   --text-primary: #1a1a2e;
   --text-secondary: #4a4a5a;
   --text-muted: #8a8a9a;
-  --accent: #38bdf8;
-  --accent-hover: #0ea5e9;
-  --accent-soft: rgba(56, 189, 248, 0.1);
+  --accent: #70a4f9;
+  --accent-hover: #5b8ff7;
+  --accent-soft: rgba(112, 164, 249, 0.1);
   --border: #e5e5ea;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   --radius-sm: 10px;
@@ -37,9 +37,9 @@
   --text-primary: #f0f0f5;
   --text-secondary: #a0a0b0;
   --text-muted: #6a6a7a;
-  --accent: #7dd3fc;
-  --accent-hover: #38bdf8;
-  --accent-soft: rgba(125, 211, 252, 0.12);
+  --accent: #70a4f9;
+  --accent-hover: #8cb8fa;
+  --accent-soft: rgba(112, 164, 249, 0.15);
   --border: #2a2a3a;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
@@ -124,7 +124,7 @@
   transition: all 0.2s;
   width: 36px;
   height: 36px;
-  color: var(--text-primary);
+  color: var(--accent);
 }
 
 .mobile-menu-toggle:hover {
@@ -213,7 +213,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary);
+  color: var(--accent);
 }
 
 .theme-toggle:hover {
@@ -242,7 +242,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary);
+  color: var(--accent);
 }
 
 .search-toggle:hover {
@@ -459,7 +459,7 @@
   text-decoration: none;
   transition: all 0.15s;
   -webkit-tap-highlight-color: transparent;
-  color: var(--text-primary);
+  color: var(--accent);
 }
 
 .home-calendar-btn:active {
@@ -635,6 +635,35 @@
 
 .filter-row .form-select {
   padding: 0.5rem 2rem 0.5rem 0.75rem;
+}
+
+/* Sort Toggle */
+.sort-toggle-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sort-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  white-space: nowrap;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.sort-toggle:hover {
+  color: var(--text-primary);
+}
+
+.sort-toggle .sort-icon {
+  font-size: 0.6rem;
 }
 
 .filter-select {
@@ -1461,6 +1490,35 @@
   border-radius: 10px;
 }
 
+/* ===== Member Tag (위버스 멤버 표시) ===== */
+.member-tag {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+}
+
+.member-tag-both {
+  color: #e879a9;
+  background: rgba(232, 121, 169, 0.12);
+}
+
+.member-tag-moka {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.member-tag-minju {
+  color: #06b6d4;
+  background: rgba(6, 182, 212, 0.12);
+}
+
+.member-tag-group {
+  color: var(--text-secondary);
+  background: var(--bg-card-hover);
+}
+
 /* ===== Video Moments Section (영상 아래 모먼트 영역) ===== */
 .video-moments-section {
   margin-top: 1rem;
@@ -1826,15 +1884,15 @@
 }
 
 .weverse-link .external-link-card:hover {
-  border-color: #06be91;
+  border-color: var(--accent);
 }
 
 .weverse-link .external-btn {
-  background: #06be91;
+  background: var(--accent);
 }
 
 .weverse-link .external-btn:hover {
-  background: #05a57f;
+  background: var(--accent-hover);
 }
 
 @media (max-width: 480px) {
@@ -2424,8 +2482,15 @@
 .dm-member-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--accent);
   transition: color 0.2s;
+}
+
+.dm-member-name-member1 {
+  color: #0ea5e9;
+}
+
+.dm-member-name-member2 {
+  color: #3b82f6;
 }
 
 .dm-date {
@@ -2516,25 +2581,9 @@
   border-radius: 4px 16px 16px 16px;
 }
 
-.dm-bubble-left.dm-bubble-grouped {
-  border-radius: 4px 16px 16px 4px;
-}
-
-.dm-bubble-left.dm-bubble-grouped.dm-bubble-last {
-  border-radius: 4px 16px 16px 16px;
-}
-
 /* 오른쪽 말풍선 (멤버2) - 연파랑색 💙 */
 .dm-bubble-right {
   background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
-  border-radius: 4px 16px 16px 16px;
-}
-
-.dm-bubble-right.dm-bubble-grouped {
-  border-radius: 4px 16px 16px 4px;
-}
-
-.dm-bubble-right.dm-bubble-grouped.dm-bubble-last {
   border-radius: 4px 16px 16px 16px;
 }
 
@@ -2567,12 +2616,18 @@
   font-size: 0.9rem;
   line-height: 1.5;
   margin: 0;
-  color: var(--text-primary);
+  color: #1a1a2e;
   word-break: break-word;
 }
 
+/* 이미지 말풍선 - 배경 제거 */
+.dm-bubble-image {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
 .dm-image {
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
 }
 
@@ -2580,6 +2635,7 @@
   width: 100%;
   max-width: 200px;
   display: block;
+  border-radius: 12px;
 }
 
 /* Comment Episode Type */

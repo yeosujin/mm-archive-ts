@@ -13,6 +13,7 @@ export default function Posts() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [loading, setLoading] = useState(!cachedPosts);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -46,14 +47,17 @@ export default function Posts() {
   }, [highlightId, loading, posts]);
 
   // 검색 필터링 (제목, 날짜, 글쓴이, 내용)
-  const filteredPosts = searchQuery
+  const filteredPosts = (searchQuery
     ? posts.filter(post =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.date.includes(searchQuery) ||
         post.writer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.content?.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : posts;
+    : posts
+  ).sort((a, b) =>
+    sortOrder === 'newest' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)
+  );
 
   // 포스트 클릭 핸들러
   const openPost = (post: Post) => {
@@ -132,6 +136,16 @@ export default function Posts() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+          </div>
+          <div className="sort-toggle-wrapper">
+            <button
+              type="button"
+              className="sort-toggle"
+              onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+            >
+              <span className="sort-icon">{sortOrder === 'newest' ? '▼' : '▲'}</span>
+              {sortOrder === 'newest' ? '최신순' : '오래된순'}
+            </button>
           </div>
         </div>
       </div>
