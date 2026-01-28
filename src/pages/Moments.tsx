@@ -37,8 +37,7 @@ export default function Moments() {
     setTimeout(() => {
       document.querySelector(`[data-moment-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [highlightId, loading, moments.length]);
+  }, [highlightId, loading, moments]);
 
   // 검색 필터링 (메모이제이션)
   const filteredMoments = useMemo(() => {

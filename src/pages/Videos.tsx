@@ -93,21 +93,10 @@ export default function Videos() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isPlatformDropdownOpen, isMemberDropdownOpen, isYoutubeCategoryDropdownOpen]);
 
-  // highlight 파라미터 처리: 해당 영상 자동 확장 + 스크롤
-  useEffect(() => {
-    if (!highlightId || loading || videos.length === 0) return;
-    setExpandedVideo(highlightId);
-    loadMomentsForVideo(highlightId);
-    setTimeout(() => {
-      document.querySelector(`[data-video-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [highlightId, loading, videos.length]);
-
   // Sync expanded video's moments from cache or fetch all
   const loadMomentsForVideo = useCallback(async (videoId: string) => {
     if (videoMoments[videoId]) return;
-    
+
     try {
       // If we already have ALL moments, filter locally
       if (cachedMoments) {
@@ -123,6 +112,16 @@ export default function Videos() {
       console.error('Error loading moments:', error);
     }
   }, [videoMoments, cachedMoments, fetchMoments]);
+
+  // highlight 파라미터 처리: 해당 영상 자동 확장 + 스크롤
+  useEffect(() => {
+    if (!highlightId || loading || videos.length === 0) return;
+    setExpandedVideo(highlightId);
+    loadMomentsForVideo(highlightId);
+    setTimeout(() => {
+      document.querySelector(`[data-video-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }, [highlightId, loading, videos.length, loadMomentsForVideo]);
   
   // 검색 및 필터링 (메모이제이션) - 영상 제목 + 모먼트 제목 + 플랫폼 + 멤버
   const { filteredVideos, filteredMoments } = useMemo(() => {

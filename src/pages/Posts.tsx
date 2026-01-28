@@ -67,28 +67,25 @@ export default function Posts() {
     dialogRef.current?.showModal();
   };
 
-  const closePost = () => {
+  const closePost = useCallback(() => {
     dialogRef.current?.close();
     setSelectedPost(null);
     setCurrentMediaIndex(0);
     setIsTextExpanded(false);
-  };
-
+  }, []);
 
   // 캐러셀 네비게이션
-  const prevMedia = () => {
-    if (!selectedPost?.media) return;
-    setCurrentMediaIndex(prev =>
-      prev === 0 ? selectedPost.media!.length - 1 : prev - 1
-    );
-  };
+  const mediaLength = selectedPost?.media?.length ?? 0;
 
-  const nextMedia = () => {
-    if (!selectedPost?.media) return;
-    setCurrentMediaIndex(prev =>
-      prev === selectedPost.media!.length - 1 ? 0 : prev + 1
-    );
-  };
+  const prevMedia = useCallback(() => {
+    if (mediaLength === 0) return;
+    setCurrentMediaIndex(prev => (prev === 0 ? mediaLength - 1 : prev - 1));
+  }, [mediaLength]);
+
+  const nextMedia = useCallback(() => {
+    if (mediaLength === 0) return;
+    setCurrentMediaIndex(prev => (prev === mediaLength - 1 ? 0 : prev + 1));
+  }, [mediaLength]);
 
   // 키보드 네비게이션
   useEffect(() => {
@@ -101,8 +98,7 @@ export default function Posts() {
 
     globalThis.addEventListener('keydown', handleKeyDown);
     return () => globalThis.removeEventListener('keydown', handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPost, currentMediaIndex]);
+  }, [selectedPost, closePost, prevMedia, nextMedia]);
 
   // 그리드 썸네일 가져오기
   const getGridThumbnail = (post: Post): string | null => {
@@ -229,9 +225,10 @@ export default function Posts() {
                   {selectedPost.media[currentMediaIndex].type === 'video' ? (
                     <video
                       src={selectedPost.media[currentMediaIndex].url}
+                      poster={selectedPost.media[currentMediaIndex].thumbnail}
                       controls
                       playsInline
-                      preload="metadata"
+                      preload="auto"
                     >
                       <track kind="captions" />
                     </video>
@@ -305,10 +302,6 @@ export default function Posts() {
                     </button>
                   )}
                 </div>
-              )}
-
-              {selectedPost.title && (
-                <p className="post-detail-title">{selectedPost.title}</p>
               )}
             </div>
           </div>
