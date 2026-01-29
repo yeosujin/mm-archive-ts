@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, MenuIcon, CloseIcon } from './Icons';
+import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, MenuIcon, CloseIcon, VideoIcon, PostIcon, ChatIcon, BookIcon } from './Icons';
 
 export default function Layout() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -123,43 +123,46 @@ export default function Layout() {
 
         {/* Mobile Navigation */}
         {showMobileMenu && (
-          <nav className="mobile-nav">
+          <>
+            <div className="mobile-nav-overlay" onClick={() => setShowMobileMenu(false)} />
+            <nav className="mobile-nav">
             <NavLink
               to="/videos"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              모먼트
+              <VideoIcon size={18} /> 모먼트
             </NavLink>
             <NavLink
               to="/posts"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              포스트
+              <PostIcon size={18} /> 포스트
             </NavLink>
             <NavLink
               to="/episodes"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              에피소드
+              <ChatIcon size={18} /> 에피소드
             </NavLink>
             <NavLink
               to="/articles"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              도서관
+              <BookIcon size={18} /> 도서관
             </NavLink>
             <NavLink
               to="/calendar"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
               onClick={handleNavClick}
             >
-              캘린더
+              <CalendarIcon size={18} /> 캘린더
             </NavLink>
           </nav>
+          </>
         )}
       </header>
 

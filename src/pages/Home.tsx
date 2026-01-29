@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getVideos, getPosts, getMoments, getFeaturedContent } from '../lib/database';
 import type { Video, Post, Moment } from '../lib/database';
 import PostEmbed from '../components/PostEmbed';
-import { SearchIcon, CalendarIcon, ArrowRightIcon, ExternalLinkIcon } from '../components/Icons';
+import { SearchIcon, CalendarIcon, ArrowRightIcon, ExternalLinkIcon, VideoIcon } from '../components/Icons';
 import { detectVideoPlatform } from '../lib/platformUtils';
 
 // 위버스 멤버 매핑
@@ -26,7 +26,7 @@ const NAV_ITEMS = [
   { to: '/videos', label: '모먼트' },
   { to: '/posts', label: '포스트' },
   { to: '/episodes', label: '에피소드' },
-  { to: '/articles', label: '글' },
+  { to: '/articles', label: '도서관' },
 ];
 
 export default function Home() {
@@ -75,6 +75,19 @@ export default function Home() {
     }
   };
 
+  const handleFeaturedClick = () => {
+    if (!featuredItem) return;
+
+    const { type, item } = featuredItem;
+    if (type === 'video') {
+      navigate(`/videos?highlight=${item.id}`);
+    } else if (type === 'post') {
+      navigate(`/posts?highlight=${item.id}`);
+    } else if (type === 'moment') {
+      navigate(`/videos?highlight=${(item as Moment).video_id || item.id}`);
+    }
+  };
+
   return (
     <div className="home-page">
       {/* Hero Section */}
@@ -117,7 +130,7 @@ export default function Home() {
           <div className="home-featured-header">
             <span className="home-featured-badge">PICK</span>
           </div>
-          <div className="home-featured-content">
+          <div className="home-featured-content" onClick={handleFeaturedClick} style={{ cursor: 'pointer' }}>
             {featuredItem.type === 'video' && (() => {
               const video = featuredItem.item as Video;
               const platform = detectVideoPlatform(video.url);
@@ -136,7 +149,7 @@ export default function Home() {
                         <span className="external-member">{video.icon} {video.icon_text || WEVERSE_MEMBERS[video.icon]}</span>
                       )}
                     </div>
-                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="external-btn">
+                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="external-btn" onClick={(e) => e.stopPropagation()}>
                       보러가기 <ArrowRightIcon size={14} />
                     </a>
                   </div>
@@ -155,12 +168,12 @@ export default function Home() {
               return (
                 <div className="video-embed-external">
                   <div className="external-link-card">
-                    <span className="external-icon">✨</span>
+                    <span className="external-icon"><VideoIcon size={20} /></span>
                     <div className="external-info">
                       <span className="external-platform">모먼트</span>
                       <span className="external-title">{moment.title}</span>
                     </div>
-                    <a href={moment.tweet_url} target="_blank" rel="noopener noreferrer" className="external-btn">
+                    <a href={moment.tweet_url} target="_blank" rel="noopener noreferrer" className="external-btn" onClick={(e) => e.stopPropagation()}>
                       보러가기 <ArrowRightIcon size={14} />
                     </a>
                   </div>

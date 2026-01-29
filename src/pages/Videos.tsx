@@ -18,7 +18,7 @@ const WEVERSE_MEMBERS = [
 const PLATFORM_OPTIONS = [
   { value: 'all', label: '전체 플랫폼', icon: null },
   { value: 'youtube', label: 'YouTube', icon: 'youtube' as const },
-  { value: 'twitter', label: 'Twitter', icon: 'twitter' as const },
+  // { value: 'twitter', label: 'Twitter', icon: 'twitter' as const },
   { value: 'weverse', label: 'Weverse', icon: 'weverse' as const },
   { value: 'other', label: '기타', icon: 'other' as const },
 ] as const;
@@ -28,8 +28,10 @@ const YOUTUBE_CATEGORIES = [
   { value: 'all', label: '전체', pattern: null },
   { value: 'shorts', label: 'Shorts', pattern: '#ILLIT' },
   { value: 'behind', label: '비하인드', pattern: ['비하인드', '[BEHIND-IT]'] },
-  { value: 'super', label: '슈일릿', pattern: 'SUPER ILLIT' },
+  { value: 'super', label: '슈일릿', pattern: ['SUPER ILLIT', '슈일릿'] },
   { value: 'litpouch', label: '릿파우치', pattern: '[lit-pouch]' },
+  { value: 'playit', label: 'PLAY IT', pattern: ['[PLAY-IT]', '[Playlist]'] },
+  { value: 'illlikeit', label: 'I\'LL LIKE IT', pattern: 'LL LIKE IT!' },
 ] as const;
 
 export default function Videos() {
@@ -312,6 +314,7 @@ export default function Videos() {
                 <button
                   type="button"
                   className="platform-dropdown-btn"
+                  style={{ minWidth: '100px' }}
                   onClick={() => setIsMemberDropdownOpen(!isMemberDropdownOpen)}
                 >
                   <span>{memberFilter === 'all' ? '라이브 전체' : `${memberFilter} ${WEVERSE_MEMBERS.find(m => m.icon === memberFilter)?.name}`}</span>
@@ -349,7 +352,7 @@ export default function Videos() {
                 <button
                   type="button"
                   className="platform-dropdown-btn"
-                  style={{ minWidth: '80px' }}
+                  style={{ minWidth: '100px' }}
                   onClick={() => setIsYoutubeCategoryDropdownOpen(!isYoutubeCategoryDropdownOpen)}
                 >
                   <span>{YOUTUBE_CATEGORIES.find(c => c.value === youtubeCategoryFilter)?.label}</span>

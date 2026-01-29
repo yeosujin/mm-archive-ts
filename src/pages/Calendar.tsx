@@ -1,24 +1,49 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { getVideos, getMoments, getPosts, getEpisodes } from '../lib/database';
+import { Link, useSearchParams } from 'react-router-dom';
+import { getVideos, getMoments, getPosts, getEpisodes, getMemberSettings } from '../lib/database';
 import type { Video, Moment, Post, Episode } from '../lib/database';
-import { CalendarIcon, ArrowRightIcon } from '../components/Icons';
+import { CalendarIcon, ArrowRightIcon, PostIcon, ChatIcon, BookIcon, VideoIcon } from '../components/Icons';
 
 interface ArchiveItem {
     id: string;
     type: 'video' | 'moment' | 'post' | 'episode' | 'article';
     title: string;
     path: string;
+    icon?: string;
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const MONTHS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
-const TYPE_ICONS: Record<string, string> = {
-  video: '📹',
-  moment: '✨',
-  post: '𝕏',
-  episode: '💬',
-  article: '📝',
+
+const WEVERSE_MEMBERS = [
+  { icon: '🤍', name: '둘만', tag: 'both' },
+  { icon: '💙', name: '모카', tag: 'moka' },
+  { icon: '🩵', name: '민주', tag: 'minju' },
+  { icon: '🖤', name: '여러명', tag: 'group' },
+] as const;
+
+const EPISODE_TYPE_NAMES: Record<string, string> = {
+  dm: 'DM',
+  comment: '댓글',
+  listening_party: '리스닝 파티',
+};
+
+const LP_PLATFORM_NAMES: Record<string, string> = {
+  melon: '멜론',
+  spotify: 'Spotify',
+  apple_music: 'Apple Music',
+  weverse: 'Weverse',
+};
+
+const TypeIcon = ({ type }: { type: string }) => {
+  switch (type) {
+    case 'video': return <VideoIcon size={16} />;
+    case 'moment': return <VideoIcon size={16} />;
+    case 'post': return <PostIcon size={16} />;
+    case 'episode': return <ChatIcon size={16} />;
+    case 'article': return <BookIcon size={16} />;
+    default: return null;
+  }
 };
 
 // 연도 범위 생성 (2020년 ~ 현재 + 1년)
@@ -26,11 +51,31 @@ const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: currentYear - 2020 + 2 }, (_, i) => 2020 + i);
 
 export default function Calendar() {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // URL 파라미터에서 연도/월 가져오기
+  const getInitialDate = () => {
+    const yearParam = searchParams.get('year');
+    const monthParam = searchParams.get('month');
+    if (yearParam && monthParam) {
+      return new Date(parseInt(yearParam), parseInt(monthParam) - 1, 1);
+    }
+    return new Date();
+  };
+
+  const [currentDate, setCurrentDate] = useState(getInitialDate);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [archives, setArchives] = useState<Record<string, ArchiveItem[]>>({});
   const [loading, setLoading] = useState(true);
   const [showPicker, setShowPicker] = useState(false);
+
+  // 날짜 변경 시 URL 파라미터 업데이트
+  const updateDateParams = (date: Date) => {
+    setSearchParams({
+      year: String(date.getFullYear()),
+      month: String(date.getMonth() + 1)
+    });
+  };
 
   useEffect(() => {
     loadAllData();
@@ -54,20 +99,26 @@ export default function Calendar() {
 
   const loadAllData = async () => {
     try {
-      const [videos, moments, posts, episodes] = await Promise.all([
+      const [videos, moments, posts, episodes, memberSettings] = await Promise.all([
         getVideos(),
         getMoments(),
         getPosts(),
-        getEpisodes()
+        getEpisodes(),
+        getMemberSettings()
         // 공사중 - articles 임시 숨김
         // getArticles()
       ]);
+
+      // 멤버 이름 (댓글 쓴 사람)
+      const getMemberName = (sender?: 'member1' | 'member2') => {
+        return sender === 'member2' ? memberSettings.member2_name : memberSettings.member1_name;
+      };
 
       const archivesByDate: Record<string, ArchiveItem[]> = {};
 
       videos.forEach((v: Video) => {
         if (!archivesByDate[v.date]) archivesByDate[v.date] = [];
-        archivesByDate[v.date].push({ id: v.id, type: 'video', title: v.title, path: '/videos' });
+        archivesByDate[v.date].push({ id: v.id, type: 'video', title: v.title, path: '/videos', icon: v.icon });
       });
 
       // 영상에 연결되지 않은 모먼트만 표시
@@ -82,9 +133,51 @@ export default function Calendar() {
         archivesByDate[p.date].push({ id: p.id, type: 'post', title: p.title || p.platform, path: '/posts' });
       });
 
+      // 연결된 콘텐츠 제목 가져오기
+      const getLinkedContentTitle = (ep: Episode) => {
+        if (ep.linked_content_type === 'video' && ep.linked_content_id) {
+          const video = videos.find(v => v.id === ep.linked_content_id);
+          return video?.title || '영상';
+        }
+        if (ep.linked_content_type === 'moment' && ep.linked_content_id) {
+          const moment = moments.find(m => m.id === ep.linked_content_id);
+          return moment?.title || '모먼트';
+        }
+        if (ep.linked_content_type === 'post' && ep.linked_content_id) {
+          const post = posts.find(p => p.id === ep.linked_content_id);
+          return post?.title || post?.platform || '포스트';
+        }
+        return '콘텐츠';
+      };
+
       episodes.forEach((e: Episode) => {
         if (!archivesByDate[e.date]) archivesByDate[e.date] = [];
-        archivesByDate[e.date].push({ id: e.id, type: 'episode', title: e.title || e.date, path: '/episodes' });
+        let episodeTitle = '';
+
+        if (e.episode_type === 'dm') {
+          // DM: 항상 발신자 + DM 표시
+          const firstMsg = e.messages?.[0];
+          const msgPreview = e.title || (firstMsg?.type === 'text' ? firstMsg.content : '📷');
+          episodeTitle = `${getMemberName(e.sender)} DM: ${msgPreview}`;
+        } else if (e.episode_type === 'comment') {
+          // 댓글: 발신자 + 연결 콘텐츠
+          if (e.linked_content_id) {
+            episodeTitle = `${getMemberName(e.sender)} → "${getLinkedContentTitle(e)}" 댓글`;
+          } else {
+            episodeTitle = e.title || `${getMemberName(e.sender)} 댓글`;
+          }
+        } else if (e.episode_type === 'listening_party') {
+          const content = e.title || e.messages?.[0]?.content || '';
+          const platformName = e.platform ? LP_PLATFORM_NAMES[e.platform] : '';
+          episodeTitle = content
+            ? `${content} ${platformName || ''} 리스닝 파티`.replaceAll(/\s+/g, ' ').trim()
+            : `${platformName || ''} 리스닝 파티`.trim();
+        } else {
+          episodeTitle = e.title || EPISODE_TYPE_NAMES[e.episode_type] || e.episode_type;
+        }
+
+        const episodePath = `/episodes?tab=${e.episode_type}`;
+        archivesByDate[e.date].push({ id: e.id, type: 'episode', title: episodeTitle, path: episodePath });
       });
 
       // 공사중 - articles 임시 숨김
@@ -122,28 +215,38 @@ export default function Calendar() {
   }
 
   const prevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
+    const newDate = new Date(year, month - 1, 1);
+    setCurrentDate(newDate);
+    updateDateParams(newDate);
     setSelectedDate(null);
   };
 
   const nextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
+    const newDate = new Date(year, month + 1, 1);
+    setCurrentDate(newDate);
+    updateDateParams(newDate);
     setSelectedDate(null);
   };
 
   const handleYearChange = (newYear: number) => {
-    setCurrentDate(new Date(newYear, month, 1));
+    const newDate = new Date(newYear, month, 1);
+    setCurrentDate(newDate);
+    updateDateParams(newDate);
     setSelectedDate(null);
   };
 
   const handleMonthChange = (newMonth: number) => {
-    setCurrentDate(new Date(year, newMonth, 1));
+    const newDate = new Date(year, newMonth, 1);
+    setCurrentDate(newDate);
+    updateDateParams(newDate);
     setSelectedDate(null);
     setShowPicker(false);
   };
 
   const goToToday = () => {
-    setCurrentDate(new Date());
+    const newDate = new Date();
+    setCurrentDate(newDate);
+    updateDateParams(newDate);
     setSelectedDate(null);
     setShowPicker(false);
   };
@@ -177,9 +280,9 @@ export default function Calendar() {
       <div className="calendar-container">
         <div className="calendar-nav">
           <button onClick={prevMonth} className="cal-nav-btn">◀</button>
-          
+
           <div className="cal-picker-wrapper">
-            <button 
+            <button
               className="cal-title-btn"
               onClick={(e) => {
                 e.stopPropagation();
@@ -189,12 +292,12 @@ export default function Calendar() {
               {year}년 {month + 1}월
               <span className="cal-title-arrow">{showPicker ? '▲' : '▼'}</span>
             </button>
-            
+
             {showPicker && (
               <div className="cal-picker-dropdown">
                 <div className="cal-picker-header">
-                  <select 
-                    value={year} 
+                  <select
+                    value={year}
                     onChange={(e) => handleYearChange(Number(e.target.value))}
                     className="cal-year-select"
                   >
@@ -267,16 +370,26 @@ export default function Calendar() {
         {/* 선택된 날짜의 아카이브 목록 */}
         {selectedArchives && (
           <div className="calendar-details">
-            <h3><CalendarIcon size={18} /> {selectedDate}</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CalendarIcon size={18} /> {selectedDate}</h3>
             <div className="archive-list">
               {selectedArchives.map((archive) => (
                 <Link
                   key={`${archive.type}-${archive.id}`}
-                  to={`${archive.path}?highlight=${archive.id}`}
+                  to={`${archive.path}${archive.path.includes('?') ? '&' : '?'}highlight=${archive.id}`}
                   className="archive-item"
                 >
-                  <span className="archive-icon">{TYPE_ICONS[archive.type]}</span>
-                  <span className="archive-title">{archive.title}</span>
+                  <span className="archive-icon"><TypeIcon type={archive.type} /></span>
+                  <span className="archive-title">
+                    {archive.title}
+                    {archive.icon && (() => {
+                      const member = WEVERSE_MEMBERS.find(m => m.icon === archive.icon);
+                      return member ? (
+                        <span className={`member-tag member-tag-${member.tag}`}>
+                          {member.name}
+                        </span>
+                      ) : null;
+                    })()}
+                  </span>
                   <span className="archive-arrow"><ArrowRightIcon size={14} /></span>
                 </Link>
               ))}

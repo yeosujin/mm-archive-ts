@@ -3,12 +3,14 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { getVideos, getMoments, getPosts, getEpisodes } from '../lib/database';
 import type { Video, Moment, Post, Episode } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
-import { ArrowRightIcon } from '../components/Icons';
+import { ArrowRightIcon, VideoIcon, PostIcon, ChatIcon } from '../components/Icons';
+
+type FilterType = 'all' | 'video' | 'moment' | 'post' | 'episode';
 
 export default function Search() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
-  
+
   const [videos, setVideos] = useState<Video[]>([]);
   const [moments, setMoments] = useState<Moment[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -16,6 +18,7 @@ export default function Search() {
   // 공사중 - articles 임시 숨김
   // const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
   useEffect(() => {
     loadAllData();
@@ -96,10 +99,51 @@ export default function Search() {
         </div>
       ) : (
         <div className="search-results">
+          {/* 필터 탭 */}
+          <div className="search-filter-tabs">
+            <button
+              className={`search-filter-tab ${activeFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('all')}
+            >
+              전체 ({totalResults})
+            </button>
+            {matchedVideos.length > 0 && (
+              <button
+                className={`search-filter-tab ${activeFilter === 'video' ? 'active' : ''}`}
+                onClick={() => setActiveFilter('video')}
+              >
+                <VideoIcon size={14} /> 영상 ({matchedVideos.length})
+              </button>
+            )}
+            {matchedMoments.length > 0 && (
+              <button
+                className={`search-filter-tab ${activeFilter === 'moment' ? 'active' : ''}`}
+                onClick={() => setActiveFilter('moment')}
+              >
+                <VideoIcon size={14} /> 모먼트 ({matchedMoments.length})
+              </button>
+            )}
+            {matchedPosts.length > 0 && (
+              <button
+                className={`search-filter-tab ${activeFilter === 'post' ? 'active' : ''}`}
+                onClick={() => setActiveFilter('post')}
+              >
+                <PostIcon size={14} /> 포스트 ({matchedPosts.length})
+              </button>
+            )}
+            {matchedEpisodes.length > 0 && (
+              <button
+                className={`search-filter-tab ${activeFilter === 'episode' ? 'active' : ''}`}
+                onClick={() => setActiveFilter('episode')}
+              >
+                <ChatIcon size={14} /> 에피소드 ({matchedEpisodes.length})
+              </button>
+            )}
+          </div>
           {/* 영상 결과 */}
-          {matchedVideos.length > 0 && (
+          {matchedVideos.length > 0 && (activeFilter === 'all' || activeFilter === 'video') && (
             <div className="search-section">
-              <h2>📹 영상 ({matchedVideos.length})</h2>
+              <h2><VideoIcon size={18} /> 영상 ({matchedVideos.length})</h2>
               <div className="search-list">
                 {matchedVideos.map(video => (
                   <Link to={`/videos?highlight=${video.id}`} key={video.id} className="search-item">
@@ -112,9 +156,9 @@ export default function Search() {
           )}
 
           {/* 모먼트 결과 */}
-          {matchedMoments.length > 0 && (
+          {matchedMoments.length > 0 && (activeFilter === 'all' || activeFilter === 'moment') && (
             <div className="search-section">
-              <h2>✨ 모먼트 ({matchedMoments.length})</h2>
+              <h2><VideoIcon size={18} /> 모먼트 ({matchedMoments.length})</h2>
               <div className="search-moments-grid">
                 {matchedMoments.map(moment => (
                   <div key={moment.id} className="moment-card">
@@ -138,9 +182,9 @@ export default function Search() {
           )}
 
           {/* 포스트 결과 */}
-          {matchedPosts.length > 0 && (
+          {matchedPosts.length > 0 && (activeFilter === 'all' || activeFilter === 'post') && (
             <div className="search-section">
-              <h2>📱 포스트 ({matchedPosts.length})</h2>
+              <h2><PostIcon size={18} /> 포스트 ({matchedPosts.length})</h2>
               <div className="search-list">
                 {matchedPosts.map(post => (
                   <Link to={`/posts?highlight=${post.id}`} key={post.id} className="search-item">
@@ -153,9 +197,9 @@ export default function Search() {
           )}
 
           {/* 에피소드 결과 */}
-          {matchedEpisodes.length > 0 && (
+          {matchedEpisodes.length > 0 && (activeFilter === 'all' || activeFilter === 'episode') && (
             <div className="search-section">
-              <h2>💬 에피소드 ({matchedEpisodes.length})</h2>
+              <h2><ChatIcon size={18} /> 에피소드 ({matchedEpisodes.length})</h2>
               <div className="search-list">
                 {matchedEpisodes.map(episode => (
                   <Link to={`/episodes?highlight=${episode.id}`} key={episode.id} className="search-item">
@@ -170,7 +214,7 @@ export default function Search() {
           {/* 공사중 - 글 결과 임시 숨김
           {matchedArticles.length > 0 && (
             <div className="search-section">
-              <h2>📝 글 ({matchedArticles.length})</h2>
+              <h2><BookIcon size={18} /> 글 ({matchedArticles.length})</h2>
               <div className="search-list">
                 {matchedArticles.map(article => (
                   <a href={article.url} key={article.id} className="search-item" target="_blank" rel="noopener noreferrer">
