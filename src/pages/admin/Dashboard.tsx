@@ -6,6 +6,7 @@ import {
 declare const __APP_VERSION__: string;
 import type { Video, Moment, Post, Episode, Article } from '../../lib/database';
 import { useData } from '../../hooks/useData';
+import { VideoIcon, PostIcon, ChatIcon, BookIcon } from '../../components/Icons';
 
 export default function Dashboard() {
   const { 
@@ -153,15 +154,15 @@ export default function Dashboard() {
       
       <div className="admin-stats">
         <div className="admin-stat-card">
-          <span className="admin-stat-icon">📹</span>
+          <span className="admin-stat-icon"><VideoIcon size={24} /></span>
           <div className="admin-stat-info">
             <span className="admin-stat-number">{videos.length}</span>
             <span className="admin-stat-label">영상</span>
           </div>
         </div>
-        
+
         <div className="admin-stat-card">
-          <span className="admin-stat-icon">✨</span>
+          <span className="admin-stat-icon"><VideoIcon size={24} /></span>
           <div className="admin-stat-info">
             <span className="admin-stat-number">{moments.length}</span>
             <span className="admin-stat-label">모먼트</span>
@@ -169,7 +170,7 @@ export default function Dashboard() {
         </div>
 
         <div className="admin-stat-card">
-          <span className="admin-stat-icon">📱</span>
+          <span className="admin-stat-icon"><PostIcon size={24} /></span>
           <div className="admin-stat-info">
             <span className="admin-stat-number">{posts.length}</span>
             <span className="admin-stat-label">포스트</span>
@@ -177,15 +178,15 @@ export default function Dashboard() {
         </div>
 
         <div className="admin-stat-card">
-          <span className="admin-stat-icon">💬</span>
+          <span className="admin-stat-icon"><ChatIcon size={24} /></span>
           <div className="admin-stat-info">
             <span className="admin-stat-number">{episodes.length}</span>
             <span className="admin-stat-label">에피소드</span>
           </div>
         </div>
-        
+
         <div className="admin-stat-card">
-          <span className="admin-stat-icon">📝</span>
+          <span className="admin-stat-icon"><BookIcon size={24} /></span>
           <div className="admin-stat-info">
             <span className="admin-stat-number">{articles.length}</span>
             <span className="admin-stat-label">도서관</span>

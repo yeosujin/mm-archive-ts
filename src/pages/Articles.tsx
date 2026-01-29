@@ -15,7 +15,7 @@ export default function Articles() {
         <p style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚧</p>
         <p>공사중이에요!</p>
         <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-          책 찾는 중..
+          책 쌓는 중..
         </p>
       </div>
     </div>

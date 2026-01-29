@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import type { Episode, MemberSettings, Video, Moment, Post } from '../lib/database';
 import { useData } from '../hooks/useData';
 import PlatformIcon from '../components/PlatformIcon';
-import { ArrowRightIcon } from '../components/Icons';
+import { ArrowRightIcon, VideoIcon, PostIcon } from '../components/Icons';
 
 export default function Episodes() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -141,10 +141,10 @@ export default function Episodes() {
 
   const getContentTypeIcon = (type?: string) => {
     switch (type) {
-      case 'video': return '📹';
-      case 'moment': return '✨';
-      case 'post': return '📱';
-      default: return '📄';
+      case 'video': return <VideoIcon size={16} />;
+      case 'moment': return <VideoIcon size={16} />;
+      case 'post': return <PostIcon size={16} />;
+      default: return <VideoIcon size={16} />;
     }
   };
 

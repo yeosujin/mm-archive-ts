@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import AdminAuth from './AdminAuth';
+import { VideoIcon, PostIcon, ChatIcon, BookIcon, DashboardIcon } from './Icons';
 
 export default function AdminLayout() {
   return (
@@ -7,47 +8,47 @@ export default function AdminLayout() {
       <div className="admin-container">
         <aside className="admin-sidebar">
           <nav className="admin-nav">
-            <NavLink 
-              to="/admin" 
+            <NavLink
+              to="/admin"
               end
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
             >
-              📊 대시보드
+              <DashboardIcon size={16} /> 대시보드
             </NavLink>
-            <NavLink 
-              to="/admin/videos" 
+            <NavLink
+              to="/admin/videos"
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/admin/AdminVideos')}
             >
-              📹 영상
+              <VideoIcon size={16} /> 영상
             </NavLink>
-            <NavLink 
-              to="/admin/moments" 
+            <NavLink
+              to="/admin/moments"
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/admin/AdminMoments')}
             >
-              ✨ 모먼트
+              <VideoIcon size={16} /> 모먼트
             </NavLink>
-            <NavLink 
-              to="/admin/posts" 
+            <NavLink
+              to="/admin/posts"
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/admin/AdminPosts')}
             >
-              📱 포스트
+              <PostIcon size={16} /> 포스트
             </NavLink>
-            <NavLink 
-              to="/admin/episodes" 
+            <NavLink
+              to="/admin/episodes"
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/admin/AdminEpisodes')}
             >
-              🎬 에피소드
+              <ChatIcon size={16} /> 에피소드
             </NavLink>
-            <NavLink 
-              to="/admin/articles" 
+            <NavLink
+              to="/admin/articles"
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/admin/AdminArticles')}
             >
-              📰 도서관
+              <BookIcon size={16} /> 도서관
             </NavLink>
           </nav>
         </aside>
