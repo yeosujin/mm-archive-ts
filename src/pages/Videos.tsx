@@ -32,6 +32,7 @@ const YOUTUBE_CATEGORIES = [
   { value: 'litpouch', label: '릿파우치', pattern: '[lit-pouch]' },
   { value: 'playit', label: 'PLAY IT', pattern: ['[PLAY-IT]', '[Playlist]'] },
   { value: 'illlikeit', label: 'I\'LL LIKE IT', pattern: 'LL LIKE IT!' },
+  { value: 'other_channel', label: '타 채널', pattern: null },
 ] as const;
 
 export default function Videos() {
@@ -141,15 +142,20 @@ export default function Videos() {
 
     // YouTube 카테고리 필터
     if (platformFilter === 'youtube' && youtubeCategoryFilter !== 'all') {
-      const category = YOUTUBE_CATEGORIES.find(c => c.value === youtubeCategoryFilter);
-      if (category?.pattern) {
-        filtered = filtered.filter(video => {
-          const title = video.title;
-          if (Array.isArray(category.pattern)) {
-            return category.pattern.some(p => title.includes(p));
-          }
-          return title.includes(category.pattern as string);
-        });
+      if (youtubeCategoryFilter === 'other_channel') {
+        // 타 콘텐츠: 채널명이 'ILLIT'이 아닌 영상
+        filtered = filtered.filter(video => video.channel_name && video.channel_name !== 'ILLIT');
+      } else {
+        const category = YOUTUBE_CATEGORIES.find(c => c.value === youtubeCategoryFilter);
+        if (category?.pattern) {
+          filtered = filtered.filter(video => {
+            const title = video.title;
+            if (Array.isArray(category.pattern)) {
+              return category.pattern.some(p => title.includes(p));
+            }
+            return title.includes(category.pattern as string);
+          });
+        }
       }
     }
 

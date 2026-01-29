@@ -30,7 +30,7 @@ function extractYouTubeId(url: string): string | null {
   return null;
 }
 
-async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date: string } | null> {
+async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date: string; channelName: string } | null> {
   // videoId 검증 (11자 영숫자와 -_만 허용)
   if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
     return null;
@@ -69,8 +69,9 @@ async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date:
     const safeTitle = snippet.title.replaceAll(/[<>]/g, '');
     const dateMatch = snippet.publishedAt.match(/^\d{4}-\d{2}-\d{2}/);
     const safeDate = dateMatch ? dateMatch[0] : '';
+    const safeChannelName = (snippet.channelTitle || '').replaceAll(/[<>]/g, '');
 
-    return { title: safeTitle, date: safeDate };
+    return { title: safeTitle, date: safeDate, channelName: safeChannelName };
   } catch {
     return null;
   }
@@ -93,6 +94,7 @@ export default function AdminVideos() {
     icon: '',
     icon_text: '',
     thumbnail_url: '',
+    channel_name: '',
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
@@ -145,7 +147,7 @@ export default function AdminVideos() {
     try {
       const info = await fetchYouTubeInfo(videoId);
       if (info) {
-        setFormData(prev => ({ ...prev, title: info.title, date: info.date }));
+        setFormData(prev => ({ ...prev, title: info.title, date: info.date, channel_name: info.channelName }));
       } else {
         alert('영상 정보를 가져올 수 없어요.');
       }
@@ -215,9 +217,16 @@ export default function AdminVideos() {
           icon: isWeverseUrl ? formData.icon : undefined,
           icon_text: isWeverseUrl && formData.icon === '🖤' ? formData.icon_text : undefined,
           thumbnail_url: formData.thumbnail_url || undefined,
+          channel_name: formData.channel_name || undefined,
         });
         alert('수정되었어요!');
       } else {
+        // 중복 체크: 같은 제목 + 같은 날짜
+        const duplicate = videos.find(v => v.title === formData.title && v.date === formData.date);
+        if (duplicate) {
+          alert('이미 등록된 영상입니다.');
+          return;
+        }
         await createVideo({
           title: formData.title,
           url: formData.url,
@@ -225,6 +234,7 @@ export default function AdminVideos() {
           ...(isWeverseUrl && { icon: formData.icon }),
           ...(isWeverseUrl && formData.icon === '🖤' && formData.icon_text && { icon_text: formData.icon_text }),
           ...(formData.thumbnail_url && { thumbnail_url: formData.thumbnail_url }),
+          ...(formData.channel_name && { channel_name: formData.channel_name }),
         });
         alert('추가되었어요!');
       }
@@ -246,20 +256,21 @@ export default function AdminVideos() {
       icon: video.icon || '',
       icon_text: video.icon_text || '',
       thumbnail_url: video.thumbnail_url || '',
+      channel_name: video.channel_name || '',
     });
     setIsModalOpen(true);
   };
 
   const handleOpenAddModal = () => {
     setEditingId(null);
-    setFormData({ title: '', url: '', date: '', icon: '', icon_text: '', thumbnail_url: '' });
+    setFormData({ title: '', url: '', date: '', icon: '', icon_text: '', thumbnail_url: '', channel_name: '' });
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ title: '', url: '', date: '', icon: '', icon_text: '', thumbnail_url: '' });
+    setFormData({ title: '', url: '', date: '', icon: '', icon_text: '', thumbnail_url: '', channel_name: '' });
     setUploadMessage('');
   };
 
