@@ -28,10 +28,13 @@
 - 네비게이션에서 "모먼트"로 표시됨
 - YouTube, Cloudflare R2, Weverse 지원
 - R2 업로드 시 멀티파트 업로드 + 진행률 표시 + 첫 프레임 썸네일 자동 생성
-- YouTube API로 메타데이터 자동 가져오기
+- YouTube API로 메타데이터 자동 가져오기 (제목, 날짜, 채널명)
+- YouTube 카테고리 필터: Shorts, 비하인드, 슈일릿, 릿파우치, PLAY IT, I'LL LIKE IT, 타 채널
+- 타 채널 필터: `channel_name`이 'ILLIT'이 아닌 영상
 - 하위 Moments(순간)를 아코디언으로 연결 표시 (제목 숨김 처리됨)
 - Weverse 영상은 아이콘으로 멤버 표시 (🤍둘만, 💙모카, 🩵민주, 🖤여러명)
 - 🖤 선택 시 `icon_text` 필드로 구체적 멤버 표시 가능
+- 영상 등록 시 중복 체크 (같은 제목 + 같은 날짜)
 
 ### 2. Moments (순간 - 네비 숨김)
 
@@ -98,6 +101,7 @@
 - 2020년~현재 범위의 통합 캘린더 뷰
 - 모든 도메인 데이터를 날짜별로 집계
 - 콘텐츠 클릭 시 해당 아이템 자동 펼침/강조
+- URL 파라미터로 연도/월 상태 유지 (`?year=2025&month=1`)
 
 ### 7. Search (검색)
 
@@ -173,7 +177,8 @@
   id, title, url, date,
   icon?: string,        // 위버스 멤버 아이콘 (💙, 🩵, 🖤, 🤍)
   icon_text?: string,   // 🖤 선택 시 구체적 멤버 표시
-  thumbnail_url?: string
+  thumbnail_url?: string,
+  channel_name?: string // YouTube 채널명 (타 채널 필터용)
 }
 ```
 
