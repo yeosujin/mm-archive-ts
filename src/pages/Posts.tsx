@@ -228,7 +228,8 @@ export default function Posts() {
                       poster={selectedPost.media[currentMediaIndex].thumbnail}
                       controls
                       playsInline
-                      preload="auto"
+                      preload="metadata"
+                      crossOrigin="anonymous"
                     >
                       <track kind="captions" />
                     </video>
