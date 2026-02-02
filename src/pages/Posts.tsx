@@ -5,6 +5,17 @@ import PlatformIcon from '../components/PlatformIcon';
 import { useData } from '../hooks/useData';
 import { CloseIcon } from '../components/Icons';
 
+function getVideoMimeType(url: string): string {
+  const ext = url.split('.').pop()?.toLowerCase().split('?')[0];
+  switch (ext) {
+    case 'mov': return 'video/quicktime';
+    case 'webm': return 'video/webm';
+    case 'mp4': return 'video/mp4';
+    case 'm4v': return 'video/x-m4v';
+    default: return 'video/mp4';
+  }
+}
+
 export default function Posts() {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
@@ -225,12 +236,15 @@ export default function Posts() {
                   {selectedPost.media[currentMediaIndex].type === 'video' ? (
                     <video
                       key={selectedPost.media[currentMediaIndex].url}
-                      src={selectedPost.media[currentMediaIndex].url}
                       poster={selectedPost.media[currentMediaIndex].thumbnail}
                       controls
                       playsInline
-                      preload="none"
+                      preload="metadata"
                     >
+                      <source
+                        src={selectedPost.media[currentMediaIndex].url}
+                        type={getVideoMimeType(selectedPost.media[currentMediaIndex].url)}
+                      />
                       <track kind="captions" />
                     </video>
                   ) : (
