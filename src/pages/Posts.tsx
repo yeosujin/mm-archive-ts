@@ -224,12 +224,12 @@ export default function Posts() {
                 <div className="carousel-media">
                   {selectedPost.media[currentMediaIndex].type === 'video' ? (
                     <video
+                      key={selectedPost.media[currentMediaIndex].url}
                       src={selectedPost.media[currentMediaIndex].url}
                       poster={selectedPost.media[currentMediaIndex].thumbnail}
                       controls
                       playsInline
-                      preload="metadata"
-                      crossOrigin="anonymous"
+                      preload="none"
                     >
                       <track kind="captions" />
                     </video>
