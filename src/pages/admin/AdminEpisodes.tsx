@@ -111,6 +111,11 @@ export default function AdminEpisodes() {
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [newActivityName, setNewActivityName] = useState('');
 
+  // 연결 콘텐츠 검색 상태
+  const [contentSearchQuery, setContentSearchQuery] = useState('');
+  const [isContentDropdownOpen, setIsContentDropdownOpen] = useState(false);
+  const contentDropdownRef = useRef<HTMLDivElement>(null);
+
   const loadData = useCallback(async () => {
     try {
       const [episodesData, settings, videosData, momentsData, postsData, activitiesData] = await Promise.all([
@@ -144,6 +149,17 @@ export default function AdminEpisodes() {
   useEffect(() => { if (cachedVideos) setVideos(cachedVideos); }, [cachedVideos]);
   useEffect(() => { if (cachedMoments) setMoments(cachedMoments); }, [cachedMoments]);
   useEffect(() => { if (cachedPosts) setPosts(cachedPosts); }, [cachedPosts]);
+
+  // 콘텐츠 드롭다운 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (contentDropdownRef.current && !contentDropdownRef.current.contains(e.target as Node)) {
+        setIsContentDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSaveMemberSettings = async () => {
     try {
@@ -531,6 +547,8 @@ export default function AdminEpisodes() {
       linked_content_id: '',
     });
     setCommentMessages([{ id: crypto.randomUUID(), content: '', time: '' }]);
+    setContentSearchQuery('');
+    setIsContentDropdownOpen(false);
   };
 
   const resetLPForm = () => {
@@ -554,6 +572,8 @@ export default function AdminEpisodes() {
       } else {
         setCommentMessages([{ id: crypto.randomUUID(), content: episode.comment_text || '', time: '' }]);
       }
+      setContentSearchQuery('');
+      setIsContentDropdownOpen(false);
     } else if (episode.episode_type === 'listening_party') {
       setEpisodeType('listening_party');
       setLpData({
@@ -623,6 +643,34 @@ export default function AdminEpisodes() {
       return moments;
     }
     return posts;
+  };
+
+  // 검색 필터링된 콘텐츠 목록
+  const getFilteredContentList = (): (Video | Moment | Post)[] => {
+    const list = getContentList();
+    if (!contentSearchQuery.trim()) return list;
+    const query = contentSearchQuery.toLowerCase();
+    return list.filter(item =>
+      item.title?.toLowerCase().includes(query) ||
+      item.date.includes(query) ||
+      ('platform' in item && item.platform?.toLowerCase().includes(query))
+    );
+  };
+
+  // 선택된 콘텐츠 정보 가져오기
+  const getSelectedContentInfo = (): string => {
+    if (!commentData.linked_content_id) return '';
+    const list = getContentList();
+    const item = list.find(i => i.id === commentData.linked_content_id);
+    if (!item) return '';
+    return `[${item.date}] ${item.title || ('platform' in item ? item.platform : '')}`;
+  };
+
+  // 콘텐츠 선택 핸들러
+  const handleContentSelect = (id: string) => {
+    setCommentData({ ...commentData, linked_content_id: id });
+    setContentSearchQuery('');
+    setIsContentDropdownOpen(false);
   };
 
   const getLinkedContentTitle = (episode: Episode) => {
@@ -1005,11 +1053,14 @@ export default function AdminEpisodes() {
               <select
                 id="comment-content-type"
                 value={commentData.linked_content_type}
-                onChange={(e) => setCommentData({ 
-                  ...commentData, 
-                  linked_content_type: e.target.value as 'video' | 'moment' | 'post',
-                  linked_content_id: ''
-                })}
+                onChange={(e) => {
+                  setCommentData({
+                    ...commentData,
+                    linked_content_type: e.target.value as 'video' | 'moment' | 'post',
+                    linked_content_id: ''
+                  });
+                  setContentSearchQuery('');
+                }}
                 className="form-select"
               >
                 <option value="video">📹 영상</option>
@@ -1019,20 +1070,53 @@ export default function AdminEpisodes() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="comment-content-select">연결할 콘텐츠 (선택)</label>
-              <select
-                id="comment-content-select"
-                value={commentData.linked_content_id}
-                onChange={(e) => setCommentData({ ...commentData, linked_content_id: e.target.value })}
-                className="form-select"
-              >
-                <option value="">없음</option>
-                {getContentList().map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.title || ('platform' in item ? item.platform : '')} ({item.date})
-                  </option>
-                ))}
-              </select>
+              <label>연결할 콘텐츠 (선택)</label>
+              <div className="searchable-select" ref={contentDropdownRef}>
+                <input
+                  type="text"
+                  placeholder={commentData.linked_content_id
+                    ? getSelectedContentInfo()
+                    : '콘텐츠 검색 (날짜/제목)'}
+                  value={contentSearchQuery}
+                  onChange={(e) => {
+                    setContentSearchQuery(e.target.value);
+                    setIsContentDropdownOpen(true);
+                  }}
+                  onFocus={() => setIsContentDropdownOpen(true)}
+                  className="searchable-select-input"
+                />
+                {commentData.linked_content_id && (
+                  <button
+                    type="button"
+                    className="searchable-select-clear"
+                    onClick={() => handleContentSelect('')}
+                  >
+                    ✕
+                  </button>
+                )}
+                {isContentDropdownOpen && (
+                  <div className="searchable-select-dropdown">
+                    <div
+                      className={`searchable-select-option ${!commentData.linked_content_id ? 'selected' : ''}`}
+                      onClick={() => handleContentSelect('')}
+                    >
+                      없음
+                    </div>
+                    {getFilteredContentList().map((item) => (
+                      <div
+                        key={item.id}
+                        className={`searchable-select-option ${commentData.linked_content_id === item.id ? 'selected' : ''}`}
+                        onClick={() => handleContentSelect(item.id)}
+                      >
+                        [{item.date}] {item.title || ('platform' in item ? item.platform : '')}
+                      </div>
+                    ))}
+                    {getFilteredContentList().length === 0 && (
+                      <div className="searchable-select-empty">검색 결과 없음</div>
+                    )}
+                  </div>
+                )}
+              </div>
               <span className="form-hint">특정 콘텐츠에 단 댓글이면 선택하세요</span>
             </div>
 
