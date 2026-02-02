@@ -98,6 +98,23 @@ export default function Posts() {
     setCurrentMediaIndex(prev => (prev === mediaLength - 1 ? 0 : prev + 1));
   }, [mediaLength]);
 
+  // 스와이프 핸들러
+  const touchStartX = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEndX;
+
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) nextMedia();
+      else prevMedia();
+    }
+  };
+
   // 키보드 네비게이션
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -232,7 +249,11 @@ export default function Posts() {
             {/* 미디어 캐러셀 */}
             {selectedPost.media && selectedPost.media.length > 0 && (
               <div className="post-carousel">
-                <div className="carousel-media">
+                <div
+                  className="carousel-media"
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                >
                   {selectedPost.media[currentMediaIndex].type === 'video' ? (
                     <video
                       key={selectedPost.media[currentMediaIndex].url}
