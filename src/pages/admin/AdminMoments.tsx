@@ -116,7 +116,7 @@ export default function AdminMoments() {
     const targetMoment = moments.find(m => m.id === momentId);
     if (!targetMoment) return;
 
-    const sameDateMoments = moments
+    const sameDateMoments = [...moments]
       .filter(m => m.date === targetMoment.date)
       .sort((a, b) => (a.position || 0) - (b.position || 0));
 
@@ -125,14 +125,15 @@ export default function AdminMoments() {
 
     if (swapIdx < 0 || swapIdx >= sameDateMoments.length) return;
 
-    // position 값 스왑
-    const currentPos = sameDateMoments[currentIdx].position || 0;
-    const swapPos = sameDateMoments[swapIdx].position || 0;
+    // 배열에서 위치 스왑
+    const reordered = [...sameDateMoments];
+    [reordered[currentIdx], reordered[swapIdx]] = [reordered[swapIdx], reordered[currentIdx]];
 
-    const updates = [
-      { id: sameDateMoments[currentIdx].id, position: swapPos },
-      { id: sameDateMoments[swapIdx].id, position: currentPos },
-    ];
+    // 인덱스 기반으로 새 position 할당
+    const updates = reordered.map((m, idx) => ({
+      id: m.id,
+      position: idx,
+    }));
 
     // 로컬 상태 즉시 반영
     setMoments(prev => prev.map(m => {
