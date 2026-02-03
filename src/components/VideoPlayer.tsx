@@ -83,6 +83,7 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
             <img
               src={thumbnailUrl}
               alt=""
+              loading="lazy"
               style={{
                 position: 'absolute',
                 top: 0,

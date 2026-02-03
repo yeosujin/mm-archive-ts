@@ -254,26 +254,36 @@ export default function Posts() {
                   onTouchStart={handleTouchStart}
                   onTouchEnd={handleTouchEnd}
                 >
-                  {selectedPost.media[currentMediaIndex].type === 'video' ? (
-                    <video
-                      key={selectedPost.media[currentMediaIndex].url}
-                      poster={selectedPost.media[currentMediaIndex].thumbnail}
-                      controls
-                      playsInline
-                      preload="metadata"
+                  {selectedPost.media.map((media, index) => (
+                    <div
+                      key={media.url}
+                      style={{
+                        display: index === currentMediaIndex ? 'block' : 'none',
+                        width: '100%',
+                        height: '100%',
+                      }}
                     >
-                      <source
-                        src={selectedPost.media[currentMediaIndex].url}
-                        type={getVideoMimeType(selectedPost.media[currentMediaIndex].url)}
-                      />
-                      <track kind="captions" />
-                    </video>
-                  ) : (
-                    <img
-                      src={selectedPost.media[currentMediaIndex].url}
-                      alt={`${selectedPost.title} - ${currentMediaIndex + 1}`}
-                    />
-                  )}
+                      {media.type === 'video' ? (
+                        <video
+                          poster={media.thumbnail}
+                          controls
+                          playsInline
+                          preload="metadata"
+                        >
+                          <source
+                            src={media.url}
+                            type={getVideoMimeType(media.url)}
+                          />
+                          <track kind="captions" />
+                        </video>
+                      ) : (
+                        <img
+                          src={media.url}
+                          alt={`${selectedPost.title} - ${index + 1}`}
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 {selectedPost.media.length > 1 && (

@@ -18,7 +18,15 @@
       "Bash(git stash:*)",
       "Bash(git restore:*)",
       "Bash(git reset:*)",
-      "Bash(supabase init:*)"
+      "Bash(supabase init:*)",
+      "Bash(for file in src/pages/admin/Admin*.tsx)",
+      "Bash(do)",
+      "Bash(if grep -q \"const.*useToast.*=\" \"$file\")",
+      "Bash(then)",
+      "Bash(else)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(if grep -q \"useToast\\(\\)\" \"$file\")"
     ]
   }
 }

@@ -6,6 +6,10 @@ import AdminModal from '../../components/AdminModal';
 import PlatformIcon from '../../components/PlatformIcon';
 import { detectVideoPlatform } from '../../lib/platformUtils';
 import { useData } from '../../hooks/useData';
+import { useToast } from '../../hooks/useToast';
+import Toast from '../../components/Toast';
+import { useConfirm } from '../../hooks/useConfirm';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const HEART_OPTIONS = [
   { value: '🤍', label: '🤍 둘만' },
@@ -80,6 +84,8 @@ async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date:
 
 export default function AdminVideos() {
   const { videos: cachedVideos, fetchVideos, invalidateCache } = useData();
+  const { toasts, showToast, removeToast } = useToast();
+  const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
   const [loading, setLoading] = useState(!cachedVideos);
   const [fetching, setFetching] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -143,14 +149,14 @@ export default function AdminVideos() {
 
   const handleFetchYouTube = async () => {
     const videoId = extractYouTubeId(formData.url);
-    if (!videoId) { alert('올바른 YouTube URL을 입력해주세요.'); return; }
+    if (!videoId) { showToast('올바른 YouTube URL을 입력해주세요.', 'error'); return; }
     setFetching(true);
     try {
       const info = await fetchYouTubeInfo(videoId);
       if (info) {
         setFormData(prev => ({ ...prev, title: info.title, date: info.date, channel_name: info.channelName }));
       } else {
-        alert('영상 정보를 가져올 수 없어요.');
+        showToast('영상 정보를 가져올 수 없어요.', 'error');
       }
     } catch (error) {
       console.error('Error fetching YouTube info:', error);
@@ -162,7 +168,7 @@ export default function AdminVideos() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!isVideoFile(file)) { alert('비디오 파일만 업로드 가능합니다.'); return; }
+    if (!isVideoFile(file)) { showToast('비디오 파일만 업로드 가능합니다.', 'error'); return; }
 
     setUploading(true);
     setUploadProgress(0);
@@ -190,7 +196,7 @@ export default function AdminVideos() {
       setUploadMessage('업로드 완료!');
       setTimeout(() => setUploadMessage(''), 3000);
     } catch (error) {
-      alert('업로드 실패: ' + (error as Error).message);
+      showToast('업로드 실패: ' + (error as Error).message, 'error');
       setUploadMessage('');
       setFormData(prev => ({ ...prev, url: '', thumbnail_url: '' }));
     } finally {
@@ -220,12 +226,12 @@ export default function AdminVideos() {
           thumbnail_url: formData.thumbnail_url || undefined,
           channel_name: formData.channel_name || undefined,
         });
-        alert('수정되었어요!');
+        showToast('수정되었어요!', 'success');
       } else {
         // 중복 체크: 같은 제목 + 같은 날짜
         const duplicate = videos.find(v => v.title === formData.title && v.date === formData.date);
         if (duplicate) {
-          alert('이미 등록된 영상입니다.');
+          showToast('이미 등록된 영상입니다.', 'error');
           return;
         }
         await createVideo({
@@ -237,14 +243,14 @@ export default function AdminVideos() {
           ...(formData.thumbnail_url && { thumbnail_url: formData.thumbnail_url }),
           ...(formData.channel_name && { channel_name: formData.channel_name }),
         });
-        alert('추가되었어요!');
+        showToast('추가되었어요!', 'success');
       }
       invalidateCache('videos');
       handleCloseModal();
       loadData();
     } catch (error) {
       console.error('Error saving video:', error);
-      alert('저장 중 오류가 발생했어요.');
+      showToast('저장 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -276,18 +282,19 @@ export default function AdminVideos() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말 삭제하시겠어요?')) return;
+    const confirmed = await confirm({ message: '정말 삭제하시겠어요?', type: 'danger' });
+    if (!confirmed) return;
     try {
       const video = videos.find(v => v.id === id);
       if (video?.url) await deleteFileFromR2(video.url);
       if (video?.thumbnail_url) deleteFileFromR2(video.thumbnail_url).catch(err => console.error('Thumb delete failed:', err));
       await deleteVideo(id);
       invalidateCache('videos');
-      alert('삭제되었어요!');
+      showToast('삭제되었어요!', 'success');
       loadData();
     } catch (error) {
       console.error('Error deleting video:', error);
-      alert('삭제 중 오류가 발생했어요.');
+      showToast('삭제 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -296,9 +303,21 @@ export default function AdminVideos() {
   }
 
   return (
-    <div className="admin-page">
-      <div className="admin-header-actions">
-        <h1>영상 관리 ({videos.length}개)</h1>
+    <>
+      <Toast toasts={toasts} onRemove={removeToast} />
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
+      <div className="admin-page">
+        <div className="admin-header-actions">
+          <h1>영상 관리 ({videos.length}개)</h1>
         <button className="admin-add-btn-header" onClick={handleOpenAddModal}>+ 추가</button>
       </div>
 
@@ -444,6 +463,7 @@ export default function AdminVideos() {
       </AdminModal>
 
       <button className="admin-add-btn-fixed" onClick={handleOpenAddModal}>+ 영상 추가</button>
-    </div>
+      </div>
+    </>
   );
 }

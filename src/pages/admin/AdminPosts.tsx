@@ -5,6 +5,10 @@ import { detectPlatform } from '../../lib/platformUtils';
 import PlatformIcon from '../../components/PlatformIcon';
 import { getPlatformName } from '../../lib/platformUtils';
 import { useData } from '../../hooks/useData';
+import { useToast } from '../../hooks/useToast';
+import Toast from '../../components/Toast';
+import { useConfirm } from '../../hooks/useConfirm';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadPhotoToR2, uploadVideoToR2, uploadThumbnailFromVideo, generateThumbnailFromUrl, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
 
 // 로컬 파일 미리보기용 타입
@@ -22,6 +26,8 @@ type MediaItem =
 
 export default function AdminPosts() {
   const { posts: cachedPosts, fetchPosts, invalidateCache } = useData();
+  const { toasts, showToast, removeToast } = useToast();
+  const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
   const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
   const [loading, setLoading] = useState(!cachedPosts);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -224,11 +230,11 @@ export default function AdminPosts() {
 
       if (editingId) {
         await updatePost(editingId, postData);
-        alert('수정되었어요!');
+        showToast('수정되었어요!', 'success');
         setEditingId(null);
       } else {
         await createPost(postData);
-        alert('포스트가 추가되었어요!');
+        showToast('포스트가 추가되었어요!', 'success');
       }
 
       resetForm();
@@ -236,7 +242,7 @@ export default function AdminPosts() {
       loadPosts();
     } catch (error) {
       console.error('Error saving post:', error);
-      alert('저장 중 오류가 발생했어요.');
+      showToast('저장 중 오류가 발생했어요.', 'error');
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -275,7 +281,8 @@ export default function AdminPosts() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말 삭제하시겠어요?')) return;
+    const confirmed = await confirm({ message: '정말 삭제하시겠어요?', type: 'danger' });
+    if (!confirmed) return;
 
     // 삭제 전에 미디어 파일도 R2에서 삭제
     const post = posts.find(p => p.id === id);
@@ -294,12 +301,12 @@ export default function AdminPosts() {
 
     try {
       await deletePost(id);
-      alert('삭제되었어요!');
+      showToast('삭제되었어요!', 'success');
       invalidateCache('posts');
       loadPosts();
     } catch (error) {
       console.error('Error deleting post:', error);
-      alert('삭제 중 오류가 발생했어요.');
+      showToast('삭제 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -321,11 +328,15 @@ export default function AdminPosts() {
     }
 
     if (targets.length === 0) {
-      alert('썸네일이 필요한 R2 영상이 없어요.');
+      showToast('썸네일이 필요한 R2 영상이 없어요.', 'info');
       return;
     }
 
-    if (!confirm(`${targets.length}개 영상의 썸네일을 생성할까요?`)) return;
+    const confirmed = await confirm({
+      message: `${targets.length}개 영상의 썸네일을 생성할까요?`,
+      type: 'info'
+    });
+    if (!confirmed) return;
 
     setThumbGenerating(true);
     let success = 0;
@@ -349,7 +360,7 @@ export default function AdminPosts() {
     setThumbProgress('');
     invalidateCache('posts');
     loadPosts();
-    alert(`완료! ${success}/${targets.length}개 썸네일 생성됨`);
+    showToast(`완료! ${success}/${targets.length}개 썸네일 생성됨`, 'success');
   };
 
   // 미디어 아이템의 썸네일/미리보기 URL 가져오기
@@ -370,6 +381,18 @@ export default function AdminPosts() {
   }
 
   return (
+    <>
+      <Toast toasts={toasts} onRemove={removeToast} />
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     <div className="admin-page">
       <div className="admin-header-actions">
         <h1>포스트 관리</h1>
@@ -491,7 +514,7 @@ export default function AdminPosts() {
                     <div key={item.kind === 'uploaded' ? item.data.url : item.data.id} className={`media-preview-item ${isPending ? 'pending' : ''}`}>
                       <div className="media-preview-thumb">
                         {previewUrl ? (
-                          <img src={previewUrl} alt={`미디어 ${index + 1}`} />
+                          <img src={previewUrl} alt={`미디어 ${index + 1}`} loading="lazy" />
                         ) : (
                           <div className="video-placeholder">🎬</div>
                         )}
@@ -588,6 +611,7 @@ export default function AdminPosts() {
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

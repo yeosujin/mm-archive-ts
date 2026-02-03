@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { getVideos, getMoments, getPosts, getEpisodes } from '../lib/database';
-import type { Video, Moment, Post, Episode } from '../lib/database';
+import { getVideos, getMoments, getPosts, getEpisodes, getArticles, getArticlesVisibility } from '../lib/database';
+import type { Video, Moment, Post, Episode, Article } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
-import { ArrowRightIcon, VideoIcon, PostIcon, ChatIcon } from '../components/Icons';
+import { ArrowRightIcon, VideoIcon, PostIcon, ChatIcon, BookIcon } from '../components/Icons';
 
-type FilterType = 'all' | 'video' | 'moment' | 'post' | 'episode';
+type FilterType = 'all' | 'video' | 'moment' | 'post' | 'episode' | 'article';
 
 export default function Search() {
   const [searchParams] = useSearchParams();
@@ -15,8 +15,8 @@ export default function Search() {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
-  // 공사중 - articles 임시 숨김
-  // const [articles, setArticles] = useState<Article[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [articlesVisible, setArticlesVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
@@ -26,20 +26,22 @@ export default function Search() {
 
   const loadAllData = async () => {
     try {
-      const [videosData, momentsData, postsData, episodesData] = await Promise.all([
+      // articles_visible 설정 확인
+      const articlesVisibleData = await getArticlesVisibility();
+      setArticlesVisible(articlesVisibleData);
+
+      const [videosData, momentsData, postsData, episodesData, articlesData] = await Promise.all([
         getVideos(),
         getMoments(),
         getPosts(),
-        getEpisodes()
-        // 공사중 - articles 임시 숨김
-        // getArticles()
+        getEpisodes(),
+        articlesVisibleData ? getArticles() : Promise.resolve([])
       ]);
       setVideos(videosData);
       setMoments(momentsData);
       setPosts(postsData);
       setEpisodes(episodesData);
-      // 공사중 - articles 임시 숨김
-      // setArticles(articlesData);
+      setArticles(articlesData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -59,21 +61,21 @@ export default function Search() {
   const matchedPosts = posts.filter(p => 
     p.title.toLowerCase().includes(searchLower) || p.date.includes(query)
   );
-  const matchedEpisodes = episodes.filter(e => 
+  const matchedEpisodes = episodes.filter(e =>
     e.title?.toLowerCase().includes(searchLower) || e.date.includes(query)
   );
-  // 공사중 - articles 임시 숨김
-  // const matchedArticles = articles.filter(a =>
-  //   a.title.toLowerCase().includes(searchLower) ||
-  //   a.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
-  //   a.date.includes(query)
-  // );
+  const matchedArticles = articlesVisible ? articles.filter(a =>
+    a.title.toLowerCase().includes(searchLower) ||
+    a.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
+    a.date.includes(query)
+  ) : [];
 
   const totalResults =
     matchedVideos.length +
     matchedMoments.length +
     matchedPosts.length +
-    matchedEpisodes.length;
+    matchedEpisodes.length +
+    matchedArticles.length;
 
   if (loading) {
     return (
@@ -137,6 +139,14 @@ export default function Search() {
                 onClick={() => setActiveFilter('episode')}
               >
                 <ChatIcon size={14} /> 에피소드 ({matchedEpisodes.length})
+              </button>
+            )}
+            {matchedArticles.length > 0 && (
+              <button
+                className={`search-filter-tab ${activeFilter === 'article' ? 'active' : ''}`}
+                onClick={() => setActiveFilter('article')}
+              >
+                <BookIcon size={14} /> 글 ({matchedArticles.length})
               </button>
             )}
           </div>
@@ -211,21 +221,20 @@ export default function Search() {
             </div>
           )}
 
-          {/* 공사중 - 글 결과 임시 숨김
-          {matchedArticles.length > 0 && (
+          {/* 글 결과 - articlesVisible이 true일 때만 표시 */}
+          {matchedArticles.length > 0 && (activeFilter === 'all' || activeFilter === 'article') && (
             <div className="search-section">
               <h2><BookIcon size={18} /> 글 ({matchedArticles.length})</h2>
               <div className="search-list">
                 {matchedArticles.map(article => (
-                  <a href={article.url} key={article.id} className="search-item" target="_blank" rel="noopener noreferrer">
+                  <Link to={`/articles?highlight=${article.id}`} key={article.id} className="search-item">
                     <span className="search-item-title">{article.title}</span>
                     <span className="search-item-date">{article.date}</span>
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
           )}
-          */}
         </div>
       )}
     </div>
