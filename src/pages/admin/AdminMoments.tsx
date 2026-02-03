@@ -7,10 +7,13 @@ import VideoEmbed from '../../components/VideoEmbed';
 import { useData } from '../../hooks/useData';
 import { useToast } from '../../hooks/useToast';
 import Toast from '../../components/Toast';
+import { useConfirm } from '../../hooks/useConfirm';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 export default function AdminMoments() {
   const { moments: cachedMoments, videos: cachedVideos, fetchMoments, fetchVideos, invalidateCache } = useData();
   const { toasts, showToast, removeToast } = useToast();
+  const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
   const [loading, setLoading] = useState(!cachedMoments || !cachedVideos);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -192,7 +195,7 @@ export default function AdminMoments() {
       setUploadMessage('업로드 완료! ✅');
       setTimeout(() => setUploadMessage(''), 3000);
     } catch (error) {
-      alert('업로드 실패: ' + (error as Error).message);
+      showToast('업로드 실패: ' + (error as Error).message, 'error');
       setUploadMessage('');
       setFormData(prev => ({ ...prev, tweet_url: '', thumbnail_url: '' }));
     } finally {
@@ -282,8 +285,9 @@ export default function AdminMoments() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말 삭제하시겠어요?')) return;
-    
+    const confirmed = await confirm({ message: '정말 삭제하시겠어요?', type: 'danger' });
+    if (!confirmed) return;
+
     try {
       const moment = moments.find(m => m.id === id);
       if (moment?.tweet_url) {
@@ -359,7 +363,11 @@ export default function AdminMoments() {
       return;
     }
 
-    if (!confirm(`${targets.length}개 모먼트의 썸네일을 생성할까요?`)) return;
+    const confirmed = await confirm({
+      message: `${targets.length}개 모먼트의 썸네일을 생성할까요?`,
+      type: 'info'
+    });
+    if (!confirmed) return;
 
     setThumbGenerating(true);
     let success = 0;
@@ -393,6 +401,16 @@ export default function AdminMoments() {
   return (
     <>
       <Toast toasts={toasts} onRemove={removeToast} />
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     <div className="admin-page">
       <div className="admin-header-actions">
         <h1>모먼트 관리</h1>

@@ -8,6 +8,8 @@ import { detectVideoPlatform } from '../../lib/platformUtils';
 import { useData } from '../../hooks/useData';
 import { useToast } from '../../hooks/useToast';
 import Toast from '../../components/Toast';
+import { useConfirm } from '../../hooks/useConfirm';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const HEART_OPTIONS = [
   { value: '🤍', label: '🤍 둘만' },
@@ -83,6 +85,7 @@ async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date:
 export default function AdminVideos() {
   const { videos: cachedVideos, fetchVideos, invalidateCache } = useData();
   const { toasts, showToast, removeToast } = useToast();
+  const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
   const [loading, setLoading] = useState(!cachedVideos);
   const [fetching, setFetching] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -193,7 +196,7 @@ export default function AdminVideos() {
       setUploadMessage('업로드 완료!');
       setTimeout(() => setUploadMessage(''), 3000);
     } catch (error) {
-      alert('업로드 실패: ' + (error as Error).message);
+      showToast('업로드 실패: ' + (error as Error).message, 'error');
       setUploadMessage('');
       setFormData(prev => ({ ...prev, url: '', thumbnail_url: '' }));
     } finally {
@@ -279,7 +282,8 @@ export default function AdminVideos() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말 삭제하시겠어요?')) return;
+    const confirmed = await confirm({ message: '정말 삭제하시겠어요?', type: 'danger' });
+    if (!confirmed) return;
     try {
       const video = videos.find(v => v.id === id);
       if (video?.url) await deleteFileFromR2(video.url);
@@ -301,6 +305,16 @@ export default function AdminVideos() {
   return (
     <>
       <Toast toasts={toasts} onRemove={removeToast} />
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
       <div className="admin-page">
         <div className="admin-header-actions">
           <h1>영상 관리 ({videos.length}개)</h1>

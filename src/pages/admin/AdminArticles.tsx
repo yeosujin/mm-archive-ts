@@ -5,10 +5,13 @@ import type { Article } from '../../lib/database';
 import { useData } from '../../hooks/useData';
 import { useToast } from '../../hooks/useToast';
 import Toast from '../../components/Toast';
+import { useConfirm } from '../../hooks/useConfirm';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 export default function AdminArticles() {
   const { articles: cachedArticles, fetchArticles, invalidateCache } = useData();
   const { toasts, showToast, removeToast } = useToast();
+  const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
   const [articles, setArticles] = useState<Article[]>(cachedArticles || []);
   const [loading, setLoading] = useState(!cachedArticles);
   const [fetching, setFetching] = useState(false);
@@ -144,8 +147,9 @@ export default function AdminArticles() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말 삭제하시겠어요?')) return;
-    
+    const confirmed = await confirm({ message: '정말 삭제하시겠어요?', type: 'danger' });
+    if (!confirmed) return;
+
     try {
       await deleteArticle(id);
       showToast('삭제되었어요!', 'success');
@@ -168,6 +172,16 @@ export default function AdminArticles() {
   return (
     <>
       <Toast toasts={toasts} onRemove={removeToast} />
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     <div className="admin-page">
       <h1>도서관 관리</h1>
       

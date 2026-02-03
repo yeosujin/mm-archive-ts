@@ -9,6 +9,8 @@ import Tesseract from 'tesseract.js';
 import { useData } from '../../hooks/useData';
 import { useToast } from '../../hooks/useToast';
 import Toast from '../../components/Toast';
+import { useConfirm } from '../../hooks/useConfirm';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadPhotoToR2 } from '../../lib/r2Upload';
 
 interface MessageInput {
@@ -46,6 +48,7 @@ export default function AdminEpisodes() {
     invalidateCache
   } = useData();
   const { toasts, showToast, removeToast } = useToast();
+  const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
 
   const [episodes, setEpisodes] = useState<Episode[]>(cachedEpisodes || []);
   const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
@@ -195,7 +198,8 @@ export default function AdminEpisodes() {
 
   // 활동 삭제
   const handleDeleteActivity = async (id: string) => {
-    if (!confirm('이 활동을 삭제하시겠어요?')) return;
+    const confirmed = await confirm({ message: '이 활동을 삭제하시겠어요?', type: 'danger' });
+    if (!confirmed) return;
     try {
       await deleteActivity(id);
       const activitiesData = await getActivities();
@@ -616,8 +620,9 @@ export default function AdminEpisodes() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말 삭제하시겠어요?')) return;
-    
+    const confirmed = await confirm({ message: '정말 삭제하시겠어요?', type: 'danger' });
+    if (!confirmed) return;
+
     try {
       await deleteEpisode(id);
       showToast('삭제되었어요!', 'success');
@@ -721,6 +726,16 @@ export default function AdminEpisodes() {
   return (
     <>
       <Toast toasts={toasts} onRemove={removeToast} />
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     <div className="admin-page">
       <div className="admin-page-header">
         <h1>에피소드 관리</h1>

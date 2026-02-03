@@ -7,6 +7,8 @@ import { getPlatformName } from '../../lib/platformUtils';
 import { useData } from '../../hooks/useData';
 import { useToast } from '../../hooks/useToast';
 import Toast from '../../components/Toast';
+import { useConfirm } from '../../hooks/useConfirm';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadPhotoToR2, uploadVideoToR2, uploadThumbnailFromVideo, generateThumbnailFromUrl, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
 
 // 로컬 파일 미리보기용 타입
@@ -25,6 +27,7 @@ type MediaItem =
 export default function AdminPosts() {
   const { posts: cachedPosts, fetchPosts, invalidateCache } = useData();
   const { toasts, showToast, removeToast } = useToast();
+  const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
   const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
   const [loading, setLoading] = useState(!cachedPosts);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -278,7 +281,8 @@ export default function AdminPosts() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말 삭제하시겠어요?')) return;
+    const confirmed = await confirm({ message: '정말 삭제하시겠어요?', type: 'danger' });
+    if (!confirmed) return;
 
     // 삭제 전에 미디어 파일도 R2에서 삭제
     const post = posts.find(p => p.id === id);
@@ -328,7 +332,11 @@ export default function AdminPosts() {
       return;
     }
 
-    if (!confirm(`${targets.length}개 영상의 썸네일을 생성할까요?`)) return;
+    const confirmed = await confirm({
+      message: `${targets.length}개 영상의 썸네일을 생성할까요?`,
+      type: 'info'
+    });
+    if (!confirmed) return;
 
     setThumbGenerating(true);
     let success = 0;
@@ -375,6 +383,16 @@ export default function AdminPosts() {
   return (
     <>
       <Toast toasts={toasts} onRemove={removeToast} />
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     <div className="admin-page">
       <div className="admin-header-actions">
         <h1>포스트 관리</h1>
