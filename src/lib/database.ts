@@ -64,6 +64,7 @@ export interface Episode {
 export interface MemberSettings {
   member1_name: string;
   member2_name: string;
+  articles_visible?: boolean; // 도서관 표시 여부
 }
 
 export interface Article {
@@ -366,11 +367,11 @@ export async function setFeaturedContent(type: string | null, contentId: string 
 export async function getMemberSettings(): Promise<MemberSettings> {
   const { data, error } = await supabase
     .from('settings')
-    .select('member1_name, member2_name')
+    .select('member1_name, member2_name, articles_visible')
     .eq('id', 1)
     .single();
-  
-  if (error) return { member1_name: '멤버1', member2_name: '멤버2' };
+
+  if (error) return { member1_name: '멤버1', member2_name: '멤버2', articles_visible: false };
   return data;
 }
 
@@ -378,6 +379,22 @@ export async function updateMemberSettings(settings: MemberSettings): Promise<vo
   const { error } = await supabase
     .from('settings')
     .upsert({ id: 1, ...settings, updated_at: new Date().toISOString() });
+
+  if (error) throw error;
+}
+
+// 도서관 표시 여부 조회
+export async function getArticlesVisibility(): Promise<boolean> {
+  const settings = await getMemberSettings();
+  return settings.articles_visible ?? false;
+}
+
+// 도서관 표시 여부 설정
+export async function setArticlesVisibility(visible: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('settings')
+    .update({ articles_visible: visible, updated_at: new Date().toISOString() })
+    .eq('id', 1);
 
   if (error) throw error;
 }

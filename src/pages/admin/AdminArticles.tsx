@@ -3,9 +3,12 @@ import { createArticle, updateArticle, deleteArticle } from '../../lib/database'
 import { supabase } from '../../lib/supabase';
 import type { Article } from '../../lib/database';
 import { useData } from '../../hooks/useData';
+import { useToast } from '../../hooks/useToast';
+import Toast from '../../components/Toast';
 
 export default function AdminArticles() {
   const { articles: cachedArticles, fetchArticles, invalidateCache } = useData();
+  const { toasts, showToast, removeToast } = useToast();
   const [articles, setArticles] = useState<Article[]>(cachedArticles || []);
   const [loading, setLoading] = useState(!cachedArticles);
   const [fetching, setFetching] = useState(false);
@@ -43,7 +46,7 @@ export default function AdminArticles() {
 
   const fetchPostypeMeta = async () => {
     if (!formData.url || !isPostypeUrl(formData.url)) {
-      alert('포스타입 URL을 먼저 입력해주세요.');
+      showToast('포스타입 URL을 먼저 입력해주세요.', 'error');
       return;
     }
 
@@ -83,11 +86,11 @@ export default function AdminArticles() {
           date: data.date || prev.date,
           tags: data.tags?.map((t: string) => cleanString(t)).join(', ') || prev.tags,
         }));
-        alert('정보를 불러왔어요!');
+        showToast('정보를 불러왔어요!', 'success');
       }
     } catch (error) {
       console.error('Error fetching Postype meta:', error);
-      alert('정보를 불러오는데 실패했어요.');
+      showToast('정보를 불러오는데 실패했어요.', 'error');
     } finally {
       setFetching(false);
     }
@@ -107,11 +110,11 @@ export default function AdminArticles() {
 
       if (editingId) {
         await updateArticle(editingId, articleData);
-        alert('수정되었어요!');
+        showToast('수정되었어요!', 'success');
         setEditingId(null);
       } else {
         await createArticle(articleData);
-        alert('글이 추가되었어요!');
+        showToast('글이 추가되었어요!', 'success');
       }
       
       setFormData({ title: '', author: '', url: '', date: '', tags: '' });
@@ -119,7 +122,7 @@ export default function AdminArticles() {
       loadArticles();
     } catch (error) {
       console.error('Error saving article:', error);
-      alert('저장 중 오류가 발생했어요.');
+      showToast('저장 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -145,12 +148,12 @@ export default function AdminArticles() {
     
     try {
       await deleteArticle(id);
-      alert('삭제되었어요!');
+      showToast('삭제되었어요!', 'success');
       invalidateCache('articles');
       loadArticles();
     } catch (error) {
       console.error('Error deleting article:', error);
-      alert('삭제 중 오류가 발생했어요.');
+      showToast('삭제 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -163,6 +166,8 @@ export default function AdminArticles() {
   }
 
   return (
+    <>
+      <Toast toasts={toasts} onRemove={removeToast} />
     <div className="admin-page">
       <h1>도서관 관리</h1>
       
@@ -277,6 +282,7 @@ export default function AdminArticles() {
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

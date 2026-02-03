@@ -7,6 +7,8 @@ import {
 import type { Episode, MemberSettings, Video, Moment, Post, Activity } from '../../lib/database';
 import Tesseract from 'tesseract.js';
 import { useData } from '../../hooks/useData';
+import { useToast } from '../../hooks/useToast';
+import Toast from '../../components/Toast';
 import { uploadPhotoToR2 } from '../../lib/r2Upload';
 
 interface MessageInput {
@@ -43,6 +45,7 @@ export default function AdminEpisodes() {
     fetchPosts,
     invalidateCache
   } = useData();
+  const { toasts, showToast, removeToast } = useToast();
 
   const [episodes, setEpisodes] = useState<Episode[]>(cachedEpisodes || []);
   const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
@@ -164,19 +167,19 @@ export default function AdminEpisodes() {
   const handleSaveMemberSettings = async () => {
     try {
       await updateMemberSettings(memberSettings);
-      alert('멤버 이름이 저장되었어요!');
+      showToast('멤버 이름이 저장되었어요!', 'success');
       invalidateCache('memberSettings');
       setShowMemberModal(false);
     } catch (error) {
       console.error('Error saving member settings:', error);
-      alert('저장 중 오류가 발생했어요.');
+      showToast('저장 중 오류가 발생했어요.', 'error');
     }
   };
 
   // 활동 추가
   const handleAddActivity = async () => {
     if (!newActivityName.trim()) {
-      alert('활동명을 입력해주세요.');
+      showToast('활동명을 입력해주세요.', 'error');
       return;
     }
     try {
@@ -186,7 +189,7 @@ export default function AdminEpisodes() {
       setActivities(activitiesData);
     } catch (error) {
       console.error('Error adding activity:', error);
-      alert('활동 추가 중 오류가 발생했어요.');
+      showToast('활동 추가 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -199,7 +202,7 @@ export default function AdminEpisodes() {
       setActivities(activitiesData);
     } catch (error) {
       console.error('Error deleting activity:', error);
-      alert('활동 삭제 중 오류가 발생했어요.');
+      showToast('활동 삭제 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -367,16 +370,16 @@ export default function AdminEpisodes() {
           }
           
           const withTime = parsedMessages.filter(m => m.time).length;
-          alert(`${parsedMessages.length}개의 메시지를 추출했어요!\n(시간 자동입력: ${withTime}개)\n\n⚠️ 인식 결과를 확인하고 필요시 수정해주세요.`);
+          showToast(`${parsedMessages.length}개의 메시지를 추출했어요!\n(시간 자동입력: ${withTime}개)\n\n⚠️ 인식 결과를 확인하고 필요시 수정해주세요.`, 'success');
         } else {
-          alert('말풍선 내용을 찾을 수 없어요.\n닉네임과 시간을 제외한 텍스트가 없습니다.');
+          showToast('말풍선 내용을 찾을 수 없어요.\n닉네임과 시간을 제외한 텍스트가 없습니다.', 'error');
         }
       } else {
-        alert('이미지에서 텍스트를 인식하지 못했어요.\n더 선명한 이미지를 시도해보세요.');
+        showToast('이미지에서 텍스트를 인식하지 못했어요.\n더 선명한 이미지를 시도해보세요.', 'error');
       }
     } catch (error) {
       console.error('OCR error:', error);
-      alert('텍스트 인식 중 오류가 발생했어요.');
+      showToast('텍스트 인식 중 오류가 발생했어요.', 'error');
     } finally {
       setOcrLoading(false);
       setOcrProgress(0);
@@ -399,7 +402,7 @@ export default function AdminEpisodes() {
       updateMessage(index, 'content', url);
     } catch (error) {
       console.error('Photo upload error:', error);
-      alert('사진 업로드 중 오류가 발생했어요.');
+      showToast('사진 업로드 중 오류가 발생했어요.', 'error');
     } finally {
       setPhotoUploading(null);
       setPhotoProgress(0);
@@ -412,7 +415,7 @@ export default function AdminEpisodes() {
     
     const validMessages = messages.filter(m => m.content.trim() !== '');
     if (validMessages.length === 0) {
-      alert('최소 하나의 메시지를 입력해주세요.');
+      showToast('최소 하나의 메시지를 입력해주세요.', 'error');
       return;
     }
     
@@ -425,7 +428,7 @@ export default function AdminEpisodes() {
           episode_type: 'dm',
           messages: validMessages,
         });
-        alert('수정되었어요!');
+        showToast('수정되었어요!', 'success');
         setEditingId(null);
       } else {
         await createEpisode({
@@ -435,7 +438,7 @@ export default function AdminEpisodes() {
           episode_type: 'dm',
           messages: validMessages,
         });
-        alert('에피소드가 추가되었어요!');
+        showToast('에피소드가 추가되었어요!', 'success');
       }
       
       resetDMForm();
@@ -443,7 +446,7 @@ export default function AdminEpisodes() {
       loadData();
     } catch (error) {
       console.error('Error saving episode:', error);
-      alert('저장 중 오류가 발생했어요.');
+      showToast('저장 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -453,7 +456,7 @@ export default function AdminEpisodes() {
 
     const validComments = commentMessages.filter(m => m.content.trim() !== '');
     if (validComments.length === 0) {
-      alert('최소 하나의 댓글을 입력해주세요.');
+      showToast('최소 하나의 댓글을 입력해주세요.', 'error');
       return;
     }
 
@@ -474,11 +477,11 @@ export default function AdminEpisodes() {
 
       if (editingId) {
         await updateEpisode(editingId, episodeData);
-        alert('수정되었어요!');
+        showToast('수정되었어요!', 'success');
         setEditingId(null);
       } else {
         await createEpisode(episodeData as Omit<Episode, 'id'>);
-        alert('댓글 에피소드가 추가되었어요!');
+        showToast('댓글 에피소드가 추가되었어요!', 'success');
       }
       
       resetCommentForm();
@@ -487,7 +490,7 @@ export default function AdminEpisodes() {
     } catch (error: unknown) {
       console.error('Error saving comment episode:', error);
       const msg = error instanceof Error ? error.message : JSON.stringify(error);
-      alert(`저장 중 오류: ${msg}`);
+      showToast(`저장 중 오류: ${msg}`, 'error');
     }
   };
 
@@ -502,7 +505,7 @@ export default function AdminEpisodes() {
 
     const validMessages = lpMessages.filter(m => m.content.trim() !== '');
     if (validMessages.length === 0) {
-      alert('최소 하나의 메시지를 입력해주세요.');
+      showToast('최소 하나의 메시지를 입력해주세요.', 'error');
       return;
     }
 
@@ -522,11 +525,11 @@ export default function AdminEpisodes() {
 
       if (editingId) {
         await updateEpisode(editingId, episodeData);
-        alert('수정되었어요!');
+        showToast('수정되었어요!', 'success');
         setEditingId(null);
       } else {
         await createEpisode(episodeData);
-        alert('리스닝파티가 추가되었어요!');
+        showToast('리스닝파티가 추가되었어요!', 'success');
       }
 
       resetLPForm();
@@ -535,7 +538,7 @@ export default function AdminEpisodes() {
     } catch (error: unknown) {
       console.error('Error saving LP episode:', error);
       const msg = error instanceof Error ? error.message : JSON.stringify(error);
-      alert(`저장 중 오류: ${msg}`);
+      showToast(`저장 중 오류: ${msg}`, 'error');
     }
   };
 
@@ -617,12 +620,12 @@ export default function AdminEpisodes() {
     
     try {
       await deleteEpisode(id);
-      alert('삭제되었어요!');
+      showToast('삭제되었어요!', 'success');
       invalidateCache('episodes');
       loadData();
     } catch (error) {
       console.error('Error deleting episode:', error);
-      alert('삭제 중 오류가 발생했어요.');
+      showToast('삭제 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -716,6 +719,8 @@ export default function AdminEpisodes() {
   }
 
   return (
+    <>
+      <Toast toasts={toasts} onRemove={removeToast} />
     <div className="admin-page">
       <div className="admin-page-header">
         <h1>에피소드 관리</h1>
@@ -1354,6 +1359,7 @@ export default function AdminEpisodes() {
           })}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

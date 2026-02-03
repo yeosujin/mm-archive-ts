@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  getFeaturedContent, setFeaturedContent
+  getFeaturedContent, setFeaturedContent, getArticlesVisibility, setArticlesVisibility
 } from '../../lib/database';
 
 declare const __APP_VERSION__: string;
 import type { Video, Moment, Post, Episode, Article } from '../../lib/database';
 import { useData } from '../../hooks/useData';
 import { VideoIcon, PostIcon, ChatIcon, BookIcon } from '../../components/Icons';
+import { useToast } from '../../hooks/useToast';
+import Toast from '../../components/Toast';
 
 export default function Dashboard() {
   const { 
@@ -31,25 +33,30 @@ export default function Dashboard() {
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedId, setSelectedId] = useState<string>('');
   const [currentFeatured, setCurrentFeatured] = useState<string>('없음');
+  const [articlesVisible, setArticlesVisibleState] = useState<boolean>(false);
   const [loading, setLoading] = useState(!cachedVideos || !cachedMoments || !cachedPosts || !cachedEpisodes || !cachedArticles);
+
+  const { toasts, showToast, removeToast } = useToast();
 
   const loadAllData = useCallback(async () => {
     try {
-      const [videosData, momentsData, postsData, episodesData, articlesData, featured] = await Promise.all([
+      const [videosData, momentsData, postsData, episodesData, articlesData, featured, articlesVisibleData] = await Promise.all([
         fetchVideos(),
         fetchMoments(),
         fetchPosts(),
         fetchEpisodes(),
         fetchArticles(),
-        getFeaturedContent()
+        getFeaturedContent(),
+        getArticlesVisibility()
       ]);
-      
+
       setVideos(videosData);
       setMoments(momentsData);
       setPosts(postsData);
       setEpisodes(episodesData);
       setArticles(articlesData);
-      
+      setArticlesVisibleState(articlesVisibleData);
+
       // 현재 메인 걸기 정보 설정
       if (featured.type && featured.content_id) {
         setSelectedType(featured.type);
@@ -119,10 +126,10 @@ export default function Dashboard() {
       try {
         await setFeaturedContent(selectedType, selectedId);
         updateCurrentFeaturedLabel(selectedType, selectedId, videos, moments, posts);
-        alert('메인 걸기가 저장되었어요!');
+        showToast('메인 걸기가 저장되었어요!', 'success');
       } catch (error) {
         console.error('Error saving featured content:', error);
-        alert('저장 중 오류가 발생했어요.');
+        showToast('저장 중 오류가 발생했어요.', 'error');
       }
     }
   };
@@ -133,10 +140,22 @@ export default function Dashboard() {
       setSelectedType('');
       setSelectedId('');
       setCurrentFeatured('없음');
-      alert('메인 걸기가 해제되었어요!');
+      showToast('메인 걸기가 해제되었어요!', 'success');
     } catch (error) {
       console.error('Error clearing featured content:', error);
-      alert('해제 중 오류가 발생했어요.');
+      showToast('해제 중 오류가 발생했어요.', 'error');
+    }
+  };
+
+  const handleToggleArticlesVisibility = async () => {
+    try {
+      const newValue = !articlesVisible;
+      await setArticlesVisibility(newValue);
+      setArticlesVisibleState(newValue);
+      showToast(newValue ? '도서관이 공개되었어요!' : '도서관이 숨겨졌어요!', 'success');
+    } catch (error) {
+      console.error('Error toggling articles visibility:', error);
+      showToast('설정 변경 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -149,8 +168,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="admin-page">
-      <h1>대시보드</h1>
+    <>
+      <Toast toasts={toasts} onRemove={removeToast} />
+      <div className="admin-page">
+        <h1>대시보드</h1>
       
       <div className="admin-stats">
         <div className="admin-stat-card">
@@ -261,6 +282,23 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* 도서관 표시/숨김 설정 */}
+      <div className="admin-section">
+        <h2>📚 도서관 설정</h2>
+        <p className="admin-hint" style={{ marginBottom: '1rem' }}>
+          현재: <strong>{articlesVisible ? '공개 중' : '숨김 (공사중)'}</strong>
+        </p>
+
+        <button
+          type="button"
+          className={articlesVisible ? 'admin-clear-btn' : 'admin-submit-btn'}
+          onClick={handleToggleArticlesVisibility}
+          style={{ maxWidth: '200px' }}
+        >
+          {articlesVisible ? '🚧 도서관 숨기기' : '✅ 도서관 공개하기'}
+        </button>
+      </div>
+
       <div className="admin-section">
         <h2>빠른 작업</h2>
         <div className="admin-quick-actions">
@@ -285,6 +323,7 @@ export default function Dashboard() {
       <div className="admin-version">
         v{__APP_VERSION__}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

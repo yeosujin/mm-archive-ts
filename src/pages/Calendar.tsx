@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getVideos, getMoments, getPosts, getEpisodes, getMemberSettings } from '../lib/database';
-import type { Video, Moment, Post, Episode } from '../lib/database';
+import { getVideos, getMoments, getPosts, getEpisodes, getMemberSettings, getArticles, getArticlesVisibility } from '../lib/database';
+import type { Video, Moment, Post, Episode, Article } from '../lib/database';
 import { CalendarIcon, ArrowRightIcon, PostIcon, ChatIcon, BookIcon, VideoIcon } from '../components/Icons';
 
 interface ArchiveItem {
@@ -99,14 +99,16 @@ export default function Calendar() {
 
   const loadAllData = async () => {
     try {
-      const [videos, moments, posts, episodes, memberSettings] = await Promise.all([
+      // articles_visible 설정 확인
+      const articlesVisible = await getArticlesVisibility();
+
+      const [videos, moments, posts, episodes, memberSettings, articles] = await Promise.all([
         getVideos(),
         getMoments(),
         getPosts(),
         getEpisodes(),
-        getMemberSettings()
-        // 공사중 - articles 임시 숨김
-        // getArticles()
+        getMemberSettings(),
+        articlesVisible ? getArticles() : Promise.resolve([])
       ]);
 
       // 멤버 이름 (댓글 쓴 사람)
@@ -180,11 +182,11 @@ export default function Calendar() {
         archivesByDate[e.date].push({ id: e.id, type: 'episode', title: episodeTitle, path: episodePath });
       });
 
-      // 공사중 - articles 임시 숨김
-      // articles.forEach((a: Article) => {
-      //   if (!archivesByDate[a.date]) archivesByDate[a.date] = [];
-      //   archivesByDate[a.date].push({ id: a.id, type: 'article', title: a.title, path: '/articles' });
-      // });
+      // articles_visible이 true일 때만 표시
+      articles.forEach((a: Article) => {
+        if (!archivesByDate[a.date]) archivesByDate[a.date] = [];
+        archivesByDate[a.date].push({ id: a.id, type: 'article', title: a.title, path: '/articles' });
+      });
 
       setArchives(archivesByDate);
     } catch (error) {

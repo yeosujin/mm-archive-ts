@@ -1,33 +1,79 @@
-// 공사중 - 임시 숨김
-// import { useState, useEffect, useCallback } from 'react';
-// import { useSearchParams } from 'react-router-dom';
-// import type { Article } from '../lib/database';
-// import { useData } from '../hooks/useData';
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useData } from '../hooks/useData';
+import { getArticlesVisibility } from '../lib/database';
 
 export default function Articles() {
-  // 공사중 - 임시 숨김
-  return (
-    <div className="page articles-page">
-      <div className="page-header">
-        <h1>도서관</h1>
-      </div>
-      <div className="empty-state" style={{ marginTop: '3rem' }}>
-        <p style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚧</p>
-        <p>공사중이에요!</p>
-        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-          책 쌓는 중..
-        </p>
-      </div>
-    </div>
+  const [searchParams] = useSearchParams();
+  const highlightedId = searchParams.get('highlight');
+  const { articles, fetchArticles } = useData();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [articlesVisible, setArticlesVisible] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      const visible = await getArticlesVisibility();
+      setArticlesVisible(visible);
+
+      // articlesVisible이 true일 때만 데이터 로드
+      if (visible) {
+        await fetchArticles();
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchArticles]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // 하이라이트된 아이템으로 스크롤
+  useEffect(() => {
+    if (highlightedId && articlesVisible) {
+      setTimeout(() => {
+        const element = document.querySelector(`[data-article-id="${highlightedId}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [highlightedId, articlesVisible]);
+
+  const filteredArticles = (articles || []).filter((article) =>
+    article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    article.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    article.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    article.date.includes(searchTerm)
   );
 
-  /* 원래 코드 - 공사 완료 후 복구
   if (loading) {
     return (
       <div className="page articles-page">
         <div className="loading">로딩 중...</div>
       </div>
-  );
+    );
+  }
+
+  // 공사중 - 설정에서 숨김으로 되어 있을 때
+  if (!articlesVisible) {
+    return (
+      <div className="page articles-page">
+        <div className="page-header">
+          <h1>도서관</h1>
+        </div>
+        <div className="empty-state" style={{ marginTop: '3rem' }}>
+          <p style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚧</p>
+          <p>공사중이에요!</p>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+            책 쌓는 중..
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -79,5 +125,4 @@ export default function Articles() {
       )}
     </div>
   );
-  */
 }

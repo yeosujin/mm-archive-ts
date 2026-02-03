@@ -5,9 +5,12 @@ import { uploadVideoToR2, uploadThumbnailFromVideo, generateThumbnailFromUrl, de
 import AdminModal from '../../components/AdminModal';
 import VideoEmbed from '../../components/VideoEmbed';
 import { useData } from '../../hooks/useData';
+import { useToast } from '../../hooks/useToast';
+import Toast from '../../components/Toast';
 
 export default function AdminMoments() {
   const { moments: cachedMoments, videos: cachedVideos, fetchMoments, fetchVideos, invalidateCache } = useData();
+  const { toasts, showToast, removeToast } = useToast();
   const [loading, setLoading] = useState(!cachedMoments || !cachedVideos);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -146,7 +149,7 @@ export default function AdminMoments() {
       invalidateCache('moments');
     } catch (error) {
       console.error('[AdminMoments] Failed to update positions:', error);
-      alert('순서 저장에 실패했습니다.');
+      showToast('순서 저장에 실패했습니다.', 'error');
       loadData();
     }
   };
@@ -157,7 +160,7 @@ export default function AdminMoments() {
     if (!file) return;
 
     if (!isVideoFile(file)) {
-      alert('비디오 파일만 업로드 가능합니다.');
+      showToast('비디오 파일만 업로드 가능합니다.', 'error');
       return;
     }
 
@@ -220,7 +223,7 @@ export default function AdminMoments() {
           position: Number(formData.position) || 0,
           thumbnail_url: formData.thumbnail_url || undefined,
         });
-        alert('수정되었어요!');
+        showToast('수정되었어요!', 'success');
       } else {
         await createMoment({
           title: formData.title,
@@ -230,7 +233,7 @@ export default function AdminMoments() {
           position: Number(formData.position) || 0,
           ...(formData.thumbnail_url && { thumbnail_url: formData.thumbnail_url }),
         });
-        alert('모먼트가 추가되었어요!');
+        showToast('모먼트가 추가되었어요!', 'success');
       }
       
       invalidateCache('moments');
@@ -238,7 +241,7 @@ export default function AdminMoments() {
       loadData();
     } catch (error) {
       console.error('Error saving moment:', error);
-      alert('저장 중 오류가 발생했어요.');
+      showToast('저장 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -292,11 +295,11 @@ export default function AdminMoments() {
 
       await deleteMoment(id);
       invalidateCache('moments');
-      alert('삭제되었어요!');
+      showToast('삭제되었어요!', 'success');
       loadData();
     } catch (error) {
       console.error('Error deleting moment:', error);
-      alert('삭제 중 오류가 발생했어요.');
+      showToast('삭제 중 오류가 발생했어요.', 'error');
     }
   };
 
@@ -352,7 +355,7 @@ export default function AdminMoments() {
     );
 
     if (targets.length === 0) {
-      alert('썸네일이 필요한 R2 영상이 없어요.');
+      showToast('썸네일이 필요한 R2 영상이 없어요.', 'info');
       return;
     }
 
@@ -376,7 +379,7 @@ export default function AdminMoments() {
     setThumbGenerating(false);
     setThumbProgress('');
     invalidateCache('moments');
-    alert(`완료! ${success}/${targets.length}개 썸네일 생성됨`);
+    showToast(`완료! ${success}/${targets.length}개 썸네일 생성됨`, 'success');
   };
 
   if (loading) {
@@ -388,6 +391,8 @@ export default function AdminMoments() {
   }
 
   return (
+    <>
+      <Toast toasts={toasts} onRemove={removeToast} />
     <div className="admin-page">
       <div className="admin-header-actions">
         <h1>모먼트 관리</h1>
@@ -593,6 +598,7 @@ export default function AdminMoments() {
       </AdminModal>
 
       <button className="admin-add-btn-fixed" onClick={handleOpenAddModal}>+ 모먼트 추가</button>
-    </div>
+      </div>
+    </>
   );
 }
