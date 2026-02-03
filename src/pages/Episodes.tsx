@@ -388,7 +388,7 @@ export default function Episodes() {
                               )}
                               {msg.type === 'image' && (
                                 <div className="dm-image">
-                                  <img src={msg.content} alt="" loading="eager" />
+                                  <img src={msg.content} alt="" loading="lazy" />
                                 </div>
                               )}
                             </div>

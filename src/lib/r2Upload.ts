@@ -377,14 +377,19 @@ function extractFirstFrameFromUrl(videoUrl: string): Promise<Blob> {
 function captureFrame(video: HTMLVideoElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+
+    // 썸네일 최대 너비 640px로 제한
+    const maxWidth = 640;
+    const scale = Math.min(1, maxWidth / video.videoWidth);
+    canvas.width = video.videoWidth * scale;
+    canvas.height = video.videoHeight * scale;
+
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       reject(new Error('Canvas context 생성 실패'));
       return;
     }
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob(
       (blob) => {
         if (blob) resolve(blob);

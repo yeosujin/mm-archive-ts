@@ -1,4 +1,4 @@
-import type { ConfirmOptions } from '../hooks/useConfirm';
+import { memo } from 'react';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-export default function ConfirmDialog({
+const ConfirmDialog = memo(({
   isOpen,
   title,
   message,
@@ -20,7 +20,7 @@ export default function ConfirmDialog({
   type = 'warning',
   onConfirm,
   onCancel,
-}: ConfirmDialogProps) {
+}: ConfirmDialogProps) => {
   if (!isOpen) return null;
 
   return (
@@ -47,4 +47,6 @@ export default function ConfirmDialog({
       </div>
     </div>
   );
-}
+});
+
+export default ConfirmDialog;

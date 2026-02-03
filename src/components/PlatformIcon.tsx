@@ -1,10 +1,12 @@
+import { memo } from 'react';
+
 interface Props {
   platform: 'twitter' | 'instagram' | 'weverse' | 'youtube' | 'melon' | 'spotify' | 'apple_music' | 'other';
   size?: number;
   className?: string;
 }
 
-export default function PlatformIcon({ platform, size = 24, className = '' }: Props) {
+const PlatformIcon = memo(({ platform, size = 24, className = '' }: Props) => {
   const style = { width: size, height: size };
 
   // YouTube 로고
@@ -111,5 +113,7 @@ export default function PlatformIcon({ platform, size = 24, className = '' }: Pr
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
     </svg>
   );
-}
+});
+
+export default PlatformIcon;
 

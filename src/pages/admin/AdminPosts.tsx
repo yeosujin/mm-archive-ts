@@ -514,7 +514,7 @@ export default function AdminPosts() {
                     <div key={item.kind === 'uploaded' ? item.data.url : item.data.id} className={`media-preview-item ${isPending ? 'pending' : ''}`}>
                       <div className="media-preview-thumb">
                         {previewUrl ? (
-                          <img src={previewUrl} alt={`미디어 ${index + 1}`} />
+                          <img src={previewUrl} alt={`미디어 ${index + 1}`} loading="lazy" />
                         ) : (
                           <div className="video-placeholder">🎬</div>
                         )}

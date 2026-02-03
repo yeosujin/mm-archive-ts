@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import PlatformIcon from './PlatformIcon';
 import { getPlatformName } from '../lib/platformUtils';
 import { ArrowRightIcon } from './Icons';
@@ -37,7 +37,7 @@ function getTweetId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export default function PostEmbed({ url, platform, className = '' }: Props) {
+const PostEmbed = memo(({ url, platform, className = '' }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -181,4 +181,6 @@ export default function PostEmbed({ url, platform, className = '' }: Props) {
       </div>
     </div>
   );
-}
+});
+
+export default PostEmbed;

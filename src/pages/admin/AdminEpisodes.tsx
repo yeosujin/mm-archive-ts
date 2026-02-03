@@ -980,7 +980,7 @@ export default function AdminEpisodes() {
                         />
                         {msg.content ? (
                           <div className="photo-preview-row">
-                            <img src={msg.content} alt="" className="photo-preview-thumb" />
+                            <img src={msg.content} alt="" className="photo-preview-thumb" loading="lazy" />
                             <button
                               type="button"
                               className="photo-change-btn"

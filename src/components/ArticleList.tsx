@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import type { Article } from '../lib/database';
 
 interface Props {
   articles: Article[];
 }
 
-export default function ArticleList({ articles }: Props) {
+const ArticleList = memo(({ articles }: Props) => {
   const handleClick = (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
@@ -37,4 +38,6 @@ export default function ArticleList({ articles }: Props) {
       ))}
     </div>
   );
-}
+});
+
+export default ArticleList;

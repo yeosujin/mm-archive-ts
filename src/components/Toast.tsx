@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Toast as ToastType } from '../hooks/useToast';
 
 interface ToastProps {
@@ -5,7 +6,7 @@ interface ToastProps {
   onRemove: (id: number) => void;
 }
 
-export default function Toast({ toasts, onRemove }: ToastProps) {
+const Toast = memo(({ toasts, onRemove }: ToastProps) => {
   if (toasts.length === 0) return null;
 
   return (
@@ -26,4 +27,6 @@ export default function Toast({ toasts, onRemove }: ToastProps) {
       ))}
     </div>
   );
-}
+});
+
+export default Toast;

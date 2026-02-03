@@ -607,7 +607,7 @@ export default function AdminMoments() {
           </div>
 
           <div className="form-buttons">
-            <button type="submit" className="admin-submit-btn">
+            <button type="submit" className="admin-submit-btn" disabled={uploading || thumbGenerating}>
               {editingId ? '수정하기' : '추가하기'}
             </button>
             <button type="button" className="admin-clear-btn" onClick={handleCloseModal}>취소</button>
