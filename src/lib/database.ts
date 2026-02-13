@@ -92,7 +92,7 @@ export async function getVideos(): Promise<Video[]> {
   const { data, error } = await supabase
     .from('videos')
     .select('*')
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
     .range(0, 9999);
   
   if (error) throw error;
@@ -149,7 +149,7 @@ export async function getMoments(): Promise<Moment[]> {
     .select('*')
     .order('date', { ascending: false })
     .order('position', { ascending: true })
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
     .range(0, 9999);
   
   if (error) throw error;
@@ -163,7 +163,7 @@ export async function getMomentsByVideoId(videoId: string): Promise<Moment[]> {
     .eq('video_id', videoId)
     .order('date', { ascending: false })
     .order('position', { ascending: true })
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
     .range(0, 9999);
   
   if (error) throw error;
