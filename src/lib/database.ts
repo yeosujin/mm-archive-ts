@@ -144,16 +144,28 @@ export async function deleteVideo(id: string): Promise<void> {
 
 // ============ Moments ============
 export async function getMoments(): Promise<Moment[]> {
-  const { data, error } = await supabase
-    .from('moments')
-    .select('*')
-    .order('date', { ascending: false })
-    .order('position', { ascending: true })
-    .order('created_at', { ascending: true })
-    .limit(5000);
+  const allData: Moment[] = [];
+  let from = 0;
   
-  if (error) throw error;
-  return data || [];
+  while (true) {
+    const { data, error } = await supabase
+      .from('moments')
+      .select('*')
+      .order('date', { ascending: false })
+      .order('position', { ascending: true })
+      .order('created_at', { ascending: true })
+      .range(from, from + 999);
+    
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    
+    allData.push(...data);
+    if (data.length < 1000) break;
+    
+    from += 1000;
+  }
+  
+  return allData;
 }
 
 export async function getMomentsByVideoId(videoId: string): Promise<Moment[]> {
