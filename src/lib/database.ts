@@ -93,6 +93,7 @@ export async function getVideos(): Promise<Video[]> {
     .from('videos')
     .select('*')
     .order('date', { ascending: false });
+    .range(0, 9999);
   
   if (error) throw error;
   return data || [];
@@ -149,6 +150,7 @@ export async function getMoments(): Promise<Moment[]> {
     .order('date', { ascending: false })
     .order('position', { ascending: true })
     .order('created_at', { ascending: true });
+    .range(0, 9999);
   
   if (error) throw error;
   return data || [];
@@ -162,6 +164,7 @@ export async function getMomentsByVideoId(videoId: string): Promise<Moment[]> {
     .order('date', { ascending: false })
     .order('position', { ascending: true })
     .order('created_at', { ascending: true });
+    .range(0, 9999);
   
   if (error) throw error;
   return data || [];
