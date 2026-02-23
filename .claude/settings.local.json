@@ -26,7 +26,8 @@
       "Bash(else)",
       "Bash(fi)",
       "Bash(done)",
-      "Bash(if grep -q \"useToast\\(\\)\" \"$file\")"
+      "Bash(if grep -q \"useToast\\(\\)\" \"$file\")",
+      "Bash(find:*)"
     ]
   }
 }
