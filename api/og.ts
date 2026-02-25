@@ -53,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     displayText = questionText;
   }
 
-  // 배경 글로우 orbs
+  // 배경 글로우 orbs (넓고 은은하게)
   const glowOrbs: VNode[] = [
     // 좌상단 블루 글로우
     {
@@ -61,12 +61,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       props: {
         style: {
           position: 'absolute',
-          top: '-80px',
-          left: '-100px',
-          width: '600px',
-          height: '600px',
+          top: '-250px',
+          left: '-300px',
+          width: '900px',
+          height: '900px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 60%)',
+          background: 'radial-gradient(circle, rgba(56,189,248,0.18) 0%, rgba(56,189,248,0.06) 40%, transparent 70%)',
         },
       },
     },
@@ -76,28 +76,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       props: {
         style: {
           position: 'absolute',
-          bottom: '-100px',
-          right: '-80px',
-          width: '650px',
-          height: '650px',
+          bottom: '-280px',
+          right: '-250px',
+          width: '950px',
+          height: '950px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(167,139,250,0.3) 0%, transparent 60%)',
-        },
-      },
-    },
-    // 중앙 소프트 글로우
-    {
-      type: 'div',
-      props: {
-        style: {
-          position: 'absolute',
-          top: '40%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '800px',
-          height: '500px',
-          borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(112,164,249,0.12) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(167,139,250,0.16) 0%, rgba(167,139,250,0.05) 40%, transparent 70%)',
         },
       },
     },
