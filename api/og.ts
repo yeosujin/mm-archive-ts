@@ -174,63 +174,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '28px',
+        justifyContent: 'center',
+        gap: '20px',
         position: 'relative',
-        padding: '0 80px',
         width: '100%',
+        height: '100%',
+        padding: '50px 80px',
       },
       children: [
-        // mmemory Q&A 로고
-        {
-          type: 'div',
-          props: {
-            style: {
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            },
-            children: [
-              {
-                type: 'span',
-                props: {
-                  style: {
-                    fontSize: '26px',
-                    fontWeight: 600,
-                    letterSpacing: '-0.04em',
-                    background: 'linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%)',
-                    backgroundClip: 'text',
-                    color: 'transparent',
-                  },
-                  children: 'mmemory',
-                },
-              },
-              {
-                type: 'span',
-                props: {
-                  style: {
-                    fontSize: '18px',
-                    color: '#8b5cf6',
-                    fontWeight: 400,
-                  },
-                  children: 'Q&A',
-                },
-              },
-            ],
-          },
-        },
-        // Q&A 카드
+        // Q&A 카드 (고정 크기, 페일 컬러)
         {
           type: 'div',
           props: {
             style: {
               display: 'flex',
               flexDirection: 'column',
-              background: 'rgba(255,255,255,0.85)',
-              borderRadius: '24px',
-              padding: '44px 56px',
-              width: '100%',
-              maxWidth: '960px',
-              boxShadow: '0 8px 40px rgba(56,189,248,0.12), 0 2px 12px rgba(0,0,0,0.05)',
+              background: 'rgba(255,255,255,0.9)',
+              borderRadius: '28px',
+              padding: '52px 60px',
+              width: '1040px',
+              height: '470px',
+              boxShadow: '0 4px 32px rgba(56,189,248,0.08), 0 1px 8px rgba(0,0,0,0.03)',
             },
             children: [
               // Q. 라벨
@@ -238,10 +202,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 type: 'div',
                 props: {
                   style: {
-                    fontSize: '22px',
+                    fontSize: '26px',
                     fontWeight: 600,
-                    color: '#3b82f6',
-                    marginBottom: '14px',
+                    color: '#818cf8',
+                    marginBottom: '20px',
                   },
                   children: 'Q.',
                 },
@@ -251,15 +215,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 type: 'div',
                 props: {
                   style: {
-                    fontSize: displayText && displayText.length > 80 ? '28px' : '34px',
-                    color: '#1a1a2e',
-                    lineHeight: 1.6,
+                    fontSize: displayText && displayText.length > 80 ? '30px' : '38px',
+                    color: '#1e1b3a',
+                    lineHeight: 1.55,
                     fontWeight: 400,
                   },
                   children: displayText,
                 },
               },
             ],
+          },
+        },
+        // URL 워터마크
+        {
+          type: 'div',
+          props: {
+            style: {
+              fontSize: '17px',
+              color: '#b4b4c0',
+              letterSpacing: '0.02em',
+            },
+            children: 'mmemory.cloud/ask',
           },
         },
       ],
