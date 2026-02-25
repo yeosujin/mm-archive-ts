@@ -31,6 +31,27 @@ export async function uploadAskImage(file: File): Promise<string> {
   return data.publicUrl;
 }
 
+export async function uploadAskImages(files: File[]): Promise<string[]> {
+  const urls = await Promise.all(files.map(file => uploadAskImage(file)));
+  return urls;
+}
+
+export async function deleteAskImages(imageUrl: string): Promise<void> {
+  const urls = parseImageUrls(imageUrl);
+  await Promise.all(urls.map(url => deleteAskImage(url)));
+}
+
+export function parseImageUrls(imageUrl: string | undefined | null): string[] {
+  if (!imageUrl) return [];
+  try {
+    const parsed = JSON.parse(imageUrl);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {
+    // 기존 단일 URL 호환
+  }
+  return [imageUrl];
+}
+
 export async function deleteAskImage(url: string): Promise<void> {
   const parts = url.split(`/${BUCKET}/`);
   if (parts.length < 2) return;

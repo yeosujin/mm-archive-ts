@@ -5046,6 +5046,12 @@ color: white;
   background: var(--border);
 }
 
+.ask-image-previews {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .ask-image-preview {
   position: relative;
   width: 48px;
@@ -5293,6 +5299,41 @@ color: white;
   cursor: pointer;
   line-height: 1;
   padding: 0.25rem;
+}
+
+.image-viewer-nav {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 1;
+}
+
+.image-viewer-nav button {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-viewer-nav button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.image-viewer-nav span {
+  color: #fff;
+  font-size: 0.9rem;
 }
 
 .ask-admin-meta {

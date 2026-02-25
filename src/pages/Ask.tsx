@@ -4,15 +4,15 @@ import { useData } from '../hooks/useData';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
 import { createAsk } from '../lib/database';
-import { uploadAskImage } from '../lib/askStorage';
+import { uploadAskImages } from '../lib/askStorage';
 
 export default function Ask() {
   const { asks, fetchAsks } = useData();
   const { toasts, showToast, removeToast } = useToast();
   const [loading, setLoading] = useState(!asks);
   const [content, setContent] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,17 +31,29 @@ export default function Ask() {
     loadData();
   }, [loadData]);
 
+  const MAX_IMAGES = 3;
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    const files = e.target.files;
+    if (!files) return;
+    const remaining = MAX_IMAGES - imageFiles.length;
+    const newFiles = Array.from(files).slice(0, remaining);
+    if (newFiles.length === 0) return;
+    setImageFiles(prev => [...prev, ...newFiles]);
+    setImagePreviews(prev => [...prev, ...newFiles.map(f => URL.createObjectURL(f))]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleRemoveImage = () => {
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImageFile(null);
-    setImagePreview(null);
+  const handleRemoveImage = (index: number) => {
+    URL.revokeObjectURL(imagePreviews[index]);
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveAllImages = () => {
+    imagePreviews.forEach(url => URL.revokeObjectURL(url));
+    setImageFiles([]);
+    setImagePreviews([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -52,11 +64,10 @@ export default function Ask() {
     setSubmitting(true);
     try {
       let image_url: string | undefined;
-      if (imageFile) {
-        console.log('Uploading image...', imageFile.name, imageFile.type, imageFile.size);
+      if (imageFiles.length > 0) {
         try {
-          image_url = await uploadAskImage(imageFile);
-          console.log('Upload success:', image_url);
+          const urls = await uploadAskImages(imageFiles);
+          image_url = JSON.stringify(urls);
         } catch (error_) {
           console.error('Image upload failed:', error_);
           showToast('이미지 업로드에 실패했어요.', 'error');
@@ -66,7 +77,7 @@ export default function Ask() {
       }
       await createAsk({ content: content.trim(), image_url });
       setContent('');
-      handleRemoveImage();
+      handleRemoveAllImages();
       showToast('질문이 전달되었어요!', 'success');
     } catch (error) {
       console.error('Error creating ask:', error);
@@ -100,17 +111,24 @@ export default function Ask() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleImageSelect}
                 className="file-input-hidden"
                 id="ask-image-input"
               />
-              <label htmlFor="ask-image-input" className="ask-image-btn">
-                이미지 첨부
-              </label>
-              {imagePreview && (
-                <div className="ask-image-preview">
-                  <img src={imagePreview} alt="첨부 이미지" />
-                  <button type="button" onClick={handleRemoveImage} className="ask-image-remove">&times;</button>
+              {imageFiles.length < MAX_IMAGES && (
+                <label htmlFor="ask-image-input" className="ask-image-btn">
+                  이미지 첨부 ({imageFiles.length}/{MAX_IMAGES})
+                </label>
+              )}
+              {imagePreviews.length > 0 && (
+                <div className="ask-image-previews">
+                  {imagePreviews.map((preview, i) => (
+                    <div key={i} className="ask-image-preview">
+                      <img src={preview} alt={`첨부 이미지 ${i + 1}`} />
+                      <button type="button" onClick={() => handleRemoveImage(i)} className="ask-image-remove">&times;</button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

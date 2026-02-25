@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAsks, answerAsk, updateAsk, deleteAsk } from '../../lib/database';
-import { deleteAskImage } from '../../lib/askStorage';
+import { deleteAskImages, parseImageUrls } from '../../lib/askStorage';
 import type { Ask } from '../../lib/database';
 import { useData } from '../../hooks/useData';
 import { useToast } from '../../hooks/useToast';
@@ -18,7 +18,8 @@ export default function AdminAsks() {
   const [answerText, setAnswerText] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
-  const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [viewingImages, setViewingImages] = useState<string[]>([]);
+  const [viewingImageIndex, setViewingImageIndex] = useState(0);
 
   const loadAsks = useCallback(async () => {
     try {
@@ -42,7 +43,7 @@ export default function AdminAsks() {
     if (!answerText.trim()) return;
     try {
       if (imageUrl) {
-        await deleteAskImage(imageUrl).catch(console.error);
+        await deleteAskImages(imageUrl).catch(console.error);
       }
       const answered = await answerAsk(id, answerText.trim());
       showToast('답변이 등록되었어요!', 'success');
@@ -81,7 +82,7 @@ export default function AdminAsks() {
     if (!confirmed) return;
     try {
       if (ask.image_url) {
-        await deleteAskImage(ask.image_url).catch(console.error);
+        await deleteAskImages(ask.image_url).catch(console.error);
       }
       await deleteAsk(ask.id);
       showToast('삭제되었어요!', 'success');
@@ -141,8 +142,8 @@ export default function AdminAsks() {
                   <div className="admin-list-info">
                     <p className="ask-admin-content">{ask.content}</p>
                     {ask.image_url && (
-                      <button type="button" className="ask-image-view-btn" onClick={() => setViewingImage(ask.image_url!)}>
-                        이미지 보기
+                      <button type="button" className="ask-image-view-btn" onClick={() => { setViewingImages(parseImageUrls(ask.image_url)); setViewingImageIndex(0); }}>
+                        이미지 보기 ({parseImageUrls(ask.image_url).length})
                       </button>
                     )}
                     <span className="ask-admin-meta">{formatDate(ask.created_at)}</span>
@@ -217,11 +218,18 @@ export default function AdminAsks() {
         </div>
       </div>
 
-      {viewingImage && (
+      {viewingImages.length > 0 && (
         <div className="image-viewer-overlay">
-          <button type="button" className="image-viewer-backdrop" onClick={() => setViewingImage(null)} aria-label="닫기" />
-          <img src={viewingImage} alt="첨부 이미지" className="image-viewer-img" />
-          <button type="button" className="image-viewer-close" onClick={() => setViewingImage(null)}>&times;</button>
+          <button type="button" className="image-viewer-backdrop" onClick={() => setViewingImages([])} aria-label="닫기" />
+          <img src={viewingImages[viewingImageIndex]} alt={`첨부 이미지 ${viewingImageIndex + 1}`} className="image-viewer-img" />
+          {viewingImages.length > 1 && (
+            <div className="image-viewer-nav">
+              <button type="button" disabled={viewingImageIndex === 0} onClick={() => setViewingImageIndex(i => i - 1)}>&lsaquo;</button>
+              <span>{viewingImageIndex + 1} / {viewingImages.length}</span>
+              <button type="button" disabled={viewingImageIndex === viewingImages.length - 1} onClick={() => setViewingImageIndex(i => i + 1)}>&rsaquo;</button>
+            </div>
+          )}
+          <button type="button" className="image-viewer-close" onClick={() => setViewingImages([])}>&times;</button>
         </div>
       )}
     </>
