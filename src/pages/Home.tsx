@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getVideos, getPosts, getMoments, getFeaturedContent } from '../lib/database';
+import { getVideos, getPosts, getMoments, getFeaturedContent, getArticlesVisibility } from '../lib/database';
 import type { Video, Post, Moment } from '../lib/database';
 import PostEmbed from '../components/PostEmbed';
 import { SearchIcon, CalendarIcon, ArrowRightIcon, ExternalLinkIcon, VideoIcon } from '../components/Icons';
@@ -33,6 +33,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [featuredItem, setFeaturedItem] = useState<{ type: string; item: Video | Post | Moment } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [articlesVisible, setArticlesVisible] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,6 +42,8 @@ export default function Home() {
 
   const loadFeaturedContent = async () => {
     try {
+      const visible = await getArticlesVisibility();
+      setArticlesVisible(visible);
       const featured = await getFeaturedContent();
 
       if (featured.type && featured.content_id) {
@@ -117,7 +120,7 @@ export default function Home() {
 
       {/* Navigation */}
       <nav className="home-nav">
-        {NAV_ITEMS.map((item) => (
+        {NAV_ITEMS.filter(item => articlesVisible || item.to !== '/articles').map((item) => (
           <Link key={item.to} to={item.to} className="home-nav-link">
             {item.label}
           </Link>

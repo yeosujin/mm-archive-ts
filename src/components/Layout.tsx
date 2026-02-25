@@ -1,8 +1,15 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, MenuIcon, CloseIcon, VideoIcon, PostIcon, ChatIcon, BookIcon } from './Icons';
+import { useData } from '../hooks/useData';
 
 export default function Layout() {
+  const { memberSettings, fetchMemberSettings } = useData();
+  const articlesVisible = memberSettings?.articles_visible ?? true;
+
+  useEffect(() => {
+    fetchMemberSettings();
+  }, [fetchMemberSettings]);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
     return saved === 'dark';
@@ -61,13 +68,15 @@ export default function Layout() {
             >
               에피소드
             </NavLink>
-            <NavLink 
-              to="/articles" 
+            {articlesVisible && (
+            <NavLink
+              to="/articles"
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/Articles')}
             >
               도서관
             </NavLink>
+            )}
             <NavLink
               to="/calendar"
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
@@ -147,6 +156,7 @@ export default function Layout() {
             >
               <ChatIcon size={18} /> 에피소드
             </NavLink>
+            {articlesVisible && (
             <NavLink
               to="/articles"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
@@ -154,6 +164,7 @@ export default function Layout() {
             >
               <BookIcon size={18} /> 도서관
             </NavLink>
+            )}
             <NavLink
               to="/calendar"
               className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
