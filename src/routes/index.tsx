@@ -12,6 +12,8 @@ const Episodes = lazy(() => import('../pages/Episodes'));
 const Articles = lazy(() => import('../pages/Articles'));
 const Calendar = lazy(() => import('../pages/Calendar'));
 const Search = lazy(() => import('../pages/Search'));
+const Ask = lazy(() => import('../pages/Ask'));
+const AskDetail = lazy(() => import('../pages/AskDetail'));
 
 // Admin
 const AdminLayout = lazy(() => import('../components/AdminLayout'));
@@ -21,6 +23,7 @@ const AdminMoments = lazy(() => import('../pages/admin/AdminMoments'));
 const AdminPosts = lazy(() => import('../pages/admin/AdminPosts'));
 const AdminEpisodes = lazy(() => import('../pages/admin/AdminEpisodes'));
 const AdminArticles = lazy(() => import('../pages/admin/AdminArticles'));
+const AdminAsks = lazy(() => import('../pages/admin/AdminAsks'));
 
 import PageLoader from '../components/PageLoader';
 
@@ -97,6 +100,22 @@ export const router = createBrowserRouter([
               </Suspense>
             ),
           },
+          {
+            path: 'ask',
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <Ask />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'ask/:id',
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <AskDetail />
+              </Suspense>
+            ),
+          },
         ],
       },
 
@@ -154,6 +173,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<PageLoader />}>
                 <AdminArticles />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'asks',
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <AdminAsks />
               </Suspense>
             ),
           },

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, type ReactNode } from 'react';
-import { getVideos, getMoments, getPosts, getEpisodes, getArticles, getMemberSettings } from '../lib/database';
+import { getVideos, getMoments, getPosts, getEpisodes, getArticles, getAnsweredAsks, getMemberSettings } from '../lib/database';
 import { DataContext } from './DataContextValue';
 import type { DataState } from './types';
 
@@ -38,6 +38,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     posts: null,
     episodes: null,
     articles: null,
+    asks: null,
     memberSettings: null,
     lastFetched: {},
   });
@@ -116,6 +117,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return state.articles!;
   }, [shouldFetch, state.articles]);
 
+  const fetchAsks = useCallback(async (force = false) => {
+    if (shouldFetch('asks', force)) {
+      const data = await getAnsweredAsks();
+      setState(prev => ({
+        ...prev,
+        asks: data,
+        lastFetched: { ...prev.lastFetched, asks: Date.now() }
+      }));
+      return data;
+    }
+    return state.asks!;
+  }, [shouldFetch, state.asks]);
+
   const fetchMemberSettings = useCallback(async (force = false) => {
     if (shouldFetch('memberSettings', force)) {
       const data = await getMemberSettings();
@@ -143,9 +157,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     fetchPosts,
     fetchEpisodes,
     fetchArticles,
+    fetchAsks,
     fetchMemberSettings,
     invalidateCache
-  }), [state, fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchArticles, fetchMemberSettings, invalidateCache]);
+  }), [state, fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchArticles, fetchAsks, fetchMemberSettings, invalidateCache]);
 
   return (
     <DataContext.Provider value={contextValue}>

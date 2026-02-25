@@ -69,7 +69,6 @@ export default function Search() {
     a.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
     a.date.includes(query)
   ) : [];
-
   const totalResults =
     matchedVideos.length +
     matchedMoments.length +
@@ -235,6 +234,7 @@ export default function Search() {
               </div>
             </div>
           )}
+
         </div>
       )}
     </div>

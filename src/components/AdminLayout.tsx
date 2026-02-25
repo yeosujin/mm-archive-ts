@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import AdminAuth from './AdminAuth';
-import { VideoIcon, PostIcon, ChatIcon, BookIcon, DashboardIcon } from './Icons';
+import { VideoIcon, PostIcon, ChatIcon, BookIcon, AskIcon, DashboardIcon } from './Icons';
 
 export default function AdminLayout() {
   return (
@@ -49,6 +49,13 @@ export default function AdminLayout() {
               onMouseEnter={() => import('../pages/admin/AdminArticles')}
             >
               <BookIcon size={16} /> 도서관
+            </NavLink>
+            <NavLink
+              to="/admin/asks"
+              className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/admin/AdminAsks')}
+            >
+              <AskIcon size={16} /> 질문
             </NavLink>
           </nav>
         </aside>

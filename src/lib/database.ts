@@ -76,6 +76,16 @@ export interface Article {
   date: string;
 }
 
+export interface Ask {
+  id: string;
+  content: string;
+  image_url?: string;
+  answer?: string;
+  status: 'pending' | 'answered';
+  created_at: string;
+  answered_at?: string;
+}
+
 export interface FeaturedContent {
   type: 'video' | 'post' | 'moment' | 'episode' | null;
   content_id: string | null;
@@ -354,6 +364,92 @@ export async function deleteArticle(id: string): Promise<void> {
     .delete()
     .eq('id', id);
   
+  if (error) throw error;
+}
+
+// ============ Asks ============
+export async function getAsks(): Promise<Ask[]> {
+  const { data, error } = await supabase
+    .from('asks')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getAnsweredAsks(): Promise<Ask[]> {
+  const { data, error } = await supabase
+    .from('asks')
+    .select('*')
+    .eq('status', 'answered')
+    .order('answered_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getAsk(id: string): Promise<Ask | null> {
+  const { data, error } = await supabase
+    .from('asks')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+export async function createAsk(ask: Pick<Ask, 'content' | 'image_url'>): Promise<Ask> {
+  const { data, error } = await supabase
+    .from('asks')
+    .insert({
+      content: ask.content,
+      image_url: ask.image_url || null,
+      status: 'pending',
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function answerAsk(id: string, answer: string): Promise<Ask> {
+  const { data, error } = await supabase
+    .from('asks')
+    .update({
+      answer,
+      status: 'answered',
+      answered_at: new Date().toISOString(),
+      image_url: null,
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateAsk(id: string, ask: Partial<Omit<Ask, 'id'>>): Promise<Ask> {
+  const { data, error } = await supabase
+    .from('asks')
+    .update(ask)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteAsk(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('asks')
+    .delete()
+    .eq('id', id);
+
   if (error) throw error;
 }
 
