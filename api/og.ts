@@ -43,6 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const [fontSemiBold, fontRegular] = await Promise.all([
     fetch('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/packages/pretendard/dist/public/static/Pretendard-SemiBold.otf').then(r => r.arrayBuffer()),
     fetch('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/packages/pretendard/dist/public/static/Pretendard-Regular.otf').then(r => r.arrayBuffer()),
+    fetch('https://cdn.jsdelivr.net/npm/@aspect-dev/noto-color-emoji@2.042/Noto-COLRv1.woff2').then(r => r.arrayBuffer()),
   ]);
 
   const isAskPage = !questionText;
@@ -280,21 +281,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           style: 'normal' as const,
           weight: 400,
         },
+        {
+          name: 'Noto Color Emoji',
+          data: Buffer.from(fontEmoji),
+          style: 'normal' as const,
+          weight: 400,
+        },
       ],
-      // 👇 이모지 지원 추가
-      loadAdditionalAsset: async (code: string, segment: string) => {
+      // Twemoji fallback
+      loadAdditionalAsset: async (code, segment) => {
         if (code === 'emoji') {
-          // Twemoji 사용 (트위터 이모지)
-          const emojiCode = segment.codePointAt(0)?.toString(16);
-          const emojiUrl = `https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/${emojiCode}.svg`;
-          const res = await fetch(emojiUrl);
+          const codePoint = segment.codePointAt(0)?.toString(16);
+          const res = await fetch(`https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/${codePoint}.svg`);
           if (res.ok) {
-            const svg = await res.text();
-            return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+            return `data:image/svg+xml,${encodeURIComponent(await res.text())}`;
           }
         }
-      return '';
-    },
+        return '';
+      },
+    }
   );
 
   const resvg = new Resvg(svg, {
