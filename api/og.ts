@@ -215,7 +215,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 type: 'div',
                 props: {
                   style: {
-                    fontSize: displayText && displayText.length > 80 ? '30px' : '38px',
+                    fontSize: displayText && displayText.length > 80 ? '40px' : '48px',
                     color: '#1e1b3a',
                     lineHeight: 1.55,
                     fontWeight: 400,
