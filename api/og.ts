@@ -99,28 +99,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         position: 'relative',
       },
       children: [
-        // mmemory 로고 (홈 타이틀 그라데이션)
-        {
-          type: 'div',
-          props: {
-            style: {
-              fontSize: '52px',
-              fontWeight: 600,
-              letterSpacing: '-0.04em',
-              background: 'linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%)',
-              backgroundClip: 'text',
-              color: 'transparent',
-            },
-            children: 'mmemory',
-          },
-        },
         // 말풍선 아이콘 (SVG)
         {
           type: 'svg',
           props: {
             width: '560',
             height: '460',
-            viewBox: '0 0 280 240',
+            viewBox: '0 -30 280 270',
             style: {
               filter: 'drop-shadow(0 8px 24px rgba(56,189,248,0.15))',
             },
