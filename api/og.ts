@@ -202,7 +202,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 type: 'div',
                 props: {
                   style: {
-                    fontSize: '26px',
+                    fontSize: '35px',
                     fontWeight: 600,
                     color: '#818cf8',
                     marginBottom: '20px',
