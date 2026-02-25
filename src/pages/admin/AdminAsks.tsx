@@ -20,6 +20,7 @@ export default function AdminAsks() {
   const [editText, setEditText] = useState('');
   const [viewingImages, setViewingImages] = useState<string[]>([]);
   const [viewingImageIndex, setViewingImageIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const cleanupExpiredImages = useCallback(async () => {
     try {
@@ -52,7 +53,8 @@ export default function AdminAsks() {
   }, [loadAsks]);
 
   const pendingAsks = asks.filter(a => a.status === 'pending');
-  const answeredAsks = asks.filter(a => a.status === 'answered');
+  const q = searchQuery.toLowerCase();
+  const answeredAsks = asks.filter(a => a.status === 'answered' && (!q || a.content.toLowerCase().includes(q) || a.answer?.toLowerCase().includes(q)));
 
   const handleAnswer = async (id: string) => {
     if (!answerText.trim()) return;
@@ -188,6 +190,13 @@ export default function AdminAsks() {
 
         <div className="admin-section">
           <h2>답변 완료 ({answeredAsks.length}개)</h2>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="답변 검색..."
+            className="ask-search-input"
+          />
           {answeredAsks.length === 0 ? (
             <p className="empty-text">답변된 질문이 없어요</p>
           ) : (

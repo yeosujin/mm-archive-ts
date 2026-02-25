@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, MenuIcon, CloseIcon, VideoIcon, PostIcon, ChatIcon, BookIcon } from './Icons';
 import { useData } from '../hooks/useData';
@@ -23,6 +23,8 @@ export default function Layout() {
   const [showSearch, setShowSearch] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAskPage = location.pathname === '/ask' || location.pathname.startsWith('/ask/');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,9 +43,13 @@ export default function Layout() {
     <div className={`app ${isDarkMode ? 'dark' : 'light'}`}>
       <header className="header">
         <div className="header-content">
-          <NavLink to="/" className="logo" onClick={handleNavClick}>
-            mmemory
-          </NavLink>
+          {isAskPage ? (
+            <span className="logo">mmemory</span>
+          ) : (
+            <NavLink to="/" className="logo" onClick={handleNavClick}>
+              mmemory
+            </NavLink>
+          )}
           
           {/* Desktop Navigation */}
           <nav className="nav desktop-nav">
@@ -87,13 +93,15 @@ export default function Layout() {
           </nav>
 
           <div className="header-actions">
-            <button
-              className="search-toggle"
-              onClick={() => setShowSearch(!showSearch)}
-              aria-label="검색"
-            >
-              <SearchIcon size={18} />
-            </button>
+            {!isAskPage && (
+              <button
+                className="search-toggle"
+                onClick={() => setShowSearch(!showSearch)}
+                aria-label="검색"
+              >
+                <SearchIcon size={18} />
+              </button>
+            )}
 
           <button
             className="theme-toggle"
@@ -104,13 +112,15 @@ export default function Layout() {
           </button>
 
             {/* Mobile Menu Toggle */}
-            <button
-              className="mobile-menu-toggle"
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
-              aria-label="메뉴"
-            >
-              {showMobileMenu ? <CloseIcon size={20} /> : <MenuIcon size={20} />}
-            </button>
+            {!isAskPage && (
+              <button
+                className="mobile-menu-toggle"
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                aria-label="메뉴"
+              >
+                {showMobileMenu ? <CloseIcon size={20} /> : <MenuIcon size={20} />}
+              </button>
+            )}
 
             {showSearch && (
               <form onSubmit={handleSearch} className="header-search">

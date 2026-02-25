@@ -5195,6 +5195,23 @@ color: white;
   text-align: right;
 }
 
+.ask-load-more-btn {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.ask-load-more-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 /* Ask Detail */
 .ask-detail-page {
   max-width: 640px;

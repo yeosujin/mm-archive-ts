@@ -15,6 +15,7 @@ export default function Ask() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [displayCount, setDisplayCount] = useState(10);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async () => {
@@ -164,9 +165,11 @@ export default function Ask() {
               </div>
             );
           }
+          const visible = filtered.slice(0, displayCount);
+          const hasMore = filtered.length > displayCount;
           return (
             <div className="ask-feed">
-              {filtered.map((ask) => (
+              {visible.map((ask) => (
                 <Link key={ask.id} to={`/ask/${ask.id}`} className="ask-card">
                   <div className="ask-card-question">
                     <span className="ask-card-q">Q.</span>
@@ -178,6 +181,15 @@ export default function Ask() {
                   </div>
                 </Link>
               ))}
+              {hasMore && (
+                <button
+                  type="button"
+                  className="ask-load-more-btn"
+                  onClick={() => setDisplayCount(prev => prev + 10)}
+                >
+                  더보기
+                </button>
+              )}
             </div>
           );
         })()}
