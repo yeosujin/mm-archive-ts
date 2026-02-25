@@ -14,13 +14,6 @@ type VNode = {
   };
 };
 
-// 사이트 테마 컬러
-const SKY = '#38bdf8';
-const PURPLE = '#a78bfa';
-const TEXT = '#f0f0f5';
-const TEXT_SUB = '#c0c0d0';
-const TEXT_MUTED = '#8a8a9a';
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = req.query.id as string | undefined;
 
@@ -60,20 +53,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     displayText = questionText;
   }
 
-  // 배경 글로우 orbs (공통)
+  // 배경 글로우 orbs
   const glowOrbs: VNode[] = [
-    // 좌상단 스카이블루 글로우
+    // 좌상단 블루 글로우
     {
       type: 'div',
       props: {
         style: {
           position: 'absolute',
-          top: '-100px',
-          left: '-60px',
-          width: '500px',
-          height: '500px',
+          top: '-80px',
+          left: '-100px',
+          width: '600px',
+          height: '600px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(56,189,248,0.18) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 60%)',
         },
       },
     },
@@ -83,28 +76,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       props: {
         style: {
           position: 'absolute',
-          bottom: '-120px',
+          bottom: '-100px',
           right: '-80px',
-          width: '550px',
-          height: '550px',
+          width: '650px',
+          height: '650px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(167,139,250,0.15) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(167,139,250,0.3) 0%, transparent 60%)',
         },
       },
     },
-    // 중앙 은은한 블루
+    // 중앙 소프트 글로우
     {
       type: 'div',
       props: {
         style: {
           position: 'absolute',
-          top: '50%',
+          top: '40%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '700px',
-          height: '400px',
+          width: '800px',
+          height: '500px',
           borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(112,164,249,0.06) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(112,164,249,0.12) 0%, transparent 65%)',
         },
       },
     },
@@ -117,24 +110,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '36px',
+        gap: '32px',
         position: 'relative',
       },
       children: [
-        // mmemory 로고 (스카이블루)
+        // mmemory 로고
         {
           type: 'div',
           props: {
             style: {
-              fontSize: '48px',
+              fontSize: '52px',
               fontWeight: 600,
-              color: SKY,
+              color: '#2563eb',
               letterSpacing: '-0.04em',
             },
             children: 'mmemory',
           },
         },
-        // 메인 카드 (그라데이션 보더)
+        // 카드
         {
           type: 'div',
           props: {
@@ -142,14 +135,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              background: 'linear-gradient(135deg, rgba(56,189,248,0.08) 0%, rgba(167,139,250,0.08) 100%)',
-              border: '1px solid rgba(56,189,248,0.2)',
-              borderRadius: '24px',
-              padding: '44px 72px',
+              background: 'rgba(255,255,255,0.85)',
+              borderRadius: '28px',
+              padding: '48px 80px',
               gap: '20px',
+              boxShadow: '0 8px 40px rgba(56,189,248,0.15), 0 2px 12px rgba(0,0,0,0.06)',
             },
             children: [
-              // ? 아이콘 원
+              // ? 아이콘
               {
                 type: 'div',
                 props: {
@@ -157,12 +150,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '56px',
-                    height: '56px',
+                    width: '64px',
+                    height: '64px',
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, rgba(56,189,248,0.2) 0%, rgba(167,139,250,0.2) 100%)',
-                    fontSize: '28px',
-                    color: SKY,
+                    background: 'linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%)',
+                    fontSize: '32px',
+                    color: '#ffffff',
                     fontWeight: 600,
                   },
                   children: '?',
@@ -172,9 +165,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 type: 'div',
                 props: {
                   style: {
-                    fontSize: '34px',
+                    fontSize: '36px',
                     fontWeight: 600,
-                    color: TEXT,
+                    color: '#1a1a2e',
                   },
                   children: '궁금한 점을 물어보세요',
                 },
@@ -183,8 +176,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 type: 'div',
                 props: {
                   style: {
-                    fontSize: '18px',
-                    color: TEXT_MUTED,
+                    fontSize: '19px',
+                    color: '#6b7280',
                   },
                   children: '익명으로 무엇이든 질문할 수 있어요',
                 },
@@ -192,13 +185,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ],
           },
         },
-        // URL 하단
+        // URL
         {
           type: 'div',
           props: {
             style: {
               fontSize: '16px',
-              color: TEXT_MUTED,
+              color: '#6b7280',
               letterSpacing: '0.02em',
             },
             children: 'mmemory.cloud/ask',
@@ -215,7 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '32px',
+        gap: '28px',
         position: 'relative',
         padding: '0 80px',
         width: '100%',
@@ -228,7 +221,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             style: {
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
+              gap: '10px',
             },
             children: [
               {
@@ -237,22 +230,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   style: {
                     fontSize: '26px',
                     fontWeight: 600,
-                    color: SKY,
+                    color: '#2563eb',
                     letterSpacing: '-0.04em',
                   },
                   children: 'mmemory',
-                },
-              },
-              // 구분 도트
-              {
-                type: 'span',
-                props: {
-                  style: {
-                    width: '4px',
-                    height: '4px',
-                    borderRadius: '50%',
-                    background: PURPLE,
-                  },
                 },
               },
               {
@@ -260,7 +241,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 props: {
                   style: {
                     fontSize: '18px',
-                    color: PURPLE,
+                    color: '#8b5cf6',
                     fontWeight: 400,
                   },
                   children: 'Q&A',
@@ -276,12 +257,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             style: {
               display: 'flex',
               flexDirection: 'column',
-              background: 'linear-gradient(160deg, rgba(56,189,248,0.06) 0%, rgba(167,139,250,0.06) 100%)',
-              border: '1px solid rgba(56,189,248,0.15)',
+              background: 'rgba(255,255,255,0.85)',
               borderRadius: '24px',
-              padding: '48px 56px',
+              padding: '44px 56px',
               width: '100%',
               maxWidth: '960px',
+              boxShadow: '0 8px 40px rgba(56,189,248,0.12), 0 2px 12px rgba(0,0,0,0.05)',
             },
             children: [
               // Q. 라벨
@@ -291,9 +272,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   style: {
                     fontSize: '22px',
                     fontWeight: 600,
-                    color: SKY,
-                    marginBottom: '16px',
-                    letterSpacing: '0.02em',
+                    color: '#3b82f6',
+                    marginBottom: '14px',
                   },
                   children: 'Q.',
                 },
@@ -304,7 +284,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 props: {
                   style: {
                     fontSize: displayText && displayText.length > 80 ? '28px' : '34px',
-                    color: TEXT_SUB,
+                    color: '#1a1a2e',
                     lineHeight: 1.6,
                     fontWeight: 400,
                   },
@@ -329,7 +309,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           justifyContent: 'center',
           width: '100%',
           height: '100%',
-          background: 'linear-gradient(160deg, #0c0e1a 0%, #0a0f1e 40%, #120e22 100%)',
+          background: 'linear-gradient(135deg, #e0f4ff 0%, #ede9fe 50%, #fce7f3 100%)',
           fontFamily: 'Pretendard',
           position: 'relative',
           overflow: 'hidden',
