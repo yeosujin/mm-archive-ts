@@ -114,15 +114,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         position: 'relative',
       },
       children: [
-        // mmemory 로고
+        // mmemory 로고 (홈 타이틀 그라데이션)
         {
           type: 'div',
           props: {
             style: {
               fontSize: '52px',
               fontWeight: 600,
-              color: '#2563eb',
               letterSpacing: '-0.04em',
+              background: 'linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%)',
+              backgroundClip: 'text',
+              color: 'transparent',
             },
             children: 'mmemory',
           },
@@ -230,8 +232,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   style: {
                     fontSize: '26px',
                     fontWeight: 600,
-                    color: '#2563eb',
                     letterSpacing: '-0.04em',
+                    background: 'linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%)',
+                    backgroundClip: 'text',
+                    color: 'transparent',
                   },
                   children: 'mmemory',
                 },
