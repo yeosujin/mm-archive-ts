@@ -11,6 +11,7 @@ type VNode = {
   props: {
     style?: Record<string, string | number | undefined>;
     children?: string | null | VNode | (string | null | VNode)[];
+    [key: string]: unknown;
   };
 };
 
@@ -94,7 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '32px',
+        gap: '16px',
         position: 'relative',
       },
       children: [
@@ -113,59 +114,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             children: 'mmemory',
           },
         },
-        // 카드
+        // 말풍선 아이콘 (SVG)
         {
-          type: 'div',
+          type: 'svg',
           props: {
+            width: '560',
+            height: '460',
+            viewBox: '0 0 280 240',
             style: {
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              background: 'rgba(255,255,255,0.85)',
-              borderRadius: '28px',
-              padding: '48px 80px',
-              gap: '20px',
-              boxShadow: '0 8px 40px rgba(56,189,248,0.15), 0 2px 12px rgba(0,0,0,0.06)',
+              filter: 'drop-shadow(0 8px 24px rgba(56,189,248,0.15))',
             },
             children: [
-              // ? 아이콘
+              // 말풍선 몸체 + 꼬리
               {
-                type: 'div',
+                type: 'path',
                 props: {
-                  style: {
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%)',
-                    fontSize: '32px',
-                    color: '#ffffff',
-                    fontWeight: 600,
-                  },
-                  children: '?',
+                  d: 'M40 0 h200 a40 40 0 0 1 40 40 v100 a40 40 0 0 1 -40 40 h-140 l-30 40 l-10 -40 h-20 a40 40 0 0 1 -40 -40 v-100 a40 40 0 0 1 40 -40z',
+                  fill: 'rgba(255,255,255,0.92)',
                 },
               },
+              // 점 1 (블루)
               {
-                type: 'div',
+                type: 'circle',
                 props: {
-                  style: {
-                    fontSize: '36px',
-                    fontWeight: 600,
-                    color: '#1a1a2e',
-                  },
-                  children: '궁금한 점을 물어보세요',
+                  cx: '100',
+                  cy: '90',
+                  r: '14',
+                  fill: '#60bcf7',
                 },
               },
+              // 점 2 (인디고)
               {
-                type: 'div',
+                type: 'circle',
                 props: {
-                  style: {
-                    fontSize: '19px',
-                    color: '#6b7280',
-                  },
-                  children: '익명으로 무엇이든 질문할 수 있어요',
+                  cx: '140',
+                  cy: '90',
+                  r: '14',
+                  fill: '#918cf8',
+                },
+              },
+              // 점 3 (퍼플)
+              {
+                type: 'circle',
+                props: {
+                  cx: '180',
+                  cy: '90',
+                  r: '14',
+                  fill: '#b78bfa',
                 },
               },
             ],
@@ -176,8 +171,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           type: 'div',
           props: {
             style: {
-              fontSize: '16px',
-              color: '#6b7280',
+              fontSize: '18px',
+              color: '#9ca3af',
               letterSpacing: '0.02em',
             },
             children: 'mmemory.cloud/ask',
