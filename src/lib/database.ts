@@ -422,7 +422,6 @@ export async function answerAsk(id: string, answer: string): Promise<Ask> {
       answer,
       status: 'answered',
       answered_at: new Date().toISOString(),
-      image_url: null,
     })
     .eq('id', id)
     .select()
@@ -448,6 +447,28 @@ export async function deleteAsk(id: string): Promise<void> {
   const { error } = await supabase
     .from('asks')
     .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function getExpiredImageAsks(): Promise<Ask[]> {
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from('asks')
+    .select('*')
+    .eq('status', 'answered')
+    .not('image_url', 'is', null)
+    .lt('answered_at', threeDaysAgo);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function clearAskImageUrl(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('asks')
+    .update({ image_url: null })
     .eq('id', id);
 
   if (error) throw error;

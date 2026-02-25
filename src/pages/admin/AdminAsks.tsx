@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAsks, answerAsk, updateAsk, deleteAsk } from '../../lib/database';
+import { getAsks, answerAsk, updateAsk, deleteAsk, getExpiredImageAsks, clearAskImageUrl } from '../../lib/database';
 import { deleteAskImages, parseImageUrls } from '../../lib/askStorage';
 import type { Ask } from '../../lib/database';
 import { useData } from '../../hooks/useData';
@@ -21,8 +21,23 @@ export default function AdminAsks() {
   const [viewingImages, setViewingImages] = useState<string[]>([]);
   const [viewingImageIndex, setViewingImageIndex] = useState(0);
 
+  const cleanupExpiredImages = useCallback(async () => {
+    try {
+      const expired = await getExpiredImageAsks();
+      for (const ask of expired) {
+        if (ask.image_url) {
+          await deleteAskImages(ask.image_url).catch(console.error);
+          await clearAskImageUrl(ask.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up expired images:', error);
+    }
+  }, []);
+
   const loadAsks = useCallback(async () => {
     try {
+      await cleanupExpiredImages();
       const data = await getAsks();
       setAsks(data);
     } catch (error) {
@@ -30,7 +45,7 @@ export default function AdminAsks() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cleanupExpiredImages]);
 
   useEffect(() => {
     loadAsks();
@@ -39,12 +54,9 @@ export default function AdminAsks() {
   const pendingAsks = asks.filter(a => a.status === 'pending');
   const answeredAsks = asks.filter(a => a.status === 'answered');
 
-  const handleAnswer = async (id: string, imageUrl?: string) => {
+  const handleAnswer = async (id: string) => {
     if (!answerText.trim()) return;
     try {
-      if (imageUrl) {
-        await deleteAskImages(imageUrl).catch(console.error);
-      }
       const answered = await answerAsk(id, answerText.trim());
       showToast('답변이 등록되었어요!', 'success');
       setAnsweringId(null);
@@ -158,7 +170,7 @@ export default function AdminAsks() {
                         rows={3}
                       />
                       <div className="admin-list-actions">
-                        <button className="edit-btn" onClick={() => handleAnswer(ask.id, ask.image_url)}>등록</button>
+                        <button className="edit-btn" onClick={() => handleAnswer(ask.id)}>등록</button>
                         <button className="delete-btn" onClick={() => { setAnsweringId(null); setAnswerText(''); }}>취소</button>
                       </div>
                     </div>
@@ -184,6 +196,11 @@ export default function AdminAsks() {
                 <div key={ask.id} className="admin-list-item ask-admin-item">
                   <div className="admin-list-info">
                     <p className="ask-admin-content"><strong>Q.</strong> {ask.content}</p>
+                    {ask.image_url && (
+                      <button type="button" className="ask-image-view-btn" onClick={() => { setViewingImages(parseImageUrls(ask.image_url)); setViewingImageIndex(0); }}>
+                        이미지 보기 ({parseImageUrls(ask.image_url).length})
+                      </button>
+                    )}
                     {editingId === ask.id ? (
                       <div className="ask-admin-answer-form">
                         <textarea
