@@ -5,6 +5,15 @@ import { Resvg } from '@resvg/resvg-js';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
+// satori virtual DOM node
+type VNode = {
+  type: string;
+  props: {
+    style?: Record<string, string | number | undefined>;
+    children?: string | null | VNode | (string | null | VNode)[];
+  };
+};
+
 // 사이트 테마 컬러
 const SKY = '#38bdf8';
 const PURPLE = '#a78bfa';
@@ -52,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // 배경 글로우 orbs (공통)
-  const glowOrbs = [
+  const glowOrbs: VNode[] = [
     // 좌상단 스카이블루 글로우
     {
       type: 'div',
@@ -101,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     },
   ];
 
-  const askPageContent = {
+  const askPageContent: VNode = {
     type: 'div',
     props: {
       style: {
@@ -199,7 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     },
   };
 
-  const questionContent = {
+  const questionContent: VNode = {
     type: 'div',
     props: {
       style: {
@@ -330,7 +339,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           isAskPage ? askPageContent : questionContent,
         ],
       },
-    } as any,
+    } as Parameters<typeof satori>[0],
     {
       width: 1200,
       height: 630,
