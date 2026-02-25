@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   getFeaturedContent, setFeaturedContent, getArticlesVisibility, setArticlesVisibility
 } from '../../lib/database';
@@ -6,7 +6,7 @@ import {
 declare const __APP_VERSION__: string;
 import type { Video, Moment, Post, Episode, Article } from '../../lib/database';
 import { useData } from '../../hooks/useData';
-import { VideoIcon, PostIcon, ChatIcon, BookIcon } from '../../components/Icons';
+import { VideoIcon, PostIcon, ChatIcon, BookIcon, StarIcon } from '../../components/Icons';
 import { useToast } from '../../hooks/useToast';
 import Toast from '../../components/Toast';
 
@@ -33,6 +33,16 @@ export default function Dashboard() {
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedId, setSelectedId] = useState<string>('');
   const [currentFeatured, setCurrentFeatured] = useState<string>('없음');
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const typeDropdownRef = useRef<HTMLDivElement>(null);
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
+  const [isItemDropdownOpen, setIsItemDropdownOpen] = useState(false);
+  const itemDropdownRef = useRef<HTMLDivElement>(null);
+  // 모먼트용 영상 필터
+  const [filterVideoId, setFilterVideoId] = useState('');
+  const [videoSearchQuery, setVideoSearchQuery] = useState('');
+  const [isVideoDropdownOpen, setIsVideoDropdownOpen] = useState(false);
+  const videoDropdownRef = useRef<HTMLDivElement>(null);
   const [articlesVisible, setArticlesVisibleState] = useState<boolean>(false);
   const [loading, setLoading] = useState(!cachedVideos || !cachedMoments || !cachedPosts || !cachedEpisodes || !cachedArticles);
 
@@ -80,6 +90,59 @@ export default function Dashboard() {
   useEffect(() => { if (cachedPosts) setPosts(cachedPosts); }, [cachedPosts]);
   useEffect(() => { if (cachedEpisodes) setEpisodes(cachedEpisodes); }, [cachedEpisodes]);
   useEffect(() => { if (cachedArticles) setArticles(cachedArticles); }, [cachedArticles]);
+
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target as Node)) {
+        setIsTypeDropdownOpen(false);
+      }
+      if (itemDropdownRef.current && !itemDropdownRef.current.contains(e.target as Node)) {
+        setIsItemDropdownOpen(false);
+      }
+      if (videoDropdownRef.current && !videoDropdownRef.current.contains(e.target as Node)) {
+        setIsVideoDropdownOpen(false);
+      }
+    };
+    if (isTypeDropdownOpen || isItemDropdownOpen || isVideoDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isTypeDropdownOpen, isItemDropdownOpen, isVideoDropdownOpen]);
+
+  // 모먼트용 영상 필터 목록
+  const filteredVideosForMoment = useMemo(() => {
+    if (!videoSearchQuery.trim()) return videos;
+    const q = videoSearchQuery.toLowerCase();
+    return videos.filter(v => v.title.toLowerCase().includes(q) || v.date.includes(q));
+  }, [videos, videoSearchQuery]);
+
+  // 검색어로 필터링된 항목 목록
+  const filteredItems = useMemo(() => {
+    let items: (Video | Moment | Post)[] = [];
+    switch (selectedType) {
+      case 'video': items = videos; break;
+      case 'moment':
+        items = filterVideoId
+          ? moments.filter(m => m.video_id === filterVideoId)
+          : moments;
+        break;
+      case 'post': items = posts; break;
+    }
+    if (!itemSearchQuery.trim()) return items;
+    const q = itemSearchQuery.toLowerCase();
+    return items.filter(item => {
+      const title = (('platform' in item ? (item.title || item.platform) : item.title) || '').toLowerCase();
+      const date = (item.date || '').toLowerCase();
+      return title.includes(q) || date.includes(q);
+    });
+  }, [selectedType, videos, moments, posts, itemSearchQuery, filterVideoId]);
+
+  const handleItemSelect = (id: string) => {
+    setSelectedId(id);
+    setItemSearchQuery('');
+    setIsItemDropdownOpen(false);
+  };
 
   const updateCurrentFeaturedLabel = (
     type: string, 
@@ -217,7 +280,7 @@ export default function Dashboard() {
 
       {/* 메인 걸기 설정 */}
       <div className="admin-section">
-        <h2>⭐ 홈 메인 걸기</h2>
+        <h2><StarIcon size={18} /> 홈 메인 걸기</h2>
         <p className="admin-hint" style={{ marginBottom: '1rem' }}>
           현재: <strong>{currentFeatured}</strong>
         </p>
@@ -225,39 +288,178 @@ export default function Dashboard() {
         <div className="admin-form" style={{ maxWidth: '100%' }}>
           <div className="featured-select-row">
             <div className="form-group">
-              <label htmlFor="featured-type">종류</label>
-              <select 
-                id="featured-type"
-                value={selectedType} 
-                onChange={(e) => {
-                  setSelectedType(e.target.value);
-                  setSelectedId('');
-                }}
-                className="form-select"
-              >
-                <option value="">선택하세요</option>
-                <option value="video">📹 영상</option>
-                <option value="moment">✨ 모먼트</option>
-                <option value="post">📱 포스트</option>
-              </select>
+              <label>종류</label>
+              <div className="searchable-select" ref={typeDropdownRef}>
+                <button
+                  type="button"
+                  className="searchable-select-input type-select-btn"
+                  onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+                >
+                  {selectedType ? (
+                    <span className="type-select-label">
+                      {selectedType === 'video' && <><VideoIcon size={16} /> 영상</>}
+                      {selectedType === 'moment' && <><VideoIcon size={16} /> 모먼트</>}
+                      {selectedType === 'post' && <><PostIcon size={16} /> 포스트</>}
+                    </span>
+                  ) : (
+                    <span className="type-select-placeholder">선택하세요</span>
+                  )}
+                </button>
+                {isTypeDropdownOpen && (
+                  <div className="searchable-select-dropdown">
+                    {[
+                      { value: 'video', label: '영상', Icon: VideoIcon },
+                      { value: 'moment', label: '모먼트', Icon: VideoIcon },
+                      { value: 'post', label: '포스트', Icon: PostIcon },
+                    ].map(({ value, label, Icon }) => (
+                      <div
+                        key={value}
+                        className={`searchable-select-option ${selectedType === value ? 'selected' : ''}`}
+                        onClick={() => {
+                          setSelectedType(value);
+                          setSelectedId('');
+                          setItemSearchQuery('');
+                          setIsItemDropdownOpen(false);
+                          setFilterVideoId('');
+                          setVideoSearchQuery('');
+                          setIsVideoDropdownOpen(false);
+                          setIsTypeDropdownOpen(false);
+                        }}
+                      >
+                        <Icon size={16} /> {label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+
+            {selectedType === 'moment' && (
+              <div className="form-group">
+                <label>영상 선택 (선택사항)</label>
+                <div className="searchable-select" ref={videoDropdownRef}>
+                  <input
+                    type="text"
+                    placeholder={filterVideoId
+                      ? (() => {
+                          const v = videos.find(v => v.id === filterVideoId);
+                          return v ? `[${v.date}] ${v.title}` : '영상 검색...';
+                        })()
+                      : '영상으로 필터 (날짜/제목)'}
+                    value={videoSearchQuery}
+                    onChange={(e) => {
+                      setVideoSearchQuery(e.target.value);
+                      setIsVideoDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsVideoDropdownOpen(true)}
+                    className="searchable-select-input"
+                  />
+                  {filterVideoId && (
+                    <button
+                      type="button"
+                      className="searchable-select-clear"
+                      onClick={() => {
+                        setFilterVideoId('');
+                        setVideoSearchQuery('');
+                        setIsVideoDropdownOpen(false);
+                        setSelectedId('');
+                        setItemSearchQuery('');
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                  {isVideoDropdownOpen && (
+                    <div className="searchable-select-dropdown">
+                      <div
+                        className={`searchable-select-option ${!filterVideoId ? 'selected' : ''}`}
+                        onClick={() => {
+                          setFilterVideoId('');
+                          setVideoSearchQuery('');
+                          setIsVideoDropdownOpen(false);
+                          setSelectedId('');
+                          setItemSearchQuery('');
+                        }}
+                      >
+                        전체 모먼트
+                      </div>
+                      {filteredVideosForMoment.map((video) => (
+                        <div
+                          key={video.id}
+                          className={`searchable-select-option ${filterVideoId === video.id ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFilterVideoId(video.id);
+                            setVideoSearchQuery('');
+                            setIsVideoDropdownOpen(false);
+                            setSelectedId('');
+                            setItemSearchQuery('');
+                          }}
+                        >
+                          [{video.date}] {video.title}
+                        </div>
+                      ))}
+                      {filteredVideosForMoment.length === 0 && (
+                        <div className="searchable-select-empty">검색 결과 없음</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {selectedType && (
               <div className="form-group">
                 <label htmlFor="featured-item">항목</label>
-                <select 
-                  id="featured-item"
-                  value={selectedId} 
-                  onChange={(e) => setSelectedId(e.target.value)}
-                  className="form-select"
-                >
-                  <option value="">선택하세요</option>
-                  {getItemsForType().map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {getItemTitle(item)}
-                    </option>
-                  ))}
-                </select>
+                <div className="searchable-select" ref={itemDropdownRef}>
+                  <input
+                    type="text"
+                    placeholder={selectedId
+                      ? (() => {
+                          const items = getItemsForType();
+                          const found = items.find(i => i.id === selectedId);
+                          return found ? `[${found.date}] ${getItemTitle(found)}` : '항목 검색...';
+                        })()
+                      : '항목 검색 (제목/날짜)'}
+                    value={itemSearchQuery}
+                    onChange={(e) => {
+                      setItemSearchQuery(e.target.value);
+                      setIsItemDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsItemDropdownOpen(true)}
+                    className="searchable-select-input"
+                  />
+                  {selectedId && (
+                    <button
+                      type="button"
+                      className="searchable-select-clear"
+                      onClick={() => handleItemSelect('')}
+                    >
+                      ✕
+                    </button>
+                  )}
+                  {isItemDropdownOpen && (
+                    <div className="searchable-select-dropdown">
+                      <div
+                        className={`searchable-select-option ${!selectedId ? 'selected' : ''}`}
+                        onClick={() => handleItemSelect('')}
+                      >
+                        선택 안함
+                      </div>
+                      {filteredItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className={`searchable-select-option ${selectedId === item.id ? 'selected' : ''}`}
+                          onClick={() => handleItemSelect(item.id)}
+                        >
+                          [{item.date}] {getItemTitle(item)}
+                        </div>
+                      ))}
+                      {filteredItems.length === 0 && (
+                        <div className="searchable-select-empty">검색 결과 없음</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -284,7 +486,7 @@ export default function Dashboard() {
 
       {/* 도서관 표시/숨김 설정 */}
       <div className="admin-section">
-        <h2>📚 도서관 설정</h2>
+        <h2><BookIcon size={18} /> 도서관 설정</h2>
         <p className="admin-hint" style={{ marginBottom: '1rem' }}>
           현재: <strong>{articlesVisible ? '공개 중' : '숨김 (공사중)'}</strong>
         </p>

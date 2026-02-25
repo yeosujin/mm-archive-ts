@@ -38,6 +38,7 @@ const YOUTUBE_CATEGORIES = [
 export default function Videos() {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
+  const momentId = searchParams.get('moment');
   const { videos: cachedVideos, moments: cachedMoments, fetchVideos, fetchMoments } = useData();
   const [videoMoments, setVideoMoments] = useState<Record<string, Moment[]>>({});
   const [expandedVideo, setExpandedVideo] = useState<string | null>(null);
@@ -121,10 +122,24 @@ export default function Videos() {
     if (!highlightId || loading || videos.length === 0) return;
     setExpandedVideo(highlightId);
     loadMomentsForVideo(highlightId);
-    setTimeout(() => {
-      document.querySelector(`[data-video-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
-  }, [highlightId, loading, videos.length, loadMomentsForVideo]);
+
+    if (momentId) {
+      // 모먼트까지 펼치고 해당 모먼트로 스크롤
+      setExpandedMoments(highlightId);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-moment-id="${momentId}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          document.querySelector(`[data-video-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    } else {
+      setTimeout(() => {
+        document.querySelector(`[data-video-id="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [highlightId, momentId, loading, videos.length, loadMomentsForVideo]);
   
   // 검색 및 필터링 (메모이제이션) - 영상 제목 + 모먼트 제목 + 플랫폼 + 멤버
   const { filteredVideos, filteredMoments } = useMemo(() => {
@@ -496,7 +511,7 @@ export default function Videos() {
                               {expandedMoments === video.id && (
                                 <div className="video-moments-grid">
                                   {moments.map((moment) => (
-                          <div key={moment.id} className="moment-embed-item">
+                          <div key={moment.id} className="moment-embed-item" data-moment-id={moment.id}>
                                       <h4 className="moment-title">{moment.title}</h4>
                                       <VideoEmbed
                                         url={moment.tweet_url}

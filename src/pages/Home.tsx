@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getVideos, getPosts, getMoments, getFeaturedContent, getArticlesVisibility } from '../lib/database';
 import type { Video, Post, Moment } from '../lib/database';
 import PostEmbed from '../components/PostEmbed';
-import { SearchIcon, CalendarIcon, ArrowRightIcon, ExternalLinkIcon, VideoIcon } from '../components/Icons';
+import VideoEmbed from '../components/VideoEmbed';
+import { SearchIcon, CalendarIcon, ArrowRightIcon, ExternalLinkIcon } from '../components/Icons';
 import { detectVideoPlatform } from '../lib/platformUtils';
 
 // 위버스 멤버 매핑
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [featuredItem, setFeaturedItem] = useState<{ type: string; item: Video | Post | Moment } | null>(null);
+  const [linkedVideo, setLinkedVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
   const [articlesVisible, setArticlesVisible] = useState(true);
   const navigate = useNavigate();
@@ -56,8 +58,11 @@ export default function Home() {
           const posts = await getPosts();
           item = posts.find(p => p.id === featured.content_id);
         } else if (featured.type === 'moment') {
-          const moments = await getMoments();
+          const [moments, videos] = await Promise.all([getMoments(), getVideos()]);
           item = moments.find(m => m.id === featured.content_id);
+          if (item && (item as Moment).video_id) {
+            setLinkedVideo(videos.find(v => v.id === (item as Moment).video_id) || null);
+          }
         }
 
         if (item) {
@@ -133,7 +138,7 @@ export default function Home() {
           <div className="home-featured-header">
             <span className="home-featured-badge">PICK</span>
           </div>
-          <div className="home-featured-content" onClick={handleFeaturedClick} style={{ cursor: 'pointer' }}>
+          <div className="home-featured-content" onClick={featuredItem.type !== 'moment' ? handleFeaturedClick : undefined} style={featuredItem.type !== 'moment' ? { cursor: 'pointer' } : undefined}>
             {featuredItem.type === 'video' && (() => {
               const video = featuredItem.item as Video;
               const platform = detectVideoPlatform(video.url);
@@ -167,19 +172,35 @@ export default function Home() {
             )}
             {featuredItem.type === 'moment' && (() => {
               const moment = featuredItem.item as Moment;
+              const video = linkedVideo;
+              const platform = video ? detectVideoPlatform(video.url) : null;
 
               return (
-                <div className="video-embed-external">
-                  <div className="external-link-card">
-                    <span className="external-icon"><VideoIcon size={20} /></span>
-                    <div className="external-info">
-                      <span className="external-platform">모먼트</span>
-                      <span className="external-title">{moment.title}</span>
+                <div>
+                  <Link
+                    to={`/videos?highlight=${moment.video_id || moment.id}&moment=${moment.id}`}
+                    className="home-featured-moment-more"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    모먼트 더보기 <ArrowRightIcon size={12} />
+                  </Link>
+                  <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} />
+                  {video && platform && (
+                    <div className={`video-embed-external ${platform === 'weverse' ? 'weverse-link' : ''}`}>
+                      <div className="external-link-card">
+                        <span className="external-icon">
+                          {platform === 'weverse' ? (video.icon || '🩵') : <ExternalLinkIcon size={20} />}
+                        </span>
+                        <div className="external-info">
+                          <span className="external-platform">{PLATFORM_NAMES[platform] || '외부 링크'}</span>
+                          <span className="external-title">{video.title}</span>
+                        </div>
+                        <a href={video.url} target="_blank" rel="noopener noreferrer" className="external-btn" onClick={(e) => e.stopPropagation()}>
+                          보러가기 <ArrowRightIcon size={14} />
+                        </a>
+                      </div>
                     </div>
-                    <a href={moment.tweet_url} target="_blank" rel="noopener noreferrer" className="external-btn" onClick={(e) => e.stopPropagation()}>
-                      보러가기 <ArrowRightIcon size={14} />
-                    </a>
-                  </div>
+                  )}
                 </div>
               );
             })()}

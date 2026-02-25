@@ -548,6 +548,21 @@
   padding: 1rem;
 }
 
+.home-featured-moment-more {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-bottom: 0.5rem;
+}
+
+.home-featured-moment-more:hover {
+  color: var(--accent);
+}
+
 .home-featured-title {
   font-size: 1rem;
   font-weight: 600;
