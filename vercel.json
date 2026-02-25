@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "develop": false
+    }
+  },
   "rewrites": [
     { "source": "/api/og", "destination": "/api/og" },
     { "source": "/ask", "destination": "/api/ask" },
