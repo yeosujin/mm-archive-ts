@@ -1,14 +1,11 @@
 import { ImageResponse } from '@vercel/og';
-import { createClient } from '@supabase/supabase-js';
 
 export const config = {
   runtime: 'edge',
 };
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
-  process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || ''
-);
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
 export default async function handler(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -16,15 +13,23 @@ export default async function handler(req: Request) {
 
   let questionText = 'mmemory Q&A';
 
-  if (id) {
-    const { data } = await supabase
-      .from('asks')
-      .select('content')
-      .eq('id', id)
-      .single();
-
-    if (data?.content) {
-      questionText = data.content;
+  if (id && SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/asks?id=eq.${id}&select=content&limit=1`,
+        {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+        }
+      );
+      const rows = await res.json();
+      if (rows?.[0]?.content) {
+        questionText = rows[0].content;
+      }
+    } catch {
+      // fallback to default text
     }
   }
 
