@@ -32,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const siteUrl = `https://${req.headers.host}`;
-  const ogImageUrl = `${siteUrl}/api/og?v=2`;
+  const ogImageUrl = `${siteUrl}/api/og?v=3`;
 
   const html = `<!DOCTYPE html>
 <html lang="ko">
