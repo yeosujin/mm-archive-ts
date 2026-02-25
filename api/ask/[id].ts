@@ -58,7 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const siteUrl = `https://${req.headers.host}`;
-  const ogImageUrl = `${siteUrl}/api/og?id=${id}`;
+  const ogImageUrl = `${siteUrl}/api/og?id=${id}&v=2`;
   const title = 'Q&A - mmemory';
   const description = escapeHtml(
     ask.content.length > 100 ? ask.content.slice(0, 100) + '...' : ask.content

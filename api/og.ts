@@ -347,6 +347,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pngBuffer = pngData.asPng();
 
   res.setHeader('Content-Type', 'image/png');
-  res.setHeader('Cache-Control', 'public, s-maxage=86400, max-age=86400');
+  res.setHeader('Cache-Control', 'public, s-maxage=3600, max-age=3600');
   return res.status(200).send(pngBuffer);
 }

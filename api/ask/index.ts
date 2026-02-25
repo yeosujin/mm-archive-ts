@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const siteUrl = `https://${req.headers.host}`;
-  const ogImageUrl = `${siteUrl}/api/og`;
+  const ogImageUrl = `${siteUrl}/api/og?v=2`;
 
   const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -51,6 +51,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 </html>`;
 
   res.setHeader('Content-Type', 'text/html');
-  res.setHeader('Cache-Control', 'public, s-maxage=86400');
+  res.setHeader('Cache-Control', 'public, s-maxage=600');
   return res.status(200).send(html);
 }
