@@ -14,6 +14,7 @@ const CRAWLER_AGENTS = [
   'linkedinbot',
   'slackbot',
   'discordbot',
+  'kakaotalk-scrap',
 ];
 
 function isCrawler(userAgent: string | undefined): boolean {
