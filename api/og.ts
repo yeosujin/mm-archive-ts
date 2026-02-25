@@ -281,7 +281,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           weight: 400,
         },
       ],
-    }
+      // 👇 이모지 지원 추가
+      loadAdditionalAsset: async (code: string, segment: string) => {
+        if (code === 'emoji') {
+          // Twemoji 사용 (트위터 이모지)
+          const emojiCode = segment.codePointAt(0)?.toString(16);
+          const emojiUrl = `https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/${emojiCode}.svg`;
+          const res = await fetch(emojiUrl);
+          if (res.ok) {
+            const svg = await res.text();
+            return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+          }
+        }
+      return '';
+    },
   );
 
   const resvg = new Resvg(svg, {
