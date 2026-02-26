@@ -207,6 +207,12 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      <div className="home-ask-link">
+        <Link to="/ask" className="home-ask-btn">
+          궁금한 점이나 요청 남기러가기 <ArrowRightIcon size={12} />
+        </Link>
+      </div>
     </div>
   );
 }
