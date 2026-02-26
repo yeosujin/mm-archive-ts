@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
@@ -40,11 +42,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  const [fontSemiBold, fontRegular] = await Promise.all([
-    fetch('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/packages/pretendard/dist/public/static/Pretendard-SemiBold.otf').then(r => r.arrayBuffer()),
-    fetch('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/packages/pretendard/dist/public/static/Pretendard-Regular.otf').then(r => r.arrayBuffer()),
-    fetch('https://cdn.jsdelivr.net/npm/@aspect-dev/noto-color-emoji@2.042/Noto-COLRv1.woff2').then(r => r.arrayBuffer()),
-  ]);
+  const fontsDir = path.join(__dirname, 'fonts');
+  const fontSemiBold = fs.readFileSync(path.join(fontsDir, 'SUIT-SemiBold.woff2'));
+  const fontRegular = fs.readFileSync(path.join(fontsDir, 'SUIT-Regular.woff2'));
 
   const isAskPage = !questionText;
 
@@ -255,7 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           width: '100%',
           height: '100%',
           background: 'linear-gradient(135deg, #e0f4ff 0%, #ede9fe 50%, #fce7f3 100%)',
-          fontFamily: 'Pretendard',
+          fontFamily: 'SUIT',
           position: 'relative',
           overflow: 'hidden',
         },
@@ -270,20 +270,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       height: 630,
       fonts: [
         {
-          name: 'Pretendard',
+          name: 'SUIT',
           data: Buffer.from(fontSemiBold),
           style: 'normal' as const,
           weight: 600,
         },
         {
-          name: 'Pretendard',
+          name: 'SUIT',
           data: Buffer.from(fontRegular),
-          style: 'normal' as const,
-          weight: 400,
-        },
-        {
-          name: 'Noto Color Emoji',
-          data: Buffer.from(fontEmoji),
           style: 'normal' as const,
           weight: 400,
         },

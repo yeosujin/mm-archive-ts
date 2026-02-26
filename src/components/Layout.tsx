@@ -43,13 +43,9 @@ export default function Layout() {
     <div className={`app ${isDarkMode ? 'dark' : 'light'}`}>
       <header className="header">
         <div className="header-content">
-          {isAskPage ? (
-            <span className="logo">mmemory</span>
-          ) : (
-            <NavLink to="/" className="logo" onClick={handleNavClick}>
-              mmemory
-            </NavLink>
-          )}
+          <NavLink to="/" className="logo" onClick={handleNavClick}>
+            mmemory
+          </NavLink>
           
           {/* Desktop Navigation */}
           <nav className="nav desktop-nav">

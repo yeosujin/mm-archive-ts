@@ -40,15 +40,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   <meta charset="UTF-8" />
   <title>Ask - mmemory</title>
   <meta property="og:title" content="Ask - mmemory" />
-  <meta property="og:description" content="궁금한 점을 물어보세요" />
+  <meta property="og:description" content="궁금한 점이나 요청 사항을 남겨주세요" />
   <meta property="og:image" content="${ogImageUrl}" />
   <meta property="og:url" content="${siteUrl}/ask" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Ask - mmemory" />
-  <meta name="twitter:description" content="궁금한 점을 물어보세요" />
+  <meta name="twitter:description" content="궁금한 점이나 요청 사항을 남겨주세요" />
   <meta name="twitter:image" content="${ogImageUrl}" />
 </head>
-<body><p>궁금한 점을 물어보세요</p></body>
+<body><p>궁금한 점이나 요청 사항을 남겨주세요</p></body>
 </html>`;
 
   res.setHeader('Content-Type', 'text/html');

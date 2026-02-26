@@ -94,13 +94,13 @@ export default function Ask() {
     <div className="page ask-page">
       <section className="ask-form-section">
         <h1 className="ask-title">Ask</h1>
-        <p className="ask-subtitle">궁금한 점을 물어보세요</p>
+        <p className="ask-subtitle">궁금한 점이나 요청 사항을 남겨주세요</p>
 
         <form onSubmit={handleSubmit} className="ask-form">
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="질문을 입력하세요..."
+            placeholder="입력하세요..."
             maxLength={500}
             rows={4}
             required
