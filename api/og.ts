@@ -41,8 +41,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const [fontSemiBold, fontRegular] = await Promise.all([
-    fetch('https://cdn.jsdelivr.net/gh/sun-typeface/SUIT/fonts/static/woff2/SUIT-SemiBold.woff2').then(r => r.arrayBuffer()),
-    fetch('https://cdn.jsdelivr.net/gh/sun-typeface/SUIT/fonts/static/woff2/SUIT-Regular.woff2').then(r => r.arrayBuffer()),
+    fetch('https://cdn.jsdelivr.net/gh/sun-typeface/SUIT/fonts/static/SUIT-SemiBold.otf').then(r => r.arrayBuffer()),
+    fetch('https://cdn.jsdelivr.net/gh/sun-typeface/SUIT/fonts/static/SUIT-Regular.otf').then(r => r.arrayBuffer()),
   ]);
 
   const isAskPage = !questionText;
