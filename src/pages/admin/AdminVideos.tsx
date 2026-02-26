@@ -72,8 +72,11 @@ async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date:
 
     // XSS 방지: 제목에서 위험한 문자 제거
     const safeTitle = snippet.title.replaceAll(/[<>]/g, '');
-    const dateMatch = snippet.publishedAt.match(/^\d{4}-\d{2}-\d{2}/);
-    const safeDate = dateMatch ? dateMatch[0] : '';
+    // ✅ KST 변환
+    const utcDate = new Date(snippet.publishedAt);
+    const kstDate = new Date(utcDate.getTime() + 9 * 60 * 60 * 1000);
+    const safeDate = kstDate.toISOString().split('T')[0];
+    
     const safeChannelName = (snippet.channelTitle || '').replaceAll(/[<>]/g, '');
 
     return { title: safeTitle, date: safeDate, channelName: safeChannelName };
