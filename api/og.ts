@@ -41,9 +41,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const [fontSemiBold, fontRegular] = await Promise.all([
-    fetch('https://cdn.jsdelivr.net/gh/sun-typeface/SUIT/fonts/static/SUIT-SemiBold.otf').then(r => r.arrayBuffer()),
-    fetch('https://cdn.jsdelivr.net/gh/sun-typeface/SUIT/fonts/static/SUIT-Regular.otf').then(r => r.arrayBuffer()),
+    fetch('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/packages/pretendard/dist/public/static/Pretendard-SemiBold.otf').then(r => r.arrayBuffer()),
+    fetch('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/packages/pretendard/dist/public/static/Pretendard-Regular.otf').then(r => r.arrayBuffer()),
   ]);
+
 
   const isAskPage = !questionText;
 
@@ -254,7 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           width: '100%',
           height: '100%',
           background: 'linear-gradient(135deg, #e0f4ff 0%, #ede9fe 50%, #fce7f3 100%)',
-          fontFamily: 'SUIT',
+          fontFamily: 'Pretendard',
           position: 'relative',
           overflow: 'hidden',
         },
@@ -269,13 +270,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       height: 630,
       fonts: [
         {
-          name: 'SUIT',
+          name: 'Pretendard', 
           data: Buffer.from(fontSemiBold),
           style: 'normal' as const,
           weight: 600,
         },
         {
-          name: 'SUIT',
+          name: 'Pretendard',
           data: Buffer.from(fontRegular),
           style: 'normal' as const,
           weight: 400,
