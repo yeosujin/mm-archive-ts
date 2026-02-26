@@ -5,7 +5,7 @@ import { useData } from '../hooks/useData';
 
 export default function Layout() {
   const { memberSettings, fetchMemberSettings } = useData();
-  const articlesVisible = memberSettings?.articles_visible ?? true;
+  const articlesVisible = memberSettings?.articles_visible ?? false;
 
   useEffect(() => {
     fetchMemberSettings();
