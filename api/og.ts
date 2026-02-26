@@ -1,8 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
-import fs from 'node:fs';
-import path from 'node:path';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
@@ -42,9 +40,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  const fontsDir = path.join(__dirname, 'fonts');
-  const fontSemiBold = fs.readFileSync(path.join(fontsDir, 'SUIT-SemiBold.woff2'));
-  const fontRegular = fs.readFileSync(path.join(fontsDir, 'SUIT-Regular.woff2'));
+  const [fontSemiBold, fontRegular] = await Promise.all([
+    fetch('https://cdn.jsdelivr.net/gh/sun-typeface/SUIT/fonts/static/woff2/SUIT-SemiBold.woff2').then(r => r.arrayBuffer()),
+    fetch('https://cdn.jsdelivr.net/gh/sun-typeface/SUIT/fonts/static/woff2/SUIT-Regular.woff2').then(r => r.arrayBuffer()),
+  ]);
 
   const isAskPage = !questionText;
 
