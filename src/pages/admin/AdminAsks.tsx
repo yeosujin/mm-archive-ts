@@ -111,7 +111,11 @@ export default function AdminAsks() {
   const handleShareToX = (ask: Ask) => {
     const siteUrl = window.location.origin;
     const askUrl = `${siteUrl}/ask/${ask.id}`;
-    const tweetText = `${ask.answer}\n\n`;
+    const maxLen = 60;
+    const answer = ask.answer || '';
+    const tweetText = answer.length > maxLen
+      ? `${answer.slice(0, maxLen)}… 더보기\n\n`
+      : `${answer}\n\n`;
     const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(askUrl)}`;
     window.open(intentUrl, '_blank', 'width=600,height=400');
   };
