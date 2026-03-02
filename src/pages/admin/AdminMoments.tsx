@@ -33,6 +33,7 @@ export default function AdminMoments() {
   const [thumbProgress, setThumbProgress] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // 이전 선택 영상 기억
   const lastVideoIdRef = useRef<string>('');
@@ -99,8 +100,13 @@ export default function AdminMoments() {
   // 타임라인 그룹화 로직
   const groupedMoments = useMemo(() => {
     const groups: Record<string, Moment[]> = {};
+    const q = searchQuery.toLowerCase().trim();
 
-    const sortedMoments = [...moments].sort((a, b) => {
+    const filtered = q
+      ? moments.filter(m => m.date.includes(q) || m.title.toLowerCase().includes(q))
+      : moments;
+
+    const sortedMoments = [...filtered].sort((a, b) => {
       const dateDiff = b.date.localeCompare(a.date);
       if (dateDiff !== 0) return dateDiff;
       return (a.position || 0) - (b.position || 0);
@@ -114,7 +120,7 @@ export default function AdminMoments() {
     });
 
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  }, [moments]);
+  }, [moments, searchQuery]);
 
   // 같은 날짜 그룹 내에서 아이템 이동
   const handleMove = async (momentId: string, direction: 'up' | 'down') => {
@@ -425,6 +431,13 @@ export default function AdminMoments() {
           <button className="admin-add-btn-header" onClick={handleOpenAddModal}>+ 추가</button>
         </div>
       </div>
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="날짜 또는 제목으로 검색..."
+        className="ask-search-input"
+      />
       {thumbProgress && (
         <div style={{ padding: '8px 16px', fontSize: '13px', color: '#666' }}>
           {thumbProgress}
