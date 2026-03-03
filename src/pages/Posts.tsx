@@ -24,6 +24,8 @@ export default function Posts() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [isTextExpanded, setIsTextExpanded] = useState(false);
+  const [isTextClamped, setIsTextClamped] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [loading, setLoading] = useState(!cachedPosts);
@@ -83,7 +85,16 @@ export default function Posts() {
     setSelectedPost(null);
     setCurrentMediaIndex(0);
     setIsTextExpanded(false);
+    setIsTextClamped(false);
   }, []);
+
+  // 텍스트 clamp 감지
+  useEffect(() => {
+    if (selectedPost?.content && textRef.current && !isTextExpanded) {
+      const el = textRef.current;
+      setIsTextClamped(el.scrollHeight > el.clientHeight);
+    }
+  }, [selectedPost, isTextExpanded]);
 
   // 캐러셀 네비게이션
   const mediaLength = selectedPost?.media?.length ?? 0;
@@ -335,10 +346,10 @@ export default function Posts() {
 
               {selectedPost.content && (
                 <div className="post-detail-text-wrapper">
-                  <p className={`post-detail-text ${isTextExpanded ? 'expanded' : ''}`}>
+                  <p ref={textRef} className={`post-detail-text ${isTextExpanded ? 'expanded' : ''}`}>
                     {selectedPost.content}
                   </p>
-                  {selectedPost.content.length > 150 && !isTextExpanded && (
+                  {isTextClamped && !isTextExpanded && (
                     <button
                       type="button"
                       className="text-expand-btn"

@@ -3714,6 +3714,7 @@
   line-height: 1.6;
   color: var(--text-primary);
   word-break: break-word;
+  white-space: pre-wrap;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   line-clamp: 3;
