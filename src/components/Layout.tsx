@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, MenuIcon, CloseIcon, VideoIcon, PostIcon, ChatIcon, BookIcon } from './Icons';
+import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, MenuIcon, CloseIcon, VideoIcon, PostIcon, ChatIcon, BookIcon, ArrowUpIcon } from './Icons';
 import { useData } from '../hooks/useData';
 
 export default function Layout() {
@@ -22,6 +22,15 @@ export default function Layout() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const navigate = useNavigate();
   const location = useLocation();
   const isAskPage = location.pathname === '/ask' || location.pathname.startsWith('/ask/');
@@ -190,6 +199,14 @@ export default function Layout() {
       <footer className="footer">
         <p>© 2026 mmemory. Made with ㅡㅡ</p>
       </footer>
+
+      <button
+        className={`back-to-top ${showBackToTop ? 'visible' : ''}`}
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        aria-label="맨 위로"
+      >
+        <ArrowUpIcon size={18} />
+      </button>
     </div>
   );
 }

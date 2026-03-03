@@ -819,6 +819,8 @@
   width: 100%;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .sort-toggle {
@@ -841,6 +843,23 @@
 
 .sort-toggle .sort-icon {
   font-size: 0.6rem;
+}
+
+.filter-reset-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.filter-reset-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .filter-select {
@@ -5432,4 +5451,38 @@ color: white;
 .dark .share-x-btn {
   background: #fff;
   color: #000;
+}
+
+/* Back to Top Button */
+.back-to-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 1.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity 0.3s, transform 0.3s, color 0.2s, border-color 0.2s;
+}
+
+.back-to-top.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.back-to-top:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }

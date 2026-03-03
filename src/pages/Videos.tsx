@@ -244,6 +244,17 @@ export default function Videos() {
     );
   }, [filteredMoments, contentTypeFilter, sortOrder]);
 
+  const hasActiveFilter = searchQuery !== '' || platformFilter !== 'all' || memberFilter !== 'all' || youtubeCategoryFilter !== 'all' || sortOrder !== 'newest' || contentTypeFilter !== 'videos';
+
+  const resetFilters = useCallback(() => {
+    setSearchQuery('');
+    setPlatformFilter('all');
+    setMemberFilter('all');
+    setYoutubeCategoryFilter('all');
+    setSortOrder('newest');
+    setContentTypeFilter('videos');
+  }, []);
+
   const toggleVideo = useCallback(async (videoId: string) => {
     if (expandedVideo === videoId) {
       setExpandedVideo(null);
@@ -407,6 +418,15 @@ export default function Videos() {
               <span className="sort-icon">{sortOrder === 'newest' ? '▼' : '▲'}</span>
               {sortOrder === 'newest' ? '최신순' : '오래된순'}
             </button>
+            {hasActiveFilter && (
+              <button
+                type="button"
+                className="filter-reset-btn"
+                onClick={resetFilters}
+              >
+                필터 초기화
+              </button>
+            )}
           </div>
         </div>
       </div>
