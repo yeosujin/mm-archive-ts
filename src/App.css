@@ -2470,7 +2470,7 @@
   padding: 1rem;
   z-index: 100;
   min-width: 280px;
-  animation: slideDown 0.15s ease;
+  animation: slideDownCentered 0.15s ease;
 }
 
 .cal-picker-header {
@@ -2650,6 +2650,17 @@
 }
 
 @keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDownCentered {
   from {
     opacity: 0;
     transform: translateX(-50%) translateY(-10px);
