@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createVideo, updateVideo, deleteVideo } from '../../lib/database';
 import type { Video } from '../../lib/database';
 import { uploadVideoToR2, uploadThumbnailFromVideo, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
@@ -86,7 +86,7 @@ async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date:
 }
 
 export default function AdminVideos() {
-  const { videos: cachedVideos, fetchVideos, invalidateCache } = useData();
+  const { videos: cachedVideos, fetchVideos } = useData();
   const { toasts, showToast, removeToast } = useToast();
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
   const [loading, setLoading] = useState(!cachedVideos);
@@ -108,25 +108,15 @@ export default function AdminVideos() {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
-  const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
+  const videos = cachedVideos || [];
   const [searchQuery, setSearchQuery] = useState('');
 
   const isYouTubeUrl = formData.url.includes('youtube.com') || formData.url.includes('youtu.be');
   const isWeverseUrl = formData.url.includes('weverse.io');
 
-  const loadData = useCallback(async () => {
-    try {
-      const data = await fetchVideos();
-      setVideos(data);
-    } catch (error) {
-      console.error('Error fetching videos:', error);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    fetchVideos().finally(() => setLoading(false));
   }, [fetchVideos]);
-
-  useEffect(() => { loadData(); }, [loadData]);
-  useEffect(() => { if (cachedVideos) setVideos(cachedVideos); }, [cachedVideos]);
 
   const groupedVideos = useMemo(() => {
     let filtered = videos;
@@ -248,9 +238,8 @@ export default function AdminVideos() {
         });
         showToast('추가되었어요!', 'success');
       }
-      invalidateCache('videos');
       handleCloseModal();
-      loadData();
+      await fetchVideos(true);
     } catch (error) {
       console.error('Error saving video:', error);
       showToast('저장 중 오류가 발생했어요.', 'error');
@@ -292,9 +281,8 @@ export default function AdminVideos() {
       if (video?.url) await deleteFileFromR2(video.url);
       if (video?.thumbnail_url) deleteFileFromR2(video.thumbnail_url).catch(err => console.error('Thumb delete failed:', err));
       await deleteVideo(id);
-      invalidateCache('videos');
       showToast('삭제되었어요!', 'success');
-      loadData();
+      await fetchVideos(true);
     } catch (error) {
       console.error('Error deleting video:', error);
       showToast('삭제 중 오류가 발생했어요.', 'error');

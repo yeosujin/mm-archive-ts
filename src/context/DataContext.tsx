@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { getVideos, getMoments, getPosts, getEpisodes, getArticles, getAnsweredAsks, getMemberSettings } from '../lib/database';
 import { DataContext } from './DataContextValue';
 import type { DataState } from './types';
@@ -43,12 +43,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     lastFetched: {},
   });
 
+  // ref로 최신 state 참조 → fetch 함수들이 state에 의존하지 않게 함
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  });
+
   const shouldFetch = useCallback((key: string, force: boolean) => {
     if (force) return true;
     const now = Date.now();
-    const last = state.lastFetched[key] || 0;
-    return !state[key as keyof DataState] || (now - last > CACHE_TIME);
-  }, [state]);
+    const s = stateRef.current;
+    const last = s.lastFetched[key] || 0;
+    return !s[key as keyof DataState] || (now - last > CACHE_TIME);
+  }, []);
 
   const fetchVideos = useCallback(async (force = false) => {
     if (shouldFetch('videos', force)) {
@@ -61,8 +68,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }));
       return data;
     }
-    return state.videos!;
-  }, [shouldFetch, state.videos]);
+    return stateRef.current.videos!;
+  }, [shouldFetch]);
 
   const fetchMoments = useCallback(async (force = false) => {
     if (shouldFetch('moments', force)) {
@@ -75,8 +82,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }));
       return data;
     }
-    return state.moments!;
-  }, [shouldFetch, state.moments]);
+    return stateRef.current.moments!;
+  }, [shouldFetch]);
 
   const fetchPosts = useCallback(async (force = false) => {
     if (shouldFetch('posts', force)) {
@@ -88,8 +95,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }));
       return data;
     }
-    return state.posts!;
-  }, [shouldFetch, state.posts]);
+    return stateRef.current.posts!;
+  }, [shouldFetch]);
 
   const fetchEpisodes = useCallback(async (force = false) => {
     if (shouldFetch('episodes', force)) {
@@ -101,8 +108,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }));
       return data;
     }
-    return state.episodes!;
-  }, [shouldFetch, state.episodes]);
+    return stateRef.current.episodes!;
+  }, [shouldFetch]);
 
   const fetchArticles = useCallback(async (force = false) => {
     if (shouldFetch('articles', force)) {
@@ -114,8 +121,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }));
       return data;
     }
-    return state.articles!;
-  }, [shouldFetch, state.articles]);
+    return stateRef.current.articles!;
+  }, [shouldFetch]);
 
   const fetchAsks = useCallback(async (force = false) => {
     if (shouldFetch('asks', force)) {
@@ -127,8 +134,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }));
       return data;
     }
-    return state.asks!;
-  }, [shouldFetch, state.asks]);
+    return stateRef.current.asks!;
+  }, [shouldFetch]);
 
   const fetchMemberSettings = useCallback(async (force = false) => {
     if (shouldFetch('memberSettings', force)) {
@@ -140,8 +147,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }));
       return data;
     }
-    return state.memberSettings!;
-  }, [shouldFetch, state.memberSettings]);
+    return stateRef.current.memberSettings!;
+  }, [shouldFetch]);
 
   const invalidateCache = useCallback((key: keyof DataState) => {
     setState(prev => ({

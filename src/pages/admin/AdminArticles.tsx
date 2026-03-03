@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { createArticle, updateArticle, deleteArticle } from '../../lib/database';
 import { supabase } from '../../lib/supabase';
 import type { Article } from '../../lib/database';
@@ -9,10 +9,10 @@ import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 export default function AdminArticles() {
-  const { articles: cachedArticles, fetchArticles, invalidateCache } = useData();
+  const { articles: cachedArticles, fetchArticles } = useData();
   const { toasts, showToast, removeToast } = useToast();
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
-  const [articles, setArticles] = useState<Article[]>(cachedArticles || []);
+  const articles = cachedArticles || [];
   const [loading, setLoading] = useState(!cachedArticles);
   const [fetching, setFetching] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -24,24 +24,9 @@ export default function AdminArticles() {
     tags: '',
   });
 
-  const loadArticles = useCallback(async () => {
-    try {
-      const data = await fetchArticles();
-      setArticles(data);
-    } catch (error) {
-      console.error('Error loading articles:', error);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    fetchArticles().finally(() => setLoading(false));
   }, [fetchArticles]);
-
-  useEffect(() => {
-    loadArticles();
-  }, [loadArticles]);
-
-  useEffect(() => {
-    if (cachedArticles) setArticles(cachedArticles);
-  }, [cachedArticles]);
 
   const isPostypeUrl = (url: string) => {
     return url.includes('posty.pe') || url.includes('postype.com');
@@ -121,8 +106,7 @@ export default function AdminArticles() {
       }
       
       setFormData({ title: '', author: '', url: '', date: '', tags: '' });
-      invalidateCache('articles');
-      loadArticles();
+      await fetchArticles(true);
     } catch (error) {
       console.error('Error saving article:', error);
       showToast('저장 중 오류가 발생했어요.', 'error');
@@ -153,8 +137,7 @@ export default function AdminArticles() {
     try {
       await deleteArticle(id);
       showToast('삭제되었어요!', 'success');
-      invalidateCache('articles');
-      loadArticles();
+      await fetchArticles(true);
     } catch (error) {
       console.error('Error deleting article:', error);
       showToast('삭제 중 오류가 발생했어요.', 'error');

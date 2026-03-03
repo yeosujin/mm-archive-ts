@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   createEpisode, updateEpisode, deleteEpisode,
   updateMemberSettings,
@@ -34,8 +34,8 @@ interface LPMessageInput {
 }
 
 export default function AdminEpisodes() {
-  const { 
-    episodes: cachedEpisodes, 
+  const {
+    episodes: cachedEpisodes,
     memberSettings: cachedSettings,
     videos: cachedVideos,
     moments: cachedMoments,
@@ -45,15 +45,14 @@ export default function AdminEpisodes() {
     fetchVideos,
     fetchMoments,
     fetchPosts,
-    invalidateCache
   } = useData();
   const { toasts, showToast, removeToast } = useToast();
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
 
-  const [episodes, setEpisodes] = useState<Episode[]>(cachedEpisodes || []);
-  const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
-  const [moments, setMoments] = useState<Moment[]>(cachedMoments || []);
-  const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
+  const episodes = cachedEpisodes || [];
+  const videos = useMemo(() => cachedVideos || [], [cachedVideos]);
+  const moments = useMemo(() => cachedMoments || [], [cachedMoments]);
+  const posts = useMemo(() => cachedPosts || [], [cachedPosts]);
   const [loading, setLoading] = useState(!cachedEpisodes || !cachedSettings);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [memberSettings, setMemberSettings] = useState<MemberSettings>(cachedSettings || {
@@ -122,39 +121,27 @@ export default function AdminEpisodes() {
   const [isContentDropdownOpen, setIsContentDropdownOpen] = useState(false);
   const contentDropdownRef = useRef<HTMLDivElement>(null);
 
-  const loadData = useCallback(async () => {
+  const loadActivities = useCallback(async () => {
     try {
-      const [episodesData, settings, videosData, momentsData, postsData, activitiesData] = await Promise.all([
-        fetchEpisodes(),
-        fetchMemberSettings(),
-        fetchVideos(),
-        fetchMoments(),
-        fetchPosts(),
-        getActivities()
-      ]);
-      setEpisodes(episodesData);
-      setMemberSettings(settings);
-      setVideos(videosData);
-      setMoments(momentsData);
-      setPosts(postsData);
+      const activitiesData = await getActivities();
       setActivities(activitiesData);
     } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error loading activities:', error);
     }
-  }, [fetchEpisodes, fetchMemberSettings, fetchVideos, fetchMoments, fetchPosts]);
+  }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    Promise.all([
+      fetchEpisodes(),
+      fetchMemberSettings().then(s => setMemberSettings(s)),
+      fetchVideos(),
+      fetchMoments(),
+      fetchPosts(),
+      loadActivities()
+    ]).finally(() => setLoading(false));
+  }, [fetchEpisodes, fetchMemberSettings, fetchVideos, fetchMoments, fetchPosts, loadActivities]);
 
-  // Sync with cache
-  useEffect(() => { if (cachedEpisodes) setEpisodes(cachedEpisodes); }, [cachedEpisodes]);
   useEffect(() => { if (cachedSettings) setMemberSettings(cachedSettings); }, [cachedSettings]);
-  useEffect(() => { if (cachedVideos) setVideos(cachedVideos); }, [cachedVideos]);
-  useEffect(() => { if (cachedMoments) setMoments(cachedMoments); }, [cachedMoments]);
-  useEffect(() => { if (cachedPosts) setPosts(cachedPosts); }, [cachedPosts]);
 
   // 콘텐츠 드롭다운 외부 클릭 감지
   useEffect(() => {
@@ -171,7 +158,7 @@ export default function AdminEpisodes() {
     try {
       await updateMemberSettings(memberSettings);
       showToast('멤버 이름이 저장되었어요!', 'success');
-      invalidateCache('memberSettings');
+      await fetchMemberSettings(true);
       setShowMemberModal(false);
     } catch (error) {
       console.error('Error saving member settings:', error);
@@ -446,8 +433,7 @@ export default function AdminEpisodes() {
       }
       
       resetDMForm();
-      invalidateCache('episodes');
-      loadData();
+      await fetchEpisodes(true);
     } catch (error) {
       console.error('Error saving episode:', error);
       showToast('저장 중 오류가 발생했어요.', 'error');
@@ -489,8 +475,7 @@ export default function AdminEpisodes() {
       }
       
       resetCommentForm();
-      invalidateCache('episodes');
-      loadData();
+      await fetchEpisodes(true);
     } catch (error: unknown) {
       console.error('Error saving comment episode:', error);
       const msg = error instanceof Error ? error.message : JSON.stringify(error);
@@ -537,8 +522,7 @@ export default function AdminEpisodes() {
       }
 
       resetLPForm();
-      invalidateCache('episodes');
-      loadData();
+      await fetchEpisodes(true);
     } catch (error: unknown) {
       console.error('Error saving LP episode:', error);
       const msg = error instanceof Error ? error.message : JSON.stringify(error);
@@ -626,8 +610,7 @@ export default function AdminEpisodes() {
     try {
       await deleteEpisode(id);
       showToast('삭제되었어요!', 'success');
-      invalidateCache('episodes');
-      loadData();
+      await fetchEpisodes(true);
     } catch (error) {
       console.error('Error deleting episode:', error);
       showToast('삭제 중 오류가 발생했어요.', 'error');

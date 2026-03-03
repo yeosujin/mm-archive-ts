@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createMoment, updateMoment, deleteMoment, updateMomentPositions } from '../../lib/database';
-import type { Moment, Video } from '../../lib/database';
+import type { Moment } from '../../lib/database';
 import { uploadVideoToR2, uploadThumbnailFromVideo, generateThumbnailFromUrl, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
 import AdminModal from '../../components/AdminModal';
 import VideoEmbed from '../../components/VideoEmbed';
@@ -11,7 +11,7 @@ import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 export default function AdminMoments() {
-  const { moments: cachedMoments, videos: cachedVideos, fetchMoments, fetchVideos, invalidateCache } = useData();
+  const { moments: cachedMoments, videos: cachedVideos, fetchMoments, fetchVideos } = useData();
   const { toasts, showToast, removeToast } = useToast();
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
   const [loading, setLoading] = useState(!cachedMoments || !cachedVideos);
@@ -44,35 +44,19 @@ export default function AdminMoments() {
   const videoDropdownRef = useRef<HTMLDivElement>(null);
 
   const [moments, setMoments] = useState<Moment[]>(cachedMoments || []);
-  const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
-
-  const loadData = useCallback(async () => {
-    try {
-      const [momentsData, videosData] = await Promise.all([
-        fetchMoments(),
-        fetchVideos()
-      ]);
-      setMoments(momentsData);
-      setVideos(videosData);
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchMoments, fetchVideos]);
+  const videos = useMemo(() => cachedVideos || [], [cachedVideos]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    Promise.all([fetchMoments(), fetchVideos()])
+      .then(([momentsData]) => setMoments(momentsData))
+      .catch(error => console.error('Error loading data:', error))
+      .finally(() => setLoading(false));
+  }, [fetchMoments, fetchVideos]);
 
-  // Update local state when cache updates
+  // 캐시 업데이트 시 로컬 moments 동기화
   useEffect(() => {
     if (cachedMoments) setMoments(cachedMoments);
   }, [cachedMoments]);
-
-  useEffect(() => {
-    if (cachedVideos) setVideos(cachedVideos);
-  }, [cachedVideos]);
 
   // 검색어로 필터링된 비디오 목록
   const filteredVideos = useMemo(() => {
@@ -155,11 +139,12 @@ export default function AdminMoments() {
 
     try {
       await updateMomentPositions(updates);
-      invalidateCache('moments');
+      await fetchMoments(true);
     } catch (error) {
       console.error('[AdminMoments] Failed to update positions:', error);
       showToast('순서 저장에 실패했습니다.', 'error');
-      loadData();
+      const data = await fetchMoments(true);
+      setMoments(data);
     }
   };
 
@@ -245,9 +230,9 @@ export default function AdminMoments() {
         showToast('모먼트가 추가되었어요!', 'success');
       }
       
-      invalidateCache('moments');
       handleCloseModal();
-      loadData();
+      const data = await fetchMoments(true);
+      setMoments(data);
     } catch (error) {
       console.error('Error saving moment:', error);
       showToast('저장 중 오류가 발생했어요.', 'error');
@@ -304,9 +289,9 @@ export default function AdminMoments() {
       }
 
       await deleteMoment(id);
-      invalidateCache('moments');
       showToast('삭제되었어요!', 'success');
-      loadData();
+      const data = await fetchMoments(true);
+      setMoments(data);
     } catch (error) {
       console.error('Error deleting moment:', error);
       showToast('삭제 중 오류가 발생했어요.', 'error');
@@ -331,8 +316,8 @@ export default function AdminMoments() {
         thumbnail_url: thumbnailUrl,
       });
 
-      invalidateCache('moments');
-      loadData();
+      const data = await fetchMoments(true);
+      setMoments(data);
     } catch (error) {
       console.error('Error generating thumbnail:', error);
     } finally {
@@ -392,7 +377,8 @@ export default function AdminMoments() {
 
     setThumbGenerating(false);
     setThumbProgress('');
-    invalidateCache('moments');
+    const data = await fetchMoments(true);
+    setMoments(data);
     showToast(`완료! ${success}/${targets.length}개 썸네일 생성됨`, 'success');
   };
 

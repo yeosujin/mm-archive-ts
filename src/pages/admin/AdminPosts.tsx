@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPost, updatePost, deletePost } from '../../lib/database';
 import type { Post, PostMedia } from '../../lib/database';
 import { detectPlatform } from '../../lib/platformUtils';
@@ -25,10 +25,10 @@ type MediaItem =
   | { kind: 'pending'; data: PendingMedia };
 
 export default function AdminPosts() {
-  const { posts: cachedPosts, fetchPosts, invalidateCache } = useData();
+  const { posts: cachedPosts, fetchPosts } = useData();
   const { toasts, showToast, removeToast } = useToast();
   const { confirm, confirmState, handleConfirm, handleCancel } = useConfirm();
-  const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
+  const posts = cachedPosts || [];
   const [loading, setLoading] = useState(!cachedPosts);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -57,24 +57,9 @@ export default function AdminPosts() {
     ...pendingMedia.map((m): MediaItem => ({ kind: 'pending', data: m })),
   ];
 
-  const loadPosts = useCallback(async () => {
-    try {
-      const data = await fetchPosts();
-      setPosts(data);
-    } catch (error) {
-      console.error('Error loading posts:', error);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    fetchPosts().finally(() => setLoading(false));
   }, [fetchPosts]);
-
-  useEffect(() => {
-    loadPosts();
-  }, [loadPosts]);
-
-  useEffect(() => {
-    if (cachedPosts) setPosts(cachedPosts);
-  }, [cachedPosts]);
 
   // 컴포넌트 언마운트 시 미리보기 URL 정리
   useEffect(() => {
@@ -238,8 +223,7 @@ export default function AdminPosts() {
       }
 
       resetForm();
-      invalidateCache('posts');
-      loadPosts();
+      await fetchPosts(true);
     } catch (error) {
       console.error('Error saving post:', error);
       showToast('저장 중 오류가 발생했어요.', 'error');
@@ -302,8 +286,7 @@ export default function AdminPosts() {
     try {
       await deletePost(id);
       showToast('삭제되었어요!', 'success');
-      invalidateCache('posts');
-      loadPosts();
+      await fetchPosts(true);
     } catch (error) {
       console.error('Error deleting post:', error);
       showToast('삭제 중 오류가 발생했어요.', 'error');
@@ -358,8 +341,7 @@ export default function AdminPosts() {
 
     setThumbGenerating(false);
     setThumbProgress('');
-    invalidateCache('posts');
-    loadPosts();
+    await fetchPosts(true);
     showToast(`완료! ${success}/${targets.length}개 썸네일 생성됨`, 'success');
   };
 
