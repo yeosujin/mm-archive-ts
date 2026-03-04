@@ -20,6 +20,7 @@ const PLATFORM_OPTIONS = [
   { value: 'youtube', label: 'YouTube', icon: 'youtube' as const },
   // { value: 'twitter', label: 'Twitter', icon: 'twitter' as const },
   { value: 'weverse', label: 'Weverse', icon: 'weverse' as const },
+  { value: 'instagram', label: 'Instagram', icon: 'instagram' as const },
   { value: 'other', label: '기타', icon: 'other' as const },
 ] as const;
 
@@ -45,7 +46,7 @@ export default function Videos() {
   const [expandedMoments, setExpandedMoments] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(!cachedVideos);
-  const [platformFilter, setPlatformFilter] = useState<'all' | 'youtube' | 'twitter' | 'weverse' | 'other'>('all');
+  const [platformFilter, setPlatformFilter] = useState<'all' | 'youtube' | 'twitter' | 'instagram' | 'weverse' | 'other'>('all');
   const [memberFilter, setMemberFilter] = useState<string>('all');
   const [isPlatformDropdownOpen, setIsPlatformDropdownOpen] = useState(false);
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);

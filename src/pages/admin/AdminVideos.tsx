@@ -370,7 +370,7 @@ export default function AdminVideos() {
                     icon: newUrl.includes('weverse.io') && !prev.icon ? '🤍' : prev.icon
                   }));
                 }}
-                placeholder="YouTube, Weverse URL 또는 파일 업로드"
+                placeholder="YouTube, Instagram, Weverse URL 또는 파일 업로드"
                 required
                 disabled={uploading}
               />

@@ -1821,6 +1821,8 @@
 }
 
 .item-icon {
+  display: inline-flex;
+  align-items: center;
   font-size: 0.9rem;
   opacity: 0.7;
 }
@@ -2200,6 +2202,9 @@
 }
 
 .compact-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.85rem;
   color: var(--text-muted);
 }
@@ -3903,7 +3908,8 @@
 
 /* Platform Icons */
 .platform-icon {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   vertical-align: middle;
 }
 
@@ -4762,6 +4768,8 @@ background: var(–bg-secondary);
 }
 
 .video-platform {
+display: inline-flex;
+align-items: center;
 flex-shrink: 0;
 }
 

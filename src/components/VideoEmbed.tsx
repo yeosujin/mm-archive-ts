@@ -20,6 +20,8 @@ const ALLOWED_DOMAINS = [
   'x.com',
   'weverse.io',
   'www.weverse.io',
+  'instagram.com',
+  'www.instagram.com',
 ];
 
 // URL 유효성 검증
@@ -46,7 +48,7 @@ function isValidUrl(url: string): boolean {
 }
 
 // URL 타입 감지
-function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'r2' | 'invalid' | 'unknown' {
+function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'instagram' | 'r2' | 'invalid' | 'unknown' {
   if (!isValidUrl(url)) {
     return 'invalid';
   }
@@ -66,6 +68,9 @@ function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'r2' | '
   }
   if (url.includes('weverse.io')) {
     return 'weverse';
+  }
+  if (url.includes('instagram.com')) {
+    return 'instagram';
   }
   return 'unknown';
 }
@@ -97,6 +102,7 @@ const VideoEmbed = memo(({ url, icon, iconText, thumbnailUrl, className = '' }: 
     youtube: 'YouTube',
     twitter: 'X',
     weverse: 'Weverse',
+    instagram: 'Instagram',
     unknown: '외부 링크',
   };
 
