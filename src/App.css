@@ -887,7 +887,8 @@
 .platform-dropdown-btn {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.25rem;
+  min-width: 120px;
   padding: 0.5rem 0.6rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -925,7 +926,7 @@
 .platform-dropdown-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   padding: 0.5rem 0.75rem;
   font-size: 0.85rem;
   cursor: pointer;
