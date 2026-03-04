@@ -7,48 +7,23 @@ interface Props {
   title?: string;  // 현재 미사용 (하위 호환성 유지)
   icon?: string;   // 위버스 멤버 아이콘
   iconText?: string; // 🖤(여러명) 선택 시 구체적인 멤버 표시
+  platformName?: string; // 기타 플랫폼명 (TikTok, Weibo 등)
   thumbnailUrl?: string;
   className?: string;
 }
 
-// 허용된 도메인 목록
-const ALLOWED_DOMAINS = [
-  'youtube.com',
-  'www.youtube.com',
-  'youtu.be',
-  'twitter.com',
-  'x.com',
-  'weverse.io',
-  'www.weverse.io',
-  'instagram.com',
-  'www.instagram.com',
-];
-
-// URL 유효성 검증
+// URL 유효성 검증: http/https만 허용
 function isValidUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    // http/https만 허용
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return false;
-    }
-    // R2 URL 검증
-    const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
-    if (r2PublicUrl && url.startsWith(r2PublicUrl)) {
-      return true;
-    }
-    if (parsed.hostname.includes('.r2.dev') || parsed.hostname.includes('.r2.cloudflarestorage.com')) {
-      return true;
-    }
-    // 허용된 도메인 검증
-    return ALLOWED_DOMAINS.some(domain => parsed.hostname === domain || parsed.hostname.endsWith('.' + domain));
+    return ['http:', 'https:'].includes(parsed.protocol);
   } catch {
     return false;
   }
 }
 
 // URL 타입 감지
-function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'instagram' | 'r2' | 'invalid' | 'unknown' {
+function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'instagram' | 'r2' | 'other' | 'invalid' {
   if (!isValidUrl(url)) {
     return 'invalid';
   }
@@ -59,7 +34,7 @@ function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'instagr
   if (url.includes('.r2.dev') || url.includes('.r2.cloudflarestorage.com')) {
     return 'r2';
   }
-  
+
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     return 'youtube';
   }
@@ -72,10 +47,10 @@ function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'instagr
   if (url.includes('instagram.com')) {
     return 'instagram';
   }
-  return 'unknown';
+  return 'other';
 }
 
-const VideoEmbed = memo(({ url, icon, iconText, thumbnailUrl, className = '' }: Props) => {
+const VideoEmbed = memo(({ url, icon, iconText, platformName, thumbnailUrl, className = '' }: Props) => {
   const videoType = getVideoType(url);
 
   if (videoType === 'invalid') {
@@ -103,12 +78,16 @@ const VideoEmbed = memo(({ url, icon, iconText, thumbnailUrl, className = '' }: 
     twitter: 'X',
     weverse: 'Weverse',
     instagram: 'Instagram',
-    unknown: '외부 링크',
   };
 
   const isWeverseMember = videoType === 'weverse' && icon && WEVERSE_MEMBERS[icon];
   // 🖤인 경우 iconText가 있으면 그 텍스트를, 없으면 '여러명' 표시
   const memberName = icon === '🖤' && iconText ? iconText : WEVERSE_MEMBERS[icon || ''];
+
+  // 기타 플랫폼: platformName 사용, 없으면 '외부 링크'
+  const displayLabel = videoType === 'other'
+    ? (platformName || '외부 링크')
+    : platformNames[videoType];
 
   return (
     <div className={`video-embed-compact ${videoType}-link ${className}`}>
@@ -118,7 +97,7 @@ const VideoEmbed = memo(({ url, icon, iconText, thumbnailUrl, className = '' }: 
           <span className="weverse-member">{memberName}</span>
         </span>
       ) : (
-        <span className="compact-label">{platformNames[videoType] || '외부 링크'}</span>
+        <span className="compact-label">{displayLabel}</span>
       )}
       <a href={url} target="_blank" rel="noopener noreferrer" className="compact-btn">
         보러가기 <ArrowRightIcon size={14} />

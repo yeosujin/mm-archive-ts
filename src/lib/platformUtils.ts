@@ -36,6 +36,26 @@ export function detectVideoPlatform(url: string): 'youtube' | 'twitter' | 'insta
   return 'other';
 }
 
+// URL에서 기타 플랫폼명 자동 감지
+const PLATFORM_NAME_MAP: [string, string][] = [
+  ['tiktok.com', 'TikTok'],
+  ['weibo.com', 'Weibo'],
+  ['weibo.cn', 'Weibo'],
+  ['bilibili.com', 'Bilibili'],
+  ['v.qq.com', '腾讯视频'],
+  ['nicovideo.jp', 'niconico'],
+  ['dailymotion.com', 'Dailymotion'],
+];
+
+export function detectPlatformName(url: string): string {
+  if (!url) return '';
+  const lowerUrl = url.toLowerCase();
+  for (const [domain, name] of PLATFORM_NAME_MAP) {
+    if (lowerUrl.includes(domain)) return name;
+  }
+  return '';
+}
+
 // URL에서 플랫폼 자동 감지
 export function detectPlatform(url: string): 'twitter' | 'instagram' | 'weverse' | 'other' {
   if (url.includes('twitter.com') || url.includes('x.com')) {

@@ -4,7 +4,7 @@ import type { Video } from '../../lib/database';
 import { uploadVideoToR2, uploadThumbnailFromVideo, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
 import AdminModal from '../../components/AdminModal';
 import PlatformIcon from '../../components/PlatformIcon';
-import { detectVideoPlatform } from '../../lib/platformUtils';
+import { detectVideoPlatform, detectPlatformName } from '../../lib/platformUtils';
 import { useData } from '../../hooks/useData';
 import { useToast } from '../../hooks/useToast';
 import Toast from '../../components/Toast';
@@ -105,6 +105,7 @@ export default function AdminVideos() {
     icon_text: '',
     thumbnail_url: '',
     channel_name: '',
+    platform_name: '',
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
@@ -113,6 +114,8 @@ export default function AdminVideos() {
 
   const isYouTubeUrl = formData.url.includes('youtube.com') || formData.url.includes('youtu.be');
   const isWeverseUrl = formData.url.includes('weverse.io');
+  const detectedPlatform = detectVideoPlatform(formData.url);
+  const isOtherPlatform = formData.url && !isYouTubeUrl && !isWeverseUrl && !formData.url.includes('instagram.com') && detectedPlatform === 'other';
 
   useEffect(() => {
     fetchVideos().finally(() => setLoading(false));
@@ -218,6 +221,7 @@ export default function AdminVideos() {
           icon_text: isWeverseUrl && formData.icon === '🖤' ? formData.icon_text : undefined,
           thumbnail_url: formData.thumbnail_url || undefined,
           channel_name: formData.channel_name || undefined,
+          platform_name: isOtherPlatform ? formData.platform_name || undefined : undefined,
         });
         showToast('수정되었어요!', 'success');
       } else {
@@ -235,6 +239,7 @@ export default function AdminVideos() {
           ...(isWeverseUrl && formData.icon === '🖤' && formData.icon_text && { icon_text: formData.icon_text }),
           ...(formData.thumbnail_url && { thumbnail_url: formData.thumbnail_url }),
           ...(formData.channel_name && { channel_name: formData.channel_name }),
+          ...(isOtherPlatform && formData.platform_name && { platform_name: formData.platform_name }),
         });
         showToast('추가되었어요!', 'success');
       }
@@ -256,20 +261,21 @@ export default function AdminVideos() {
       icon_text: video.icon_text || '',
       thumbnail_url: video.thumbnail_url || '',
       channel_name: video.channel_name || '',
+      platform_name: video.platform_name || '',
     });
     setIsModalOpen(true);
   };
 
   const handleOpenAddModal = () => {
     setEditingId(null);
-    setFormData({ title: '', url: '', date: '', icon: '', icon_text: '', thumbnail_url: '', channel_name: '' });
+    setFormData({ title: '', url: '', date: '', icon: '', icon_text: '', thumbnail_url: '', channel_name: '', platform_name: '' });
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ title: '', url: '', date: '', icon: '', icon_text: '', thumbnail_url: '', channel_name: '' });
+    setFormData({ title: '', url: '', date: '', icon: '', icon_text: '', thumbnail_url: '', channel_name: '', platform_name: '' });
     setUploadMessage('');
   };
 
@@ -364,13 +370,15 @@ export default function AdminVideos() {
                 value={formData.url}
                 onChange={(e) => {
                   const newUrl = e.target.value;
+                  const platform = detectVideoPlatform(newUrl);
                   setFormData(prev => ({
                     ...prev,
                     url: newUrl,
-                    icon: newUrl.includes('weverse.io') && !prev.icon ? '🤍' : prev.icon
+                    icon: newUrl.includes('weverse.io') && !prev.icon ? '🤍' : prev.icon,
+                    platform_name: platform === 'other' ? detectPlatformName(newUrl) : '',
                   }));
                 }}
-                placeholder="YouTube, Instagram, Weverse URL 또는 파일 업로드"
+                placeholder="YouTube, Instagram, Weverse, TikTok 등 URL 또는 파일 업로드"
                 required
                 disabled={uploading}
               />
@@ -442,6 +450,19 @@ export default function AdminVideos() {
                 value={formData.icon_text}
                 onChange={(e) => setFormData(prev => ({ ...prev, icon_text: e.target.value }))}
                 placeholder="예: 둘만+모카"
+              />
+            </div>
+          )}
+
+          {isOtherPlatform && (
+            <div className="form-group">
+              <label htmlFor="video-platform-name">플랫폼명</label>
+              <input
+                id="video-platform-name"
+                type="text"
+                value={formData.platform_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, platform_name: e.target.value }))}
+                placeholder="예: TikTok, Weibo"
               />
             </div>
           )}

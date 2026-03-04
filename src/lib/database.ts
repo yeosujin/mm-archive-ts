@@ -10,6 +10,7 @@ export interface Video {
   icon_text?: string; // 🖤(여러명) 선택 시 구체적인 멤버 표시
   thumbnail_url?: string;
   channel_name?: string; // YouTube 채널명
+  platform_name?: string; // 기타 플랫폼명 (TikTok, Weibo 등)
 }
 
 export interface Moment {
