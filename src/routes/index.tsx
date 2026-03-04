@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Layout from '../components/Layout';
 import RootLayout from '../components/RootLayout';
+import ErrorFallback from '../components/ErrorFallback';
 
 // Pages
 const Home = lazy(() => import('../pages/Home'));
@@ -30,6 +31,7 @@ import PageLoader from '../components/PageLoader';
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
+    errorElement: <ErrorFallback />,
     children: [
       // 일반 사이트
       {

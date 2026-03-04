@@ -5507,3 +5507,51 @@ color: white;
   color: var(--accent);
   border-color: var(--accent);
 }
+
+/* ============ Error Fallback ============ */
+.error-fallback {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.error-fallback-content {
+  text-align: center;
+  max-width: 360px;
+}
+
+.error-fallback-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-fallback-content h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-fallback-content p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.error-fallback-btn {
+  padding: 0.7rem 2rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.error-fallback-btn:hover {
+  opacity: 0.85;
+}
