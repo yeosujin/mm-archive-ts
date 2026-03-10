@@ -144,7 +144,7 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
             onClick={handleDownload}
             aria-label="Download video"
           >
-            {downloading ? <span className="video-download-spinner" /> : <ShareIcon size={14} />}
+            {downloading ? <span className="video-download-spinner" /> : <ShareIcon size={18} />}
           </button>
         </div>
       </div>
@@ -178,7 +178,7 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
           onClick={handleDownload}
           aria-label="Download video"
         >
-          {downloading ? <span className="video-download-spinner" /> : <ShareIcon size={14} />}
+          {downloading ? <span className="video-download-spinner" /> : <ShareIcon size={18} />}
         </button>
       </div>
     </div>
