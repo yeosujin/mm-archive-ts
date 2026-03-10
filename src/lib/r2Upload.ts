@@ -1,5 +1,6 @@
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
+import { stripVideoMetadata } from './stripMetadata';
 
 // Cloudflare R2 설정 (S3 호환)
 const r2Client = new S3Client({
@@ -27,7 +28,16 @@ export async function uploadVideoToR2(
     type: file.type,
     lastModified: new Date(file.lastModified).toISOString()
   });
-  
+
+  // 업로드 전 메타데이터 제거
+  try {
+    console.log('[R2] Stripping video metadata...');
+    file = await stripVideoMetadata(file);
+    console.log('[R2] Metadata stripped successfully');
+  } catch (err) {
+    console.warn('[R2] Metadata stripping failed, uploading original:', err);
+  }
+
   const timestamp = Date.now();
 const randomId = crypto.randomUUID().slice(0, 8);
 const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
