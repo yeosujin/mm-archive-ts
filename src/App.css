@@ -2156,6 +2156,48 @@
   display: none;
 }
 
+/* ===== Video Download Button ===== */
+.video-download-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.video-download-btn:active {
+  opacity: 0.6;
+}
+
+.video-download-btn.downloading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.video-download-spinner {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: video-download-spin 0.6s linear infinite;
+}
+
+@keyframes video-download-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ===== Video Embed ===== */
 .video-embed {
   width: 100%;

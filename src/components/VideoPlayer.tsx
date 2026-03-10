@@ -1,4 +1,5 @@
-import { memo, useState, useRef, useEffect } from 'react';
+import { memo, useState, useRef, useEffect, useCallback } from 'react';
+import { ShareIcon } from './Icons';
 
 interface Props {
   videoUrl: string;
@@ -20,11 +21,40 @@ function getVideoMimeType(url: string): string {
 const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => {
   const [activated, setActivated] = useState(false);
   const [showControls, setShowControls] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handlePlay = () => {
     setActivated(true);
   };
+
+  const handleDownload = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (downloading) return;
+    try {
+      setDownloading(true);
+      const res = await fetch(videoUrl);
+      const blob = await res.blob();
+      const fileName = videoUrl.split('/').pop()?.split('?')[0] || 'video.mp4';
+      const file = new File([blob], fileName, { type: blob.type });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file] });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      window.open(videoUrl, '_blank');
+    } finally {
+      setDownloading(false);
+    }
+  }, [videoUrl, downloading]);
 
   useEffect(() => {
     if (!activated) return;
@@ -65,44 +95,58 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
   if (!activated) {
     return (
       <div className={`video-player ${className}`}>
-        <button
-          className="video-player-placeholder"
-          onClick={handlePlay}
-          aria-label="Play video"
-          style={{
-            ...containerStyle,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            border: 'none',
-            padding: 0,
-          }}
-        >
-          {thumbnailUrl && (
-            <img
-              src={thumbnailUrl}
-              alt=""
-              loading="lazy"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-            />
-          )}
-          <span style={{
-            position: 'relative',
-            zIndex: 1,
-            fontSize: '48px',
-            color: '#fff',
-            opacity: 0.9,
-            textShadow: '0 2px 8px rgba(0,0,0,0.6)',
-          }}>&#9654;</span>
-        </button>
+        <div style={containerStyle}>
+          <button
+            className="video-player-placeholder"
+            onClick={handlePlay}
+            aria-label="Play video"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              border: 'none',
+              padding: 0,
+              backgroundColor: 'transparent',
+            }}
+          >
+            {thumbnailUrl && (
+              <img
+                src={thumbnailUrl}
+                alt=""
+                loading="lazy"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            )}
+            <span style={{
+              position: 'relative',
+              zIndex: 1,
+              fontSize: '48px',
+              color: '#fff',
+              opacity: 0.9,
+              textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+            }}>&#9654;</span>
+          </button>
+          <button
+            className={`video-download-btn${downloading ? ' downloading' : ''}`}
+            onClick={handleDownload}
+            aria-label="Download video"
+          >
+            {downloading ? <span className="video-download-spinner" /> : <ShareIcon size={14} />}
+          </button>
+        </div>
       </div>
     );
   }
@@ -129,6 +173,13 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
         >
           <source src={videoUrl} type={getVideoMimeType(videoUrl)} />
         </video>
+        <button
+          className={`video-download-btn${downloading ? ' downloading' : ''}`}
+          onClick={handleDownload}
+          aria-label="Download video"
+        >
+          {downloading ? <span className="video-download-spinner" /> : <ShareIcon size={14} />}
+        </button>
       </div>
     </div>
   );
