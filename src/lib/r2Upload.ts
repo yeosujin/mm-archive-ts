@@ -51,9 +51,10 @@ const fileName = `videos/${timestamp}-${randomId}-${sanitizedFileName}`;
         Key: fileName,
         Body: file,
         ContentType: file.type,
+        StorageClass: 'STANDARD',
       },
       // 대용량 파일의 경우 파트 크기 조절 (기본 5MB)
-      partSize: 1024 * 1024 * 5, 
+      partSize: 1024 * 1024 * 5,
       leavePartsOnError: false,
     });
 
@@ -115,6 +116,7 @@ const fileName = `videos/${timestamp}-${randomId}-${sanitizedFileName}`;
         Key: fileName,
         Body: file,
         ContentType: file.type,
+        StorageClass: 'STANDARD',
       },
       leavePartsOnError: false,
     });
@@ -217,6 +219,7 @@ export async function uploadThumbnailFromVideo(file: File, videoKey: string): Pr
       Key: thumbnailKey,
       Body: thumbnailBlob,
       ContentType: 'image/jpeg',
+      StorageClass: 'STANDARD',
     },
   });
 
@@ -310,6 +313,7 @@ export async function generateThumbnailFromUrl(videoUrl: string): Promise<string
       Key: thumbnailKey,
       Body: blob,
       ContentType: 'image/jpeg',
+      StorageClass: 'STANDARD',
     },
   });
 
