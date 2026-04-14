@@ -16,6 +16,7 @@ type FlatItem =
 // 모먼트를 끝까지 넘기면 자동으로 다음 영상의 모먼트로 이어진다.
 export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [momentScrollProgress, setMomentScrollProgress] = useState(0);
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const momentsScrollRef = useRef<HTMLDivElement>(null);
   const programmaticScrollRef = useRef(false);
@@ -99,11 +100,17 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
     }
   };
 
-  // 모먼트 스크롤 → 가장 가까운 카드의 videoIndex로 currentIndex 갱신
+  // 모먼트 스크롤 → 진행률 업데이트 + 가장 가까운 카드의 videoIndex로 currentIndex 갱신
   const handleMomentsScroll = () => {
-    if (programmaticScrollRef.current) return;
     const el = momentsScrollRef.current;
     if (!el) return;
+
+    // 진행률은 항상 업데이트 (프로그래매틱 스크롤 중에도)
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
+    setMomentScrollProgress(ratio);
+
+    if (programmaticScrollRef.current) return;
     const center = el.scrollLeft + el.clientWidth / 2;
     let nearestIdx = 0;
     let nearestDist = Infinity;
@@ -163,6 +170,7 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
       )}
 
       {flatItems.length > 0 && (
+        <>
         <div
           className="on-this-day-moments-scroll"
           ref={momentsScrollRef}
@@ -188,6 +196,13 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
             );
           })}
         </div>
+        <div className="on-this-day-progress-track">
+          <div
+            className="on-this-day-progress-fill"
+            style={{ transform: `translateX(${momentScrollProgress * 100}%)` }}
+          />
+        </div>
+        </>
       )}
     </div>
   );
