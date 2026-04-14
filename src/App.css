@@ -5913,13 +5913,6 @@ color: white;
   padding: 0;
 }
 
-.on-this-day-episode-meta {
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.3rem;
-  letter-spacing: 0.02em;
-}
-
 .on-this-day-episode-title {
   margin: 0 0 0.5rem;
   font-size: 0.92rem;

@@ -124,29 +124,20 @@ export default function OnThisDay({ fallback }: Props) {
           ))}
 
           {/* 에피소드 */}
-          {bundle.episodes.map(episode => {
-            const typeLabel =
-              episode.episode_type === 'dm' ? 'DM'
-              : episode.episode_type === 'comment' ? '댓글'
-              : '리스닝파티';
-            return (
-              <div key={episode.id} className="on-this-day-episode">
-                <div className="on-this-day-episode-meta">
-                  {typeLabel} · {episode.date}
-                </div>
-                {episode.title && (
-                  <h4 className="on-this-day-episode-title">{episode.title}</h4>
-                )}
-                <EpisodeContentBody
-                  episode={episode}
-                  videos={videos ?? []}
-                  moments={moments ?? []}
-                  posts={posts ?? []}
-                  memberSettings={memberSettings ?? fallbackMemberSettings}
-                />
-              </div>
-            );
-          })}
+          {bundle.episodes.map(episode => (
+            <div key={episode.id} className="on-this-day-episode">
+              {episode.title && (
+                <h4 className="on-this-day-episode-title">{episode.title}</h4>
+              )}
+              <EpisodeContentBody
+                episode={episode}
+                videos={videos ?? []}
+                moments={moments ?? []}
+                posts={posts ?? []}
+                memberSettings={memberSettings ?? fallbackMemberSettings}
+              />
+            </div>
+          ))}
         </div>
       ))}
     </section>
