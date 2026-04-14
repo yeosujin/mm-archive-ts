@@ -1,13 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getFeaturedContent, getArticlesVisibility } from '../lib/database';
+import { getVideos, getPosts, getMoments, getFeaturedContent, getArticlesVisibility } from '../lib/database';
 import type { Video, Post, Moment } from '../lib/database';
 import PostEmbed from '../components/PostEmbed';
 import VideoEmbed from '../components/VideoEmbed';
 import { SearchIcon, CalendarIcon, ArrowRightIcon, ExternalLinkIcon } from '../components/Icons';
 import { detectVideoPlatform } from '../lib/platformUtils';
-import { useData } from '../hooks/useData';
-import { getTodayString, pickByDateSeed, filterOnThisDay, groupByYearDesc } from '../lib/dailyPick';
 
 // 위버스 멤버 매핑
 const WEVERSE_MEMBERS: Record<string, string> = {
@@ -39,10 +37,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [articlesVisible, setArticlesVisible] = useState(true);
   const navigate = useNavigate();
-  const { fetchVideos, fetchMoments, fetchPosts } = useData();
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [moments, setMoments] = useState<Moment[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
 
   useEffect(() => {
     loadFeaturedContent();
@@ -52,28 +46,22 @@ export default function Home() {
     try {
       const visible = await getArticlesVisibility();
       setArticlesVisible(visible);
-
-      const [featured, videosData, momentsData, postsData] = await Promise.all([
-        getFeaturedContent(),
-        fetchVideos(),
-        fetchMoments(),
-        fetchPosts(),
-      ]);
-      setVideos(videosData);
-      setMoments(momentsData);
-      setPosts(postsData);
+      const featured = await getFeaturedContent();
 
       if (featured.type && featured.content_id) {
         let item: Video | Post | Moment | undefined;
 
         if (featured.type === 'video') {
-          item = videosData.find(v => v.id === featured.content_id);
+          const videos = await getVideos();
+          item = videos.find(v => v.id === featured.content_id);
         } else if (featured.type === 'post') {
-          item = postsData.find(p => p.id === featured.content_id);
+          const posts = await getPosts();
+          item = posts.find(p => p.id === featured.content_id);
         } else if (featured.type === 'moment') {
-          item = momentsData.find(m => m.id === featured.content_id);
+          const [moments, videos] = await Promise.all([getMoments(), getVideos()]);
+          item = moments.find(m => m.id === featured.content_id);
           if (item && (item as Moment).video_id) {
-            setLinkedVideo(videosData.find(v => v.id === (item as Moment).video_id) || null);
+            setLinkedVideo(videos.find(v => v.id === (item as Moment).video_id) || null);
           }
         }
 
@@ -87,36 +75,6 @@ export default function Home() {
       setLoading(false);
     }
   };
-
-  // 오늘의 추천: 날짜 시드 기반 결정론적 픽 (videos + moments 풀에서)
-  const today = useMemo(() => getTodayString(), []);
-  const dailyPick = useMemo(() => {
-    if (videos.length === 0 && moments.length === 0) return null;
-    // 영상 70% / 모먼트 30% 비중으로 풀 구성
-    const pool: Array<{ type: 'video'; item: Video } | { type: 'moment'; item: Moment }> = [
-      ...videos.map(v => ({ type: 'video' as const, item: v })),
-      ...moments.map(m => ({ type: 'moment' as const, item: m })),
-    ];
-    return pickByDateSeed(pool, today);
-  }, [videos, moments, today]);
-
-  const dailyPickLinkedVideo = useMemo(() => {
-    if (!dailyPick || dailyPick.type !== 'moment') return null;
-    const m = dailyPick.item;
-    return m.video_id ? videos.find(v => v.id === m.video_id) || null : null;
-  }, [dailyPick, videos]);
-
-  // N년 전 오늘: 같은 월/일 콘텐츠
-  type OnThisDayEntry =
-    | { type: 'video'; date: string; item: Video }
-    | { type: 'moment'; date: string; item: Moment }
-    | { type: 'post'; date: string; item: Post };
-  const onThisDay = useMemo<Array<[string, OnThisDayEntry[]]>>(() => {
-    const vids: OnThisDayEntry[] = filterOnThisDay(videos, today).map(v => ({ type: 'video', date: v.date, item: v }));
-    const moms: OnThisDayEntry[] = filterOnThisDay(moments, today).map(m => ({ type: 'moment', date: m.date, item: m }));
-    const pts: OnThisDayEntry[] = filterOnThisDay(posts, today).map(p => ({ type: 'post', date: p.date, item: p }));
-    return groupByYearDesc([...vids, ...moms, ...pts]);
-  }, [videos, moments, posts, today]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,119 +204,6 @@ export default function Home() {
                 </div>
               );
             })()}
-          </div>
-        </section>
-      )}
-
-      {/* 오늘의 추천 (날짜 시드 기반) */}
-      {!loading && dailyPick && (
-        <section className="home-daily-pick">
-          <div className="home-section-header">
-            <span className="home-section-badge">오늘의 모먼트</span>
-            <span className="home-section-date">{today}</span>
-          </div>
-          <div className="home-daily-pick-content">
-            {dailyPick.type === 'video' && (() => {
-              const video = dailyPick.item;
-              const platform = detectVideoPlatform(video.url);
-              const isWeverse = platform === 'weverse';
-              return (
-                <Link to={`/videos?highlight=${video.id}`} className="home-daily-card">
-                  <div className={`video-embed-external ${isWeverse ? 'weverse-link' : ''}`}>
-                    <div className="external-link-card">
-                      <span className="external-icon">
-                        {isWeverse ? (video.icon || '🩵') : <ExternalLinkIcon size={20} />}
-                      </span>
-                      <div className="external-info">
-                        <span className="external-platform">{PLATFORM_NAMES[platform] || '외부 링크'}</span>
-                        <span className="external-title">{video.title}</span>
-                        {isWeverse && video.icon && (
-                          <span className="external-member">{video.icon} {video.icon_text || WEVERSE_MEMBERS[video.icon]}</span>
-                        )}
-                      </div>
-                      <span className="external-btn">
-                        보러가기 <ArrowRightIcon size={14} />
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })()}
-            {dailyPick.type === 'moment' && (() => {
-              const moment = dailyPick.item;
-              const video = dailyPickLinkedVideo;
-              return (
-                <div>
-                  <Link
-                    to={`/videos?highlight=${moment.video_id || moment.id}&moment=${moment.id}`}
-                    className="home-featured-moment-more"
-                  >
-                    모먼트 보러가기 <ArrowRightIcon size={12} />
-                  </Link>
-                  <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} />
-                  {video && (
-                    <p className="home-daily-pick-caption">↑ {video.title}</p>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-        </section>
-      )}
-
-      {/* N년 전 오늘 */}
-      {!loading && onThisDay.length > 0 && (
-        <section className="home-on-this-day">
-          <div className="home-section-header">
-            <span className="home-section-badge">그 해 오늘</span>
-            <span className="home-section-date">{today.slice(5).replace('-', '월 ')}일</span>
-          </div>
-          <div className="home-on-this-day-list">
-            {onThisDay.map(([year, entries]) => {
-              const yearsAgo = Number(today.slice(0, 4)) - Number(year);
-              return (
-                <div key={year} className="home-year-group">
-                  <h3 className="home-year-label">
-                    {year}년 <span className="home-years-ago">({yearsAgo}년 전)</span>
-                  </h3>
-                  <ul className="home-year-items">
-                    {entries.map(entry => {
-                      if (entry.type === 'video') {
-                        return (
-                          <li key={`v-${entry.item.id}`}>
-                            <Link to={`/videos?highlight=${entry.item.id}`} className="home-year-item">
-                              <span className="home-year-item-type">영상</span>
-                              <span className="home-year-item-title">{entry.item.title}</span>
-                            </Link>
-                          </li>
-                        );
-                      }
-                      if (entry.type === 'moment') {
-                        return (
-                          <li key={`m-${entry.item.id}`}>
-                            <Link
-                              to={`/videos?highlight=${entry.item.video_id || entry.item.id}&moment=${entry.item.id}`}
-                              className="home-year-item"
-                            >
-                              <span className="home-year-item-type">모먼트</span>
-                              <span className="home-year-item-title">{entry.item.title}</span>
-                            </Link>
-                          </li>
-                        );
-                      }
-                      return (
-                        <li key={`p-${entry.item.id}`}>
-                          <Link to={`/posts?highlight=${entry.item.id}`} className="home-year-item">
-                            <span className="home-year-item-type">포스트</span>
-                            <span className="home-year-item-title">{entry.item.title || entry.item.platform}</span>
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              );
-            })}
           </div>
         </section>
       )}
