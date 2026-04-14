@@ -72,7 +72,7 @@ export default function OnThisDay({ fallback }: Props) {
   return (
     <section className="on-this-day">
       <div className="on-this-day-title-row">
-        <span className="on-this-day-badge">그 해 오늘</span>
+        <span className="home-featured-badge">그 해 오늘</span>
         <span className="on-this-day-date-label">{today.slice(5, 7)}월 {today.slice(8, 10)}일</span>
       </div>
 
