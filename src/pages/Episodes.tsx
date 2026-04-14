@@ -1,9 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import type { Episode, MemberSettings, Video, Moment, Post } from '../lib/database';
 import { useData } from '../hooks/useData';
 import PlatformIcon from '../components/PlatformIcon';
-import { ArrowRightIcon, VideoIcon, PostIcon } from '../components/Icons';
+import EpisodeContentBody from '../components/EpisodeContentBody';
+import {
+  getMemberName as getMemberNameHelper,
+  getLinkedContentTitle as getLinkedContentTitleHelper,
+  getCommentPlatform as getCommentPlatformHelper,
+} from '../lib/episodeHelpers';
 
 export default function Episodes() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -117,83 +122,9 @@ export default function Episodes() {
     setExpandedEpisode(expandedEpisode === episodeId ? null : episodeId);
   };
 
-  const getMemberName = (sender?: 'member1' | 'member2') => {
-    if (sender === 'member2') return memberSettings.member2_name;
-    return memberSettings.member1_name;
-  };
-
-  // 연결된 콘텐츠 정보 가져오기
-  const getLinkedContentTitle = (episode: Episode) => {
-    if (episode.linked_content_type === 'video' && episode.linked_content_id) {
-      const video = videos.find(v => v.id === episode.linked_content_id);
-      return video?.title || '영상';
-    }
-    if (episode.linked_content_type === 'moment' && episode.linked_content_id) {
-      const moment = moments.find(m => m.id === episode.linked_content_id);
-      return moment?.title || '모먼트';
-    }
-    if (episode.linked_content_type === 'post' && episode.linked_content_id) {
-      const post = posts.find(p => p.id === episode.linked_content_id);
-      return post?.title || post?.platform || '포스트';
-    }
-    return '콘텐츠';
-  };
-
-  const getContentTypeIcon = (type?: string) => {
-    switch (type) {
-      case 'video': return <VideoIcon size={16} />;
-      case 'moment': return <VideoIcon size={16} />;
-      case 'post': return <PostIcon size={16} />;
-      default: return <VideoIcon size={16} />;
-    }
-  };
-
-  // 댓글의 연결 콘텐츠에서 플랫폼 가져오기
-  const getCommentPlatform = (episode: Episode): 'twitter' | 'instagram' | 'weverse' | 'youtube' | 'other' | null => {
-    if (!episode.linked_content_id) return null;
-
-    if (episode.linked_content_type === 'video') {
-      const video = videos.find(v => v.id === episode.linked_content_id);
-      if (video?.url?.includes('youtube.com') || video?.url?.includes('youtu.be')) {
-        return 'youtube';
-      }
-      return 'weverse'; // 위버스 영상
-    }
-    if (episode.linked_content_type === 'moment') {
-      return 'twitter'; // 모먼트는 트윗 기반
-    }
-    if (episode.linked_content_type === 'post') {
-      const post = posts.find(p => p.id === episode.linked_content_id);
-      return post?.platform || 'other';
-    }
-    return null;
-  };
-
-  // 댓글 대상 멤버 이름 (sender의 반대)
-  const getTargetMemberName = (sender?: 'member1' | 'member2') => {
-    if (sender === 'member2') return memberSettings.member1_name;
-    return memberSettings.member2_name;
-  };
-
-  // 연결된 콘텐츠로 이동하는 경로
-  const getLinkedContentPath = (episode: Episode) => {
-    if (!episode.linked_content_id) return null;
-    switch (episode.linked_content_type) {
-      case 'video': return `/videos?highlight=${episode.linked_content_id}`;
-      case 'moment': return `/moments?highlight=${episode.linked_content_id}`;
-      case 'post': return `/posts?highlight=${episode.linked_content_id}`;
-      default: return null;
-    }
-  };
-
-  // 시간 포맷: "14:30" → "오후 02:30"
-  const formatTime = (time: string) => {
-    const [h, m] = time.split(':').map(Number);
-    if (isNaN(h) || isNaN(m)) return time;
-    const period = h < 12 ? '오전' : '오후';
-    const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-    return `${period} ${String(hour12).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  };
+  const getMemberName = (sender?: 'member1' | 'member2') => getMemberNameHelper(sender, memberSettings);
+  const getLinkedContentTitle = (episode: Episode) => getLinkedContentTitleHelper(episode, videos, moments, posts);
+  const getCommentPlatform = (episode: Episode) => getCommentPlatformHelper(episode, videos, posts);
 
   if (loading) {
     return (
@@ -258,7 +189,6 @@ export default function Episodes() {
             const senderName = getMemberName(episode.sender);
             const isComment = episode.episode_type === 'comment';
             const isListeningParty = episode.episode_type === 'listening_party';
-            const bubbleClass = episode.sender === 'member2' ? 'dm-bubble-right' : 'dm-bubble-left';
 
             const getPreview = () => {
               if (isListeningParty) {
@@ -304,102 +234,13 @@ export default function Episodes() {
                 </button>
 
                 {expandedEpisode === episode.id && (
-                  <div className="dm-messages">
-                    {/* 리스닝파티 타입 */}
-                    {isListeningParty && (
-                      <div className="lp-content">
-                        {episode.messages?.map((msg, idx) => (
-                          <div key={`${msg.time || ''}-${msg.sender_name || ''}-${idx}`} className="lp-message">
-                            <span className="lp-message-name">{msg.sender_name || '?'}</span>
-                            {msg.time && (
-                              <span className="lp-message-time">{formatTime(msg.time)}</span>
-                            )}
-                            <p className="lp-message-text">{msg.content}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* 댓글 타입 */}
-                    {isComment && (
-                      <div className="comment-content">
-                        {episode.linked_content_id && (
-                          <div className="comment-context">
-                            <span className="comment-context-icon">
-                              {getContentTypeIcon(episode.linked_content_type)}
-                            </span>
-                            <span className="comment-context-text">
-                              {getTargetMemberName(episode.sender)}의 "{getLinkedContentTitle(episode)}"
-                            </span>
-                            {getLinkedContentPath(episode) && (
-                              <Link to={getLinkedContentPath(episode)!} className="comment-context-link">
-                                <ArrowRightIcon size={14} />
-                              </Link>
-                            )}
-                          </div>
-                        )}
-                        {(episode.messages && episode.messages.length > 0)
-                          ? episode.messages.map((msg, idx) => (
-                            <div key={`${msg.time || ''}-${msg.content.slice(0, 20)}-${idx}`} className="comment-bubble">
-                              <div className="comment-bubble-header">
-                                <span className="comment-bubble-name">{senderName}</span>
-                                {msg.time && (
-                                  <span className="comment-bubble-time">{formatTime(msg.time)}</span>
-                                )}
-                              </div>
-                              <p className="comment-bubble-text">{msg.content}</p>
-                            </div>
-                          ))
-                          : (
-                            <div className="comment-bubble">
-                              <div className="comment-bubble-header">
-                                <span className="comment-bubble-name">{senderName}</span>
-                              </div>
-                              <p className="comment-bubble-text">{episode.comment_text}</p>
-                            </div>
-                          )
-                        }
-                      </div>
-                    )}
-
-                    {/* DM 타입 */}
-                    {!isComment && !isListeningParty && episode.messages?.map((msg, idx) => {
-                      const prevMsg = episode.messages?.[idx - 1];
-                      const nextMsg = episode.messages?.[idx + 1];
-                      
-                      // 같은 시간이면 그룹
-                      const isSameGroupAsPrev = prevMsg && prevMsg.time === msg.time;
-                      const isSameGroupAsNext = nextMsg && nextMsg.time === msg.time;
-                      
-                      const isFirstInGroup = !isSameGroupAsPrev;
-                      const isLastInGroup = !isSameGroupAsNext;
-                      
-                      return (
-                        <div
-                          key={`${msg.time || ''}-${msg.type}-${idx}`}
-                          className="dm-row dm-row-left"
-                        >
-                          <div className="dm-bubble-row">
-                            <div
-                              className={`dm-bubble ${bubbleClass} ${!isFirstInGroup ? 'dm-bubble-grouped' : ''} ${isLastInGroup ? 'dm-bubble-last' : ''} ${msg.type === 'image' ? 'dm-bubble-image' : ''}`}
-                            >
-                              {msg.type === 'text' && (
-                                <p className="dm-text">{msg.content}</p>
-                              )}
-                              {msg.type === 'image' && (
-                                <div className="dm-image">
-                                  <img src={msg.content} alt="" loading="lazy" />
-                                </div>
-                              )}
-                            </div>
-                            {isLastInGroup && msg.time && (
-                              <span className="dm-time">{msg.time}</span>
-                            )}
-            </div>
-          </div>
-                      );
-                    })}
-                  </div>
+                  <EpisodeContentBody
+                    episode={episode}
+                    videos={videos}
+                    moments={moments}
+                    posts={posts}
+                    memberSettings={memberSettings}
+                  />
                 )}
               </div>
             );

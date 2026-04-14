@@ -3,20 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import type { Post } from '../lib/database';
 import PlatformIcon from '../components/PlatformIcon';
 import { useData } from '../hooks/useData';
-import { CloseIcon } from '../components/Icons';
 import LazyImage from '../components/LazyImage';
 import Skeleton from '../components/Skeleton';
-
-function getVideoMimeType(url: string): string {
-  const ext = url.split('.').pop()?.toLowerCase().split('?')[0];
-  switch (ext) {
-    case 'mov': return 'video/quicktime';
-    case 'webm': return 'video/webm';
-    case 'mp4': return 'video/mp4';
-    case 'm4v': return 'video/x-m4v';
-    default: return 'video/mp4';
-  }
-}
+import PostDetailContent from '../components/PostDetailContent';
 
 export default function Posts() {
   const [searchParams] = useSearchParams();
@@ -24,10 +13,6 @@ export default function Posts() {
   const { posts: cachedPosts, fetchPosts } = useData();
   const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
-  const [isTextExpanded, setIsTextExpanded] = useState(false);
-  const [isTextClamped, setIsTextClamped] = useState(false);
-  const textRef = useRef<HTMLParagraphElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [loading, setLoading] = useState(!cachedPosts);
@@ -58,7 +43,7 @@ export default function Posts() {
     const post = posts.find(p => p.id === highlightId);
     if (post) {
       setSelectedPost(post);
-      setCurrentMediaIndex(0);
+      dialogRef.current?.showModal();
     }
   }, [highlightId, loading, posts]);
 
@@ -78,68 +63,23 @@ export default function Posts() {
   // 포스트 클릭 핸들러
   const openPost = (post: Post) => {
     setSelectedPost(post);
-    setCurrentMediaIndex(0);
     dialogRef.current?.showModal();
   };
 
   const closePost = useCallback(() => {
     dialogRef.current?.close();
     setSelectedPost(null);
-    setCurrentMediaIndex(0);
-    setIsTextExpanded(false);
-    setIsTextClamped(false);
   }, []);
 
-  // 텍스트 clamp 감지
-  useEffect(() => {
-    if (selectedPost?.content && textRef.current && !isTextExpanded) {
-      const el = textRef.current;
-      setIsTextClamped(el.scrollHeight > el.clientHeight);
-    }
-  }, [selectedPost, isTextExpanded]);
-
-  // 캐러셀 네비게이션
-  const mediaLength = selectedPost?.media?.length ?? 0;
-
-  const prevMedia = useCallback(() => {
-    if (mediaLength === 0) return;
-    setCurrentMediaIndex(prev => (prev === 0 ? mediaLength - 1 : prev - 1));
-  }, [mediaLength]);
-
-  const nextMedia = useCallback(() => {
-    if (mediaLength === 0) return;
-    setCurrentMediaIndex(prev => (prev === mediaLength - 1 ? 0 : prev + 1));
-  }, [mediaLength]);
-
-  // 스와이프 핸들러
-  const touchStartX = useRef<number>(0);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchStartX.current - touchEndX;
-
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) nextMedia();
-      else prevMedia();
-    }
-  };
-
-  // 키보드 네비게이션
+  // ESC 키로 닫기 (dialog의 기본 close 이벤트와 동기화)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!selectedPost) return;
       if (e.key === 'Escape') closePost();
-      if (e.key === 'ArrowLeft') prevMedia();
-      if (e.key === 'ArrowRight') nextMedia();
     };
-
     globalThis.addEventListener('keydown', handleKeyDown);
     return () => globalThis.removeEventListener('keydown', handleKeyDown);
-  }, [selectedPost, closePost, prevMedia, nextMedia]);
+  }, [selectedPost, closePost]);
 
   // 그리드 썸네일 가져오기
   const getGridThumbnail = (post: Post): string | null => {
@@ -260,114 +200,11 @@ export default function Posts() {
               onClick={closePost}
               aria-label="모달 닫기"
             />
-            <div className="post-detail-content">
-            <button className="modal-close-btn" onClick={closePost}><CloseIcon size={18} /></button>
-
-            {/* 미디어 캐러셀 */}
-            {selectedPost.media && selectedPost.media.length > 0 && (
-              <div className="post-carousel">
-                <div
-                  className="carousel-media"
-                  onTouchStart={handleTouchStart}
-                  onTouchEnd={handleTouchEnd}
-                >
-                  {selectedPost.media.map((media, index) => (
-                    <div
-                      key={media.url}
-                      style={{
-                        display: index === currentMediaIndex ? 'block' : 'none',
-                        width: '100%',
-                        height: '100%',
-                      }}
-                    >
-                      {media.type === 'video' ? (
-                        <video
-                          poster={media.thumbnail}
-                          controls
-                          playsInline
-                          preload="metadata"
-                        >
-                          <source
-                            src={media.url}
-                            type={getVideoMimeType(media.url)}
-                          />
-                          <track kind="captions" />
-                        </video>
-                      ) : (
-                        <img
-                          src={media.url}
-                          alt={`${selectedPost.title} - ${index + 1}`}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {selectedPost.media.length > 1 && (
-                  <>
-                    <button className="carousel-btn prev" onClick={prevMedia}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-                      </svg>
-                    </button>
-                    <button className="carousel-btn next" onClick={nextMedia}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
-                      </svg>
-                    </button>
-                    <div className="carousel-dots">
-                      {selectedPost.media.map((media, index) => (
-                        <button
-                          key={media.url}
-                          className={`carousel-dot ${index === currentMediaIndex ? 'active' : ''}`}
-                          onClick={() => setCurrentMediaIndex(index)}
-                          aria-label={`미디어 ${index + 1}로 이동`}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* 포스트 정보 */}
-            <div className="post-detail-info">
-              <div className="post-detail-header">
-                <div className="post-detail-meta">
-                  <PlatformIcon platform={selectedPost.platform} size={20} />
-                  {selectedPost.writer && (
-                    <span className="post-writer">{selectedPost.writer}</span>
-                  )}
-                  <time className="post-date">{selectedPost.date}</time>
-                </div>
-                <a
-                  href={selectedPost.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="post-external-link"
-                >
-                  원본 보기 →
-                </a>
-              </div>
-
-              {selectedPost.content && (
-                <div className="post-detail-text-wrapper">
-                  <p ref={textRef} className={`post-detail-text ${isTextExpanded ? 'expanded' : ''}`}>
-                    {selectedPost.content}
-                  </p>
-                  {isTextClamped && !isTextExpanded && (
-                    <button
-                      type="button"
-                      className="text-expand-btn"
-                      onClick={() => setIsTextExpanded(true)}
-                    >
-                      더보기
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+            <PostDetailContent
+              key={selectedPost.id}
+              post={selectedPost}
+              onClose={closePost}
+            />
           </>
         )}
       </dialog>

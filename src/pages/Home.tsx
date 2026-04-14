@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getVideos, getPosts, getMoments, getFeaturedContent, getArticlesVisibility } from '../lib/database';
+import { getFeaturedContent, getArticlesVisibility } from '../lib/database';
 import type { Video, Post, Moment } from '../lib/database';
 import PostEmbed from '../components/PostEmbed';
 import VideoEmbed from '../components/VideoEmbed';
 import { SearchIcon, CalendarIcon, ArrowRightIcon, ExternalLinkIcon } from '../components/Icons';
 import { detectVideoPlatform } from '../lib/platformUtils';
+import { useData } from '../hooks/useData';
+import OnThisDay from '../components/OnThisDay';
 
 // 위버스 멤버 매핑
 const WEVERSE_MEMBERS: Record<string, string> = {
@@ -37,10 +39,17 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [articlesVisible, setArticlesVisible] = useState(true);
   const navigate = useNavigate();
+  const { fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchMemberSettings } = useData();
 
   useEffect(() => {
     loadFeaturedContent();
-  }, []);
+    // OnThisDay 섹션이 필요한 데이터를 캐시에 적재
+    fetchVideos().catch(() => {});
+    fetchMoments().catch(() => {});
+    fetchPosts().catch(() => {});
+    fetchEpisodes().catch(() => {});
+    fetchMemberSettings().catch(() => {});
+  }, [fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchMemberSettings]);
 
   const loadFeaturedContent = async () => {
     try {
@@ -52,13 +61,13 @@ export default function Home() {
         let item: Video | Post | Moment | undefined;
 
         if (featured.type === 'video') {
-          const videos = await getVideos();
+          const videos = await fetchVideos();
           item = videos.find(v => v.id === featured.content_id);
         } else if (featured.type === 'post') {
-          const posts = await getPosts();
+          const posts = await fetchPosts();
           item = posts.find(p => p.id === featured.content_id);
         } else if (featured.type === 'moment') {
-          const [moments, videos] = await Promise.all([getMoments(), getVideos()]);
+          const [moments, videos] = await Promise.all([fetchMoments(), fetchVideos()]);
           item = moments.find(m => m.id === featured.content_id);
           if (item && (item as Moment).video_id) {
             setLinkedVideo(videos.find(v => v.id === (item as Moment).video_id) || null);
@@ -94,6 +103,88 @@ export default function Home() {
     } else if (type === 'moment') {
       navigate(`/videos?highlight=${(item as Moment).video_id || item.id}`);
     }
+  };
+
+  const renderFeatured = () => {
+    if (!featuredItem?.item) return null;
+    return (
+      <section className="home-featured">
+        <div className="home-featured-header">
+          <span className="home-featured-badge">PICK</span>
+        </div>
+        <div
+          className="home-featured-content"
+          onClick={featuredItem.type !== 'moment' ? handleFeaturedClick : undefined}
+          style={featuredItem.type !== 'moment' ? { cursor: 'pointer' } : undefined}
+        >
+          {featuredItem.type === 'video' && (() => {
+            const video = featuredItem.item as Video;
+            const platform = detectVideoPlatform(video.url);
+            const isWeverse = platform === 'weverse';
+
+            return (
+              <div className={`video-embed-external ${isWeverse ? 'weverse-link' : ''}`}>
+                <div className="external-link-card">
+                  <span className="external-icon">
+                    {isWeverse ? (video.icon || '🩵') : <ExternalLinkIcon size={20} />}
+                  </span>
+                  <div className="external-info">
+                    <span className="external-platform">{PLATFORM_NAMES[platform] || '외부 링크'}</span>
+                    <span className="external-title">{video.title}</span>
+                    {isWeverse && video.icon && (
+                      <span className="external-member">{video.icon} {video.icon_text || WEVERSE_MEMBERS[video.icon]}</span>
+                    )}
+                  </div>
+                  <a href={video.url} target="_blank" rel="noopener noreferrer" className="external-btn" onClick={(e) => e.stopPropagation()}>
+                    보러가기 <ArrowRightIcon size={14} />
+                  </a>
+                </div>
+              </div>
+            );
+          })()}
+          {featuredItem.type === 'post' && (
+            <PostEmbed
+              url={(featuredItem.item as Post).url}
+              platform={(featuredItem.item as Post).platform}
+            />
+          )}
+          {featuredItem.type === 'moment' && (() => {
+            const moment = featuredItem.item as Moment;
+            const video = linkedVideo;
+            const platform = video ? detectVideoPlatform(video.url) : null;
+
+            return (
+              <div>
+                <Link
+                  to={`/videos?highlight=${moment.video_id || moment.id}&moment=${moment.id}`}
+                  className="home-featured-moment-more"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  모먼트 더보기 <ArrowRightIcon size={12} />
+                </Link>
+                <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} />
+                {video && platform && (
+                  <div className={`video-embed-external ${platform === 'weverse' ? 'weverse-link' : ''}`}>
+                    <div className="external-link-card">
+                      <span className="external-icon">
+                        {platform === 'weverse' ? (video.icon || '🩵') : <ExternalLinkIcon size={20} />}
+                      </span>
+                      <div className="external-info">
+                        <span className="external-platform">{PLATFORM_NAMES[platform] || '외부 링크'}</span>
+                        <span className="external-title">{video.title}</span>
+                      </div>
+                      <a href={video.url} target="_blank" rel="noopener noreferrer" className="external-btn" onClick={(e) => e.stopPropagation()}>
+                        보러가기 <ArrowRightIcon size={14} />
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      </section>
+    );
   };
 
   return (
@@ -132,80 +223,9 @@ export default function Home() {
         ))}
       </nav>
 
-      {/* Featured Content */}
-      {!loading && featuredItem?.item && (
-        <section className="home-featured">
-          <div className="home-featured-header">
-            <span className="home-featured-badge">PICK</span>
-          </div>
-          <div className="home-featured-content" onClick={featuredItem.type !== 'moment' ? handleFeaturedClick : undefined} style={featuredItem.type !== 'moment' ? { cursor: 'pointer' } : undefined}>
-            {featuredItem.type === 'video' && (() => {
-              const video = featuredItem.item as Video;
-              const platform = detectVideoPlatform(video.url);
-              const isWeverse = platform === 'weverse';
-
-              return (
-                <div className={`video-embed-external ${isWeverse ? 'weverse-link' : ''}`}>
-                  <div className="external-link-card">
-                    <span className="external-icon">
-                      {isWeverse ? (video.icon || '🩵') : <ExternalLinkIcon size={20} />}
-                    </span>
-                    <div className="external-info">
-                      <span className="external-platform">{PLATFORM_NAMES[platform] || '외부 링크'}</span>
-                      <span className="external-title">{video.title}</span>
-                      {isWeverse && video.icon && (
-                        <span className="external-member">{video.icon} {video.icon_text || WEVERSE_MEMBERS[video.icon]}</span>
-                      )}
-                    </div>
-                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="external-btn" onClick={(e) => e.stopPropagation()}>
-                      보러가기 <ArrowRightIcon size={14} />
-                    </a>
-                  </div>
-                </div>
-              );
-            })()}
-            {featuredItem.type === 'post' && (
-              <PostEmbed
-                url={(featuredItem.item as Post).url}
-                platform={(featuredItem.item as Post).platform}
-              />
-            )}
-            {featuredItem.type === 'moment' && (() => {
-              const moment = featuredItem.item as Moment;
-              const video = linkedVideo;
-              const platform = video ? detectVideoPlatform(video.url) : null;
-
-              return (
-                <div>
-                  <Link
-                    to={`/videos?highlight=${moment.video_id || moment.id}&moment=${moment.id}`}
-                    className="home-featured-moment-more"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    모먼트 더보기 <ArrowRightIcon size={12} />
-                  </Link>
-                  <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} />
-                  {video && platform && (
-                    <div className={`video-embed-external ${platform === 'weverse' ? 'weverse-link' : ''}`}>
-                      <div className="external-link-card">
-                        <span className="external-icon">
-                          {platform === 'weverse' ? (video.icon || '🩵') : <ExternalLinkIcon size={20} />}
-                        </span>
-                        <div className="external-info">
-                          <span className="external-platform">{PLATFORM_NAMES[platform] || '외부 링크'}</span>
-                          <span className="external-title">{video.title}</span>
-                        </div>
-                        <a href={video.url} target="_blank" rel="noopener noreferrer" className="external-btn" onClick={(e) => e.stopPropagation()}>
-                          보러가기 <ArrowRightIcon size={14} />
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-        </section>
+      {/* 그 해 오늘 — 콘텐츠 0개면 기존 Featured(PICK) 섹션을 fallback으로 렌더 */}
+      {!loading && (
+        <OnThisDay fallback={featuredItem?.item ? renderFeatured() : null} />
       )}
 
       <div className="home-ask-link">
