@@ -92,6 +92,7 @@ export default function AdminVideos() {
   const [loading, setLoading] = useState(!cachedVideos);
   const [fetching, setFetching] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadMessage, setUploadMessage] = useState<string>('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -204,6 +205,8 @@ export default function AdminVideos() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       if (editingId) {
         const originalVideo = videos.find(v => v.id === editingId);
@@ -248,6 +251,8 @@ export default function AdminVideos() {
     } catch (error) {
       console.error('Error saving video:', error);
       showToast('저장 중 오류가 발생했어요.', 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -468,8 +473,13 @@ export default function AdminVideos() {
           )}
 
           <div className="form-buttons">
-            <button type="submit" className="admin-submit-btn">{editingId ? '수정하기' : '추가하기'}</button>
-            <button type="button" className="admin-clear-btn" onClick={handleCloseModal}>취소</button>
+            <button type="submit" className="admin-submit-btn" disabled={submitting || uploading}>
+              {(() => {
+                if (submitting) return '저장 중...';
+                return editingId ? '수정하기' : '추가하기';
+              })()}
+            </button>
+            <button type="button" className="admin-clear-btn" onClick={handleCloseModal} disabled={submitting}>취소</button>
           </div>
         </form>
       </AdminModal>
