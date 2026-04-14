@@ -5702,7 +5702,9 @@ color: white;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
+  text-overflow: ellipsis;
   word-break: break-word;
+  max-height: calc(0.92rem * 1.35 * 2);
 }
 
 .on-this-day-video-btn {
