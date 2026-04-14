@@ -9,9 +9,9 @@ import EpisodeContentBody from './EpisodeContentBody';
 import PlatformIcon from './PlatformIcon';
 import { ArrowRightIcon } from './Icons';
 
-type Props = {
+type Props = Readonly<{
   fallback: ReactNode;
-};
+}>;
 
 type YearBundle = {
   year: string;
@@ -91,10 +91,10 @@ export default function OnThisDay({ fallback }: Props) {
           )}
 
           {/* 이 날짜 모먼트 중 영상과 연결되지 않은 독립 모먼트 */}
-          {bundle.moments.filter(m => !m.video_id || !bundle.videos.find(v => v.id === m.video_id)).length > 0 && (
+          {bundle.moments.some(m => !m.video_id || !bundle.videos.some(v => v.id === m.video_id)) && (
             <div className="on-this-day-standalone-moments">
               {bundle.moments
-                .filter(m => !m.video_id || !bundle.videos.find(v => v.id === m.video_id))
+                .filter(m => !m.video_id || !bundle.videos.some(v => v.id === m.video_id))
                 .map(moment => (
                   <div key={moment.id} className="on-this-day-moment-card standalone">
                     <h4 className="on-this-day-moment-title">{moment.title}</h4>
