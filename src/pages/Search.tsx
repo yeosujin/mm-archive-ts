@@ -1,41 +1,60 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import { getVideos, getMoments, getPosts, getEpisodes, getArticles, getArticlesVisibility } from '../lib/database';
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { getArticlesVisibility } from '../lib/database';
 import type { Video, Moment, Post, Episode, Article } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import { ArrowRightIcon, VideoIcon, PostIcon, ChatIcon, BookIcon } from '../components/Icons';
+import { useData } from '../hooks/useData';
 
 type FilterType = 'all' | 'video' | 'moment' | 'post' | 'episode' | 'article';
 
 export default function Search() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const query = searchParams.get('q') || '';
 
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [moments, setMoments] = useState<Moment[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [articles, setArticles] = useState<Article[]>([]);
+  const {
+    videos: cachedVideos,
+    moments: cachedMoments,
+    posts: cachedPosts,
+    episodes: cachedEpisodes,
+    articles: cachedArticles,
+    fetchVideos,
+    fetchMoments,
+    fetchPosts,
+    fetchEpisodes,
+    fetchArticles,
+  } = useData();
+
+  const [videos, setVideos] = useState<Video[]>(cachedVideos || []);
+  const [moments, setMoments] = useState<Moment[]>(cachedMoments || []);
+  const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
+  const [episodes, setEpisodes] = useState<Episode[]>(cachedEpisodes || []);
+  const [articles, setArticles] = useState<Article[]>(cachedArticles || []);
   const [articlesVisible, setArticlesVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(
+    !(cachedVideos && cachedMoments && cachedPosts && cachedEpisodes)
+  );
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [inputValue, setInputValue] = useState(query);
 
+  // URL q → 입력창 동기화 (뒤로가기/홈 재진입 등)
   useEffect(() => {
-    loadAllData();
-  }, []);
+    setInputValue(query);
+    setActiveFilter('all');
+  }, [query]);
 
-  const loadAllData = async () => {
+  const loadAllData = useCallback(async () => {
     try {
-      // articles_visible 설정 확인
       const articlesVisibleData = await getArticlesVisibility();
       setArticlesVisible(articlesVisibleData);
 
       const [videosData, momentsData, postsData, episodesData, articlesData] = await Promise.all([
-        getVideos(),
-        getMoments(),
-        getPosts(),
-        getEpisodes(),
-        articlesVisibleData ? getArticles() : Promise.resolve([])
+        fetchVideos(),
+        fetchMoments(),
+        fetchPosts(),
+        fetchEpisodes(),
+        articlesVisibleData ? fetchArticles() : Promise.resolve([]),
       ]);
       setVideos(videosData);
       setMoments(momentsData);
@@ -47,28 +66,43 @@ export default function Search() {
     } finally {
       setLoading(false);
     }
+  }, [fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchArticles]);
+
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+    if (trimmed === query) return;
+    navigate(`/search?q=${encodeURIComponent(trimmed)}`);
   };
 
-  const searchLower = query.toLowerCase();
+  const trimmedQuery = query.trim();
+  const searchLower = trimmedQuery.toLowerCase();
 
-  // 각 카테고리에서 검색
-  const matchedVideos = videos.filter(v => 
-    v.title.toLowerCase().includes(searchLower) || v.date.includes(query)
-  );
-  const matchedMoments = moments.filter(m => 
-    m.title.toLowerCase().includes(searchLower) || m.date.includes(query)
-  );
-  const matchedPosts = posts.filter(p => 
-    p.title.toLowerCase().includes(searchLower) || p.date.includes(query)
-  );
-  const matchedEpisodes = episodes.filter(e =>
-    e.title?.toLowerCase().includes(searchLower) || e.date.includes(query)
-  );
-  const matchedArticles = articlesVisible ? articles.filter(a =>
-    a.title.toLowerCase().includes(searchLower) ||
-    a.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
-    a.date.includes(query)
-  ) : [];
+  // 각 카테고리에서 검색 (빈 쿼리는 매칭하지 않음)
+  const matchedVideos = trimmedQuery
+    ? videos.filter(v => v.title.toLowerCase().includes(searchLower) || v.date.includes(trimmedQuery))
+    : [];
+  const matchedMoments = trimmedQuery
+    ? moments.filter(m => m.title.toLowerCase().includes(searchLower) || m.date.includes(trimmedQuery))
+    : [];
+  const matchedPosts = trimmedQuery
+    ? posts.filter(p => p.title.toLowerCase().includes(searchLower) || p.date.includes(trimmedQuery))
+    : [];
+  const matchedEpisodes = trimmedQuery
+    ? episodes.filter(e => e.title?.toLowerCase().includes(searchLower) || e.date.includes(trimmedQuery))
+    : [];
+  const matchedArticles = trimmedQuery && articlesVisible
+    ? articles.filter(a =>
+        a.title.toLowerCase().includes(searchLower) ||
+        a.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
+        a.date.includes(trimmedQuery)
+      )
+    : [];
   const totalResults =
     matchedVideos.length +
     matchedMoments.length +
@@ -76,9 +110,28 @@ export default function Search() {
     matchedEpisodes.length +
     matchedArticles.length;
 
+  const searchBox = (
+    <form className="page-controls" onSubmit={handleSubmit}>
+      <div className="search-box">
+        <input
+          type="text"
+          className="search-input"
+          placeholder="검색어를 입력하세요"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          autoFocus
+        />
+      </div>
+    </form>
+  );
+
   if (loading) {
     return (
       <div className="page search-page">
+        <div className="page-header">
+          <h1>검색 결과</h1>
+          {searchBox}
+        </div>
         <div className="loading">로딩 중...</div>
       </div>
     );
@@ -88,12 +141,19 @@ export default function Search() {
     <div className="page search-page">
       <div className="page-header">
         <h1>검색 결과</h1>
-        <p className="page-desc">
-          "{query}" 검색 결과 {totalResults}건
-        </p>
+        {trimmedQuery && (
+          <p className="page-desc">
+            "{trimmedQuery}" 검색 결과 {totalResults}건
+          </p>
+        )}
+        {searchBox}
       </div>
 
-      {totalResults === 0 ? (
+      {!trimmedQuery ? (
+        <div className="empty-state">
+          <p>검색어를 입력해주세요 🔍</p>
+        </div>
+      ) : totalResults === 0 ? (
         <div className="empty-state">
           <p>검색 결과가 없어요 😢</p>
           <p>다른 키워드로 검색해보세요</p>
