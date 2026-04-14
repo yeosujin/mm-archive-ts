@@ -2,6 +2,13 @@
 // DB 변경 없이 클라이언트에서만 계산
 
 export function getTodayString(): string {
+  // ?date=YYYY-MM-DD 쿼리 파라미터로 강제 지정 가능 (디버깅용)
+  if (globalThis.location !== undefined) {
+    const override = new URLSearchParams(globalThis.location.search).get('date');
+    if (override && /^\d{4}-\d{2}-\d{2}$/.test(override)) {
+      return override;
+    }
+  }
   // YYYY-MM-DD (로컬 타임존 기준)
   const now = new Date();
   const y = now.getFullYear();
