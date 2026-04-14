@@ -5610,8 +5610,11 @@ color: white;
 /* ===== On This Day (그 해 오늘) ===== */
 .on-this-day {
   max-width: 600px;
+  width: 100%;
   margin: 2rem auto 0;
   padding: 0 1rem;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .on-this-day-title-row {
@@ -5644,6 +5647,8 @@ color: white;
   border-radius: 10px;
   padding: 1rem;
   margin-bottom: 1.25rem;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .on-this-day-year-label {
@@ -5674,7 +5679,7 @@ color: white;
 }
 
 .on-this-day-video-header {
-  flex: 1;
+  flex: 1 1 0;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -5683,6 +5688,7 @@ color: white;
   border: 1px solid var(--border);
   border-radius: 8px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .on-this-day-video-title {
@@ -5760,10 +5766,13 @@ color: white;
   gap: 0.75rem;
   margin-top: 0.875rem;
   overflow-x: auto;
+  overflow-y: hidden;
   scroll-snap-type: x mandatory;
   padding-bottom: 0.5rem;
   touch-action: pan-x;
   -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .on-this-day-moments-scroll::-webkit-scrollbar {
@@ -5776,30 +5785,26 @@ color: white;
 }
 
 .on-this-day-moment-card {
-  flex: 0 0 auto;
-  width: 80%;
+  flex: 0 0 85%;
   max-width: 320px;
   scroll-snap-align: start;
-  background: var(--bg-card);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.625rem;
+  box-sizing: border-box;
 }
 
 .on-this-day-moment-card.standalone {
+  flex: 1 1 auto;
   width: 100%;
   max-width: none;
   margin-top: 0.5rem;
 }
 
+/* 모먼트 제목은 숨김 — 사용자 요청 */
 .on-this-day-moment-title {
-  margin: 0 0 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: none;
 }
 
 .on-this-day-moment-link {
@@ -5849,7 +5854,16 @@ color: white;
   position: static;
   max-width: none;
   width: 100%;
+  max-height: none;
+  height: auto;
   margin: 0;
+  overflow: visible;
+  animation: none;
+  display: block;
+}
+
+.on-this-day-post .post-carousel {
+  border-radius: 8px 8px 0 0;
 }
 
 /* Episode 인라인 */
