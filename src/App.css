@@ -5909,6 +5909,10 @@ color: white;
   margin-top: 1rem;
 }
 
+.on-this-day-episode .dm-messages {
+  padding: 0;
+}
+
 .on-this-day-episode-meta {
   font-size: 0.78rem;
   color: var(--text-secondary);
