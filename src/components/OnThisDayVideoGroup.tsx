@@ -45,18 +45,27 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
     return map;
   }, [flatItems, videos]);
 
-  // 프로그래매틱 스크롤 후 플래그 해제
-  const clearProgrammaticFlagSoon = () => {
-    setTimeout(() => { programmaticScrollRef.current = false; }, 350);
+  // scrollend 이벤트 + setTimeout 폴백으로 플래그 해제
+  const armProgrammaticFlag = (el: HTMLElement) => {
+    programmaticScrollRef.current = true;
+    let cleared = false;
+    const clear = () => {
+      if (cleared) return;
+      cleared = true;
+      programmaticScrollRef.current = false;
+      el.removeEventListener('scrollend', clear);
+    };
+    el.addEventListener('scrollend', clear, { once: true });
+    setTimeout(clear, 800); // 폴백
   };
 
   const scrollHeaderTo = useCallback((index: number) => {
     const el = headerScrollRef.current;
     if (!el) return;
     const itemWidth = el.clientWidth;
-    programmaticScrollRef.current = true;
+    if (Math.abs(el.scrollLeft - itemWidth * index) < 1) return;
+    armProgrammaticFlag(el);
     el.scrollTo({ left: itemWidth * index, behavior: 'smooth' });
-    clearProgrammaticFlagSoon();
   }, []);
 
   const scrollMomentsToVideo = useCallback((index: number) => {
@@ -66,9 +75,10 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
     if (flatIdx == null || flatIdx < 0) return;
     const child = el.children[flatIdx] as HTMLElement | undefined;
     if (!child) return;
-    programmaticScrollRef.current = true;
-    el.scrollTo({ left: child.offsetLeft - el.offsetLeft, behavior: 'smooth' });
-    clearProgrammaticFlagSoon();
+    const target = child.offsetLeft - el.offsetLeft;
+    if (Math.abs(el.scrollLeft - target) < 1) return;
+    armProgrammaticFlag(el);
+    el.scrollTo({ left: target, behavior: 'smooth' });
   }, [firstFlatIndexByVideo]);
 
   const goToVideo = useCallback((newIndex: number) => {
