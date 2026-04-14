@@ -5794,20 +5794,30 @@ color: white;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.75rem;
   touch-action: pan-x;
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
   min-width: 0;
+  scrollbar-color: var(--accent) transparent;
+  scrollbar-width: thin;
 }
 
 .on-this-day-moments-scroll::-webkit-scrollbar {
-  height: 4px;
+  height: 6px;
+}
+
+.on-this-day-moments-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .on-this-day-moments-scroll::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
+  background: linear-gradient(135deg, var(--accent), #c4b5fd);
+  border-radius: 999px;
+}
+
+.on-this-day-moments-scroll::-webkit-scrollbar-thumb:hover {
+  opacity: 0.85;
 }
 
 .on-this-day-moment-card {

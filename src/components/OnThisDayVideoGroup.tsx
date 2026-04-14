@@ -16,7 +16,6 @@ type FlatItem =
 // 모먼트를 끝까지 넘기면 자동으로 다음 영상의 모먼트로 이어진다.
 export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentFlatIndex, setCurrentFlatIndex] = useState(0);
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const momentsScrollRef = useRef<HTMLDivElement>(null);
   const programmaticScrollRef = useRef(false);
@@ -67,7 +66,6 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
     const child = el.children[flatIdx] as HTMLElement | undefined;
     if (!child) return;
     programmaticScrollRef.current = true;
-    setCurrentFlatIndex(flatIdx);
     el.scrollTo({ left: child.offsetLeft - el.offsetLeft, behavior: 'smooth' });
     clearProgrammaticFlagSoon();
   }, [firstFlatIndexByVideo]);
@@ -88,27 +86,6 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
 
   const currentVideo = videos[currentIndex];
   const hasMultipleVideos = videos.length > 1;
-
-  // 현재 영상에 속한 모먼트 카드들의 flat 인덱스
-  const currentVideoFlatIndices: number[] = [];
-  flatItems.forEach((item, i) => {
-    if (item.videoIndex === currentIndex && item.kind === 'moment') {
-      currentVideoFlatIndices.push(i);
-    }
-  });
-  const momentDotIndex = currentVideoFlatIndices.indexOf(currentFlatIndex);
-  const showMomentDots = currentVideoFlatIndices.length > 1;
-
-  const scrollMomentsToFlatIndex = (flatIdx: number) => {
-    const el = momentsScrollRef.current;
-    if (!el) return;
-    const child = el.children[flatIdx] as HTMLElement | undefined;
-    if (!child) return;
-    programmaticScrollRef.current = true;
-    setCurrentFlatIndex(flatIdx);
-    el.scrollTo({ left: child.offsetLeft - el.offsetLeft, behavior: 'smooth' });
-    setTimeout(() => { programmaticScrollRef.current = false; }, 350);
-  };
 
   // 헤더 스크롤 → currentIndex 갱신
   const handleHeaderScroll = () => {
@@ -139,7 +116,6 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
         nearestIdx = i;
       }
     });
-    setCurrentFlatIndex(nearestIdx);
     const newVideoIdx = flatItems[nearestIdx]?.videoIndex ?? 0;
     if (newVideoIdx !== currentIndex) {
       setCurrentIndex(newVideoIdx);
@@ -187,46 +163,31 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
       )}
 
       {flatItems.length > 0 && (
-        <>
-          <div
-            className="on-this-day-moments-scroll"
-            ref={momentsScrollRef}
-            onScroll={handleMomentsScroll}
-          >
-            {flatItems.map((item, i) => {
-              if (item.kind === 'moment') {
-                return (
-                  <div key={`m-${item.moment.id}`} className="on-this-day-moment-card">
-                    <VideoEmbed
-                      url={item.moment.tweet_url}
-                      title={item.moment.title}
-                      thumbnailUrl={item.moment.thumbnail_url}
-                    />
-                  </div>
-                );
-              }
+        <div
+          className="on-this-day-moments-scroll"
+          ref={momentsScrollRef}
+          onScroll={handleMomentsScroll}
+        >
+          {flatItems.map((item, i) => {
+            if (item.kind === 'moment') {
               return (
-                <div key={`p-${item.videoId}-${i}`} className="on-this-day-moment-card on-this-day-moment-empty">
-                  <p>이 영상엔 모먼트가 없어요</p>
-                  <span className="on-this-day-moment-empty-sub">{currentVideo.id === item.videoId ? '↑ 영상 보러가기' : ''}</span>
+                <div key={`m-${item.moment.id}`} className="on-this-day-moment-card">
+                  <VideoEmbed
+                    url={item.moment.tweet_url}
+                    title={item.moment.title}
+                    thumbnailUrl={item.moment.thumbnail_url}
+                  />
                 </div>
               );
-            })}
-          </div>
-
-          {showMomentDots && (
-            <div className="on-this-day-dots on-this-day-moment-dots">
-              {currentVideoFlatIndices.map((flatIdx, i) => (
-                <button
-                  key={flatIdx}
-                  className={`on-this-day-dot ${i === momentDotIndex ? 'active' : ''}`}
-                  onClick={() => scrollMomentsToFlatIndex(flatIdx)}
-                  aria-label={`모먼트 ${i + 1}`}
-                />
-              ))}
-            </div>
-          )}
-        </>
+            }
+            return (
+              <div key={`p-${item.videoId}-${i}`} className="on-this-day-moment-card on-this-day-moment-empty">
+                <p>이 영상엔 모먼트가 없어요</p>
+                <span className="on-this-day-moment-empty-sub">{currentVideo.id === item.videoId ? '↑ 영상 보러가기' : ''}</span>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
