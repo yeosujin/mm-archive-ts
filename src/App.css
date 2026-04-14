@@ -5804,7 +5804,10 @@ color: white;
 }
 
 .on-this-day-moments-scroll::-webkit-scrollbar {
+  -webkit-appearance: none;
+  appearance: none;
   height: 6px;
+  display: block;
 }
 
 .on-this-day-moments-scroll::-webkit-scrollbar-track {
