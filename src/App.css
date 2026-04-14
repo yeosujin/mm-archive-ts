@@ -5911,27 +5911,16 @@ color: white;
   margin-top: 1rem;
 }
 
-.on-this-day-episode-title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.625rem;
-}
-
-.on-this-day-episode-type {
-  flex-shrink: 0;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.2rem 0.5rem;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 4px;
-  letter-spacing: 0.3px;
+.on-this-day-episode-meta {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.02em;
 }
 
 .on-this-day-episode-title {
-  margin: 0;
-  font-size: 0.9rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.92rem;
   font-weight: 600;
   color: var(--text-primary);
   overflow: hidden;
