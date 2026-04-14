@@ -16,7 +16,8 @@ type FlatItem =
 // 모먼트를 끝까지 넘기면 자동으로 다음 영상의 모먼트로 이어진다.
 export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [momentScrollProgress, setMomentScrollProgress] = useState(0);
+  const [progressLeft, setProgressLeft] = useState(0);
+  const [progressWidth, setProgressWidth] = useState(100);
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const momentsScrollRef = useRef<HTMLDivElement>(null);
   const programmaticScrollRef = useRef(false);
@@ -88,10 +89,26 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
     scrollMomentsToVideo(newIndex);
   }, [videos.length, scrollHeaderTo, scrollMomentsToVideo]);
 
+  const updateProgress = useCallback(() => {
+    const el = momentsScrollRef.current;
+    if (!el) return;
+    const sw = el.scrollWidth;
+    if (sw <= 0) return;
+    const widthPct = (el.clientWidth / sw) * 100;
+    const leftPct = (el.scrollLeft / sw) * 100;
+    setProgressWidth(Math.min(100, Math.max(0, widthPct)));
+    setProgressLeft(Math.min(100 - widthPct, Math.max(0, leftPct)));
+  }, []);
+
   // 마운트 시 첫 영상으로 초기 위치
   useEffect(() => {
     setCurrentIndex(0);
   }, [videos]);
+
+  // 마운트 후 + 콘텐츠 변경 시 초기 진행률 계산
+  useEffect(() => {
+    updateProgress();
+  }, [flatItems, updateProgress]);
 
   if (videos.length === 0) return null;
 
@@ -116,9 +133,7 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
     if (!el) return;
 
     // 진행률은 항상 업데이트 (프로그래매틱 스크롤 중에도)
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
-    setMomentScrollProgress(ratio);
+    updateProgress();
 
     if (programmaticScrollRef.current) return;
     const center = el.scrollLeft + el.clientWidth / 2;
@@ -209,7 +224,7 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
         <div className="on-this-day-progress-track">
           <div
             className="on-this-day-progress-fill"
-            style={{ transform: `translateX(${momentScrollProgress * 100}%)` }}
+            style={{ left: `${progressLeft}%`, width: `${progressWidth}%` }}
           />
         </div>
         </>
