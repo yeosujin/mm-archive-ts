@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
 import { useData } from '../hooks/useData';
+import Skeleton from '../components/Skeleton';
 
 export default function Moments() {
   const [searchParams] = useSearchParams();
@@ -79,7 +80,11 @@ export default function Moments() {
   if (loading) {
     return (
       <div className="page moments-page">
-        <div className="loading">로딩 중...</div>
+        <div className="page-header">
+          <h1>모먼트</h1>
+          <p className="page-desc">둘만의 순간</p>
+        </div>
+        <Skeleton variant="timeline" count={8} />
       </div>
     );
   }

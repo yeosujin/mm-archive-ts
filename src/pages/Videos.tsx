@@ -5,6 +5,7 @@ import VideoEmbed from '../components/VideoEmbed';
 import PlatformIcon from '../components/PlatformIcon';
 import { detectVideoPlatform } from '../lib/platformUtils';
 import { useData } from '../hooks/useData';
+import Skeleton from '../components/Skeleton';
 
 // 위버스 멤버 아이콘 매핑
 const WEVERSE_MEMBERS = [
@@ -270,10 +271,27 @@ export default function Videos() {
     setExpandedMoments(prev => prev === videoId ? null : videoId);
   }, []);
 
+  // ESC로 확장된 영상 닫기 (키보드 네비게이션)
+  useEffect(() => {
+    if (!expandedVideo) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setExpandedVideo(null);
+        setExpandedMoments(null);
+      }
+    };
+    globalThis.addEventListener('keydown', handleKeyDown);
+    return () => globalThis.removeEventListener('keydown', handleKeyDown);
+  }, [expandedVideo]);
+
   if (loading) {
     return (
       <div className="page videos-page">
-        <div className="loading">로딩 중...</div>
+        <div className="page-header">
+          <h1>모먼트</h1>
+          <p className="page-desc">모먼트</p>
+        </div>
+        <Skeleton variant="timeline" count={8} />
       </div>
     );
   }

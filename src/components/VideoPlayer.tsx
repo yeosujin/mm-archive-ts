@@ -1,5 +1,6 @@
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { ShareIcon } from './Icons';
+import LazyImage from './LazyImage';
 
 interface Props {
   videoUrl: string;
@@ -116,14 +117,18 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
             }}
           >
             {thumbnailUrl && (
-              <img
+              <LazyImage
                 src={thumbnailUrl}
                 alt=""
-                loading="lazy"
-                style={{
+                wrapperClassName="video-player-thumb"
+                wrapperStyle={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
+                  width: '100%',
+                  height: '100%',
+                }}
+                style={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',

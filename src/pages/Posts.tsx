@@ -4,6 +4,8 @@ import type { Post } from '../lib/database';
 import PlatformIcon from '../components/PlatformIcon';
 import { useData } from '../hooks/useData';
 import { CloseIcon } from '../components/Icons';
+import LazyImage from '../components/LazyImage';
+import Skeleton from '../components/Skeleton';
 
 function getVideoMimeType(url: string): string {
   const ext = url.split('.').pop()?.toLowerCase().split('?')[0];
@@ -153,8 +155,12 @@ export default function Posts() {
 
   if (loading) {
     return (
-      <div className="page posts-page">
-        <div className="loading">로딩 중...</div>
+      <div className="page posts-page posts-grid-view">
+        <div className="page-header">
+          <h1>포스트</h1>
+          <p className="page-desc">X, 인스타, 위버스</p>
+        </div>
+        <Skeleton variant="grid" count={9} />
       </div>
     );
   }
@@ -207,7 +213,7 @@ export default function Posts() {
               >
                 <div className="post-grid-thumb">
                   {thumbnail ? (
-                    <img src={thumbnail} alt={post.title} loading="lazy" />
+                    <LazyImage src={thumbnail} alt={post.title} />
                   ) : (
                     <div className="post-grid-text-only">
                       <PlatformIcon platform={post.platform} size={32} />
