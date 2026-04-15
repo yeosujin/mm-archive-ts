@@ -1,6 +1,5 @@
-import { memo, useState, useRef, useEffect, useCallback } from 'react';
+import { memo, useState, useRef, useCallback } from 'react';
 import { ShareIcon } from './Icons';
-import LazyImage from './LazyImage';
 
 interface Props {
   videoUrl: string;
@@ -22,16 +21,22 @@ function getVideoMimeType(url: string): string {
 
 const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '', priority = false }: Props) => {
   const [activated, setActivated] = useState(false);
-  const [showControls, setShowControls] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handlePlay = () => {
     const video = videoRef.current;
-    if (video) {
-      video.muted = false;
-      video.play().catch(() => setShowControls(true));
+    if (!video) {
+      setActivated(true);
+      return;
     }
+    if (!priority) {
+      video.preload = 'auto';
+      try { video.load(); } catch { /* noop */ }
+    }
+    video.muted = false;
+    video.play().catch(() => { /* 실패 시 오버레이 유지 */ });
     setActivated(true);
   };
 
@@ -63,32 +68,6 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '', priority = f
     }
   }, [videoUrl, downloading]);
 
-  useEffect(() => {
-    if (!activated) return;
-    const video = videoRef.current;
-    if (!video) return;
-
-    const tryPlay = () => {
-      video.play().catch(() => {
-        setShowControls(true);
-      });
-    };
-
-    if (video.readyState >= 3) {
-      tryPlay();
-    } else {
-      video.addEventListener('canplay', tryPlay, { once: true });
-    }
-
-    const handlePlaying = () => setShowControls(true);
-    video.addEventListener('playing', handlePlaying);
-
-    return () => {
-      video.removeEventListener('canplay', tryPlay);
-      video.removeEventListener('playing', handlePlaying);
-    };
-  }, [activated]);
-
   const containerStyle: React.CSSProperties = {
     position: 'relative',
     width: '100%',
@@ -99,144 +78,21 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '', priority = f
     overflow: 'hidden',
   };
 
-  if (priority) {
-    return (
-      <div className={`video-player ${className}`}>
-        <div style={containerStyle}>
-          <video
-            ref={videoRef}
-            preload="auto"
-            muted={!activated}
-            playsInline
-            controls={activated && showControls}
-            controlsList="nodownload"
-            poster={thumbnailUrl}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-            }}
-          >
-            <source src={videoUrl} type={getVideoMimeType(videoUrl)} />
-          </video>
-          {!activated && (
-            <button
-              className="video-player-placeholder"
-              onClick={handlePlay}
-              aria-label="Play video"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                border: 'none',
-                padding: 0,
-                backgroundColor: 'transparent',
-              }}
-            >
-              <span style={{
-                fontSize: '48px',
-                color: '#fff',
-                opacity: 0.9,
-                textShadow: '0 2px 8px rgba(0,0,0,0.6)',
-              }}>&#9654;</span>
-            </button>
-          )}
-          <button
-            className={`video-download-btn${downloading ? ' downloading' : ''}`}
-            onClick={handleDownload}
-            aria-label="Download video"
-          >
-            {downloading ? <span className="video-download-spinner" /> : <ShareIcon size={18} />}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!activated) {
-    return (
-      <div className={`video-player ${className}`}>
-        <div style={containerStyle}>
-          <button
-            className="video-player-placeholder"
-            onClick={handlePlay}
-            aria-label="Play video"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              border: 'none',
-              padding: 0,
-              backgroundColor: 'transparent',
-            }}
-          >
-            {thumbnailUrl && (
-              <LazyImage
-                src={thumbnailUrl}
-                alt=""
-                priority={priority}
-                wrapperClassName="video-player-thumb"
-                wrapperStyle={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                }}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-              />
-            )}
-            <span style={{
-              position: 'relative',
-              zIndex: 1,
-              fontSize: '48px',
-              color: '#fff',
-              opacity: 0.9,
-              textShadow: '0 2px 8px rgba(0,0,0,0.6)',
-            }}>&#9654;</span>
-          </button>
-          <button
-            className={`video-download-btn${downloading ? ' downloading' : ''}`}
-            onClick={handleDownload}
-            aria-label="Download video"
-          >
-            {downloading ? <span className="video-download-spinner" /> : <ShareIcon size={18} />}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const showOverlay = !playing;
+  const showSpinner = activated && !playing;
 
   return (
     <div className={`video-player ${className}`}>
       <div style={containerStyle}>
         <video
           ref={videoRef}
-          controls={showControls}
+          preload={priority ? 'auto' : 'none'}
+          muted={!activated}
           playsInline
+          controls={playing}
           controlsList="nodownload"
-          preload="metadata"
-          autoPlay
           poster={thumbnailUrl}
+          onPlaying={() => setPlaying(true)}
           style={{
             position: 'absolute',
             top: 0,
@@ -248,6 +104,41 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '', priority = f
         >
           <source src={videoUrl} type={getVideoMimeType(videoUrl)} />
         </video>
+
+        {showOverlay && (
+          <button
+            className="video-player-placeholder"
+            onClick={handlePlay}
+            aria-label="Play video"
+            disabled={activated}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: activated ? 'default' : 'pointer',
+              border: 'none',
+              padding: 0,
+              backgroundColor: 'transparent',
+            }}
+          >
+            {showSpinner ? (
+              <span className="video-player-spinner" />
+            ) : (
+              <span style={{
+                fontSize: '48px',
+                color: '#fff',
+                opacity: 0.9,
+                textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+              }}>&#9654;</span>
+            )}
+          </button>
+        )}
+
         <button
           className={`video-download-btn${downloading ? ' downloading' : ''}`}
           onClick={handleDownload}
