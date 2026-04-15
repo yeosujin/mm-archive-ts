@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import type { Video, Moment } from '../lib/database';
 import VideoEmbed from '../components/VideoEmbed';
@@ -257,18 +258,44 @@ export default function Videos() {
     setContentTypeFilter('videos');
   }, []);
 
-  const toggleVideo = useCallback(async (videoId: string) => {
-    if (expandedVideo === videoId) {
-      setExpandedVideo(null);
-      setExpandedMoments(null);
-    } else {
-      setExpandedVideo(videoId);
-      await loadMomentsForVideo(videoId);
+  const toggleVideo = useCallback(async (videoId: string, anchor?: HTMLElement | null) => {
+    const isCollapsing = expandedVideo === videoId;
+    const beforeTop = anchor?.getBoundingClientRect().top ?? null;
+
+    if (isCollapsing) {
+      flushSync(() => {
+        setExpandedVideo(null);
+        setExpandedMoments(null);
+      });
+      if (anchor && beforeTop !== null) {
+        const delta = anchor.getBoundingClientRect().top - beforeTop;
+        if (delta !== 0) window.scrollBy(0, delta);
+      }
+      return;
     }
+
+    flushSync(() => {
+      setExpandedVideo(videoId);
+    });
+    if (anchor) {
+      const dateHeader = anchor.closest('.date-thread')?.querySelector('.thread-date-header') as HTMLElement | null;
+      const dateHeaderHeight = dateHeader?.offsetHeight ?? 0;
+      const rect = anchor.getBoundingClientRect();
+      const target = rect.top + window.scrollY - 72 - dateHeaderHeight - 10;
+      window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+    }
+    await loadMomentsForVideo(videoId);
   }, [expandedVideo, loadMomentsForVideo]);
 
-  const toggleMoments = useCallback((videoId: string) => {
-    setExpandedMoments(prev => prev === videoId ? null : videoId);
+  const toggleMoments = useCallback((videoId: string, anchor?: HTMLElement | null) => {
+    const beforeTop = anchor?.getBoundingClientRect().top ?? null;
+    flushSync(() => {
+      setExpandedMoments(prev => prev === videoId ? null : videoId);
+    });
+    if (anchor && beforeTop !== null) {
+      const delta = anchor.getBoundingClientRect().top - beforeTop;
+      if (delta !== 0) window.scrollBy(0, delta);
+    }
   }, []);
 
   // ESC로 확장된 영상 닫기 (키보드 네비게이션)
@@ -509,10 +536,10 @@ export default function Videos() {
                   const moments = videoMoments[video.id] || [];
 
                   return (
-                  <div key={video.id} className="thread-video-item" data-video-id={video.id}>
+                  <div key={video.id} className={`thread-video-item${expandedVideo === video.id ? ' is-expanded' : ''}`} data-video-id={video.id}>
                       <button 
                       className="thread-item-header"
-                      onClick={() => toggleVideo(video.id)}
+                      onClick={(e) => toggleVideo(video.id, e.currentTarget)}
                     >
                         <span className="item-icon">
                           <PlatformIcon platform={detectVideoPlatform(video.url)} size={18} />
@@ -538,7 +565,7 @@ export default function Videos() {
                             <div className="video-moments-section">
                               <button 
                                 className="video-moments-header"
-                                onClick={() => toggleMoments(video.id)}
+                                onClick={(e) => toggleMoments(video.id, e.currentTarget)}
                     >
                       <span className="item-icon">✨</span>
                                 <span className="item-title">모먼트 펼쳐 보기 ({moments.length})</span>
@@ -556,6 +583,7 @@ export default function Videos() {
                                         url={moment.tweet_url}
                                         title={moment.title}
                                         thumbnailUrl={moment.thumbnail_url}
+                                        priority
                                       />
                           </div>
                         ))}

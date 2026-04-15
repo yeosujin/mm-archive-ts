@@ -6,6 +6,7 @@ interface Props {
   videoUrl: string;
   thumbnailUrl?: string;
   className?: string;
+  priority?: boolean;
 }
 
 function getVideoMimeType(url: string): string {
@@ -19,13 +20,18 @@ function getVideoMimeType(url: string): string {
   }
 }
 
-const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => {
+const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '', priority = false }: Props) => {
   const [activated, setActivated] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handlePlay = () => {
+    const video = videoRef.current;
+    if (video) {
+      video.muted = false;
+      video.play().catch(() => setShowControls(true));
+    }
     setActivated(true);
   };
 
@@ -93,6 +99,69 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
     overflow: 'hidden',
   };
 
+  if (priority) {
+    return (
+      <div className={`video-player ${className}`}>
+        <div style={containerStyle}>
+          <video
+            ref={videoRef}
+            preload="auto"
+            muted={!activated}
+            playsInline
+            controls={activated && showControls}
+            controlsList="nodownload"
+            poster={thumbnailUrl}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+            }}
+          >
+            <source src={videoUrl} type={getVideoMimeType(videoUrl)} />
+          </video>
+          {!activated && (
+            <button
+              className="video-player-placeholder"
+              onClick={handlePlay}
+              aria-label="Play video"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                border: 'none',
+                padding: 0,
+                backgroundColor: 'transparent',
+              }}
+            >
+              <span style={{
+                fontSize: '48px',
+                color: '#fff',
+                opacity: 0.9,
+                textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+              }}>&#9654;</span>
+            </button>
+          )}
+          <button
+            className={`video-download-btn${downloading ? ' downloading' : ''}`}
+            onClick={handleDownload}
+            aria-label="Download video"
+          >
+            {downloading ? <span className="video-download-spinner" /> : <ShareIcon size={18} />}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!activated) {
     return (
       <div className={`video-player ${className}`}>
@@ -120,6 +189,7 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
               <LazyImage
                 src={thumbnailUrl}
                 alt=""
+                priority={priority}
                 wrapperClassName="video-player-thumb"
                 wrapperStyle={{
                   position: 'absolute',

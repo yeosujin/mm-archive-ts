@@ -139,7 +139,7 @@ export default function Posts() {
         </div>
       ) : (
         <div className="posts-grid">
-          {filteredPosts.map((post) => {
+          {filteredPosts.map((post, index) => {
             const thumbnail = getGridThumbnail(post);
             const hasMedia = post.media && post.media.length > 0;
             const mediaCount = post.media?.length || 0;
@@ -153,7 +153,7 @@ export default function Posts() {
               >
                 <div className="post-grid-thumb">
                   {thumbnail ? (
-                    <LazyImage src={thumbnail} alt={post.title} />
+                    <LazyImage src={thumbnail} alt={post.title} priority={index < 9} />
                   ) : (
                     <div className="post-grid-text-only">
                       <PlatformIcon platform={post.platform} size={32} />

@@ -243,6 +243,7 @@ export default function Search() {
                       url={moment.tweet_url}
                       title={moment.title}
                       thumbnailUrl={moment.thumbnail_url}
+                      priority
                     />
                   </div>
                 ))}

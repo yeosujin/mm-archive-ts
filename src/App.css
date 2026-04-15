@@ -1701,7 +1701,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .thread-video-item:hover {
@@ -1710,6 +1710,18 @@
 
 .dark .thread-video-item:hover {
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
+}
+
+.thread-video-item.is-expanded {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%) border-box;
+  box-shadow: 0 4px 16px rgba(135, 165, 240, 0.18);
+}
+
+.dark .thread-video-item.is-expanded {
+  box-shadow: 0 4px 18px rgba(135, 165, 240, 0.25);
 }
 
 /* 컴팩트 영상 카드 */
@@ -1778,6 +1790,11 @@
 
 .video-moments-grid {
   padding: 0 1rem 1rem;
+}
+
+.thread-item-header,
+.video-moments-header {
+  scroll-margin-top: 72px;
 }
 
 .video-card-link {
@@ -5957,11 +5974,20 @@ color: white;
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 0.35s ease;
+  transition: opacity 0.18s ease;
 }
 
 .lazy-image.is-loaded .lazy-image-img {
   opacity: 1;
+}
+
+.lazy-image.is-priority::before {
+  display: none;
+}
+
+.lazy-image.is-priority .lazy-image-img {
+  opacity: 1;
+  transition: none;
 }
 
 @keyframes lazy-image-shimmer {
