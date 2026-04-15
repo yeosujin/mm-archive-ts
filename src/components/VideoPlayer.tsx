@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useCallback } from 'react';
+import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { ShareIcon } from './Icons';
 
 interface Props {
@@ -24,6 +24,27 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '', priority = f
   const [playing, setPlaying] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // 뷰포트 근처(400px)에 들어오면 버퍼링 시작 — 클릭 시 즉시 재생되도록
+  useEffect(() => {
+    if (priority) return;
+    const video = videoRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          if (video.preload !== 'auto') {
+            video.preload = 'auto';
+            try { video.load(); } catch { /* noop */ }
+          }
+          observer.disconnect();
+          break;
+        }
+      }
+    }, { rootMargin: '400px 0px' });
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [priority]);
 
   const handlePlay = () => {
     const video = videoRef.current;

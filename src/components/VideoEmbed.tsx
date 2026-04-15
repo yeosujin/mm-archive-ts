@@ -32,7 +32,7 @@ function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'instagr
   if (r2PublicUrl && url.startsWith(r2PublicUrl)) {
     return 'r2';
   }
-  if (url.includes('.r2.dev') || url.includes('.r2.cloudflarestorage.com')) {
+  if (url.includes('.r2.dev') || url.includes('.r2.cloudflarestorage.com') || url.includes('cdn.mmemory.cloud')) {
     return 'r2';
   }
 
