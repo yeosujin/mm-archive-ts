@@ -209,6 +209,7 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
                     url={item.moment.tweet_url}
                     title={item.moment.title}
                     thumbnailUrl={item.moment.thumbnail_url}
+                    priority={i < 3}
                   />
                 </div>
               );

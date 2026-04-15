@@ -162,7 +162,7 @@ export default function Home() {
                 >
                   모먼트 더보기 <ArrowRightIcon size={12} />
                 </Link>
-                <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} />
+                <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} priority />
                 {video && platform && (
                   <div className={`video-embed-external ${platform === 'weverse' ? 'weverse-link' : ''}`}>
                     <div className="external-link-card">

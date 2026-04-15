@@ -5957,11 +5957,20 @@ color: white;
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 0.35s ease;
+  transition: opacity 0.18s ease;
 }
 
 .lazy-image.is-loaded .lazy-image-img {
   opacity: 1;
+}
+
+.lazy-image.is-priority::before {
+  display: none;
+}
+
+.lazy-image.is-priority .lazy-image-img {
+  opacity: 1;
+  transition: none;
 }
 
 @keyframes lazy-image-shimmer {

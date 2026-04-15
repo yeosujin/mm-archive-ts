@@ -6,6 +6,7 @@ interface Props {
   videoUrl: string;
   thumbnailUrl?: string;
   className?: string;
+  priority?: boolean;
 }
 
 function getVideoMimeType(url: string): string {
@@ -19,7 +20,7 @@ function getVideoMimeType(url: string): string {
   }
 }
 
-const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => {
+const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '', priority = false }: Props) => {
   const [activated, setActivated] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -120,6 +121,7 @@ const VideoPlayer = memo(({ videoUrl, thumbnailUrl, className = '' }: Props) => 
               <LazyImage
                 src={thumbnailUrl}
                 alt=""
+                priority={priority}
                 wrapperClassName="video-player-thumb"
                 wrapperStyle={{
                   position: 'absolute',

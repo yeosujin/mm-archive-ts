@@ -10,6 +10,7 @@ interface Props {
   platformName?: string; // 기타 플랫폼명 (TikTok, Weibo 등)
   thumbnailUrl?: string;
   className?: string;
+  priority?: boolean;
 }
 
 // URL 유효성 검증: http/https만 허용
@@ -50,7 +51,7 @@ function getVideoType(url: string): 'youtube' | 'twitter' | 'weverse' | 'instagr
   return 'other';
 }
 
-const VideoEmbed = memo(({ url, icon, iconText, platformName, thumbnailUrl, className = '' }: Props) => {
+const VideoEmbed = memo(({ url, icon, iconText, platformName, thumbnailUrl, className = '', priority = false }: Props) => {
   const videoType = getVideoType(url);
 
   if (videoType === 'invalid') {
@@ -62,7 +63,7 @@ const VideoEmbed = memo(({ url, icon, iconText, platformName, thumbnailUrl, clas
   }
 
   if (videoType === 'r2') {
-    return <VideoPlayer videoUrl={url} thumbnailUrl={thumbnailUrl} className={className} />;
+    return <VideoPlayer videoUrl={url} thumbnailUrl={thumbnailUrl} className={className} priority={priority} />;
   }
 
   // 위버스 멤버 이름 매핑
