@@ -37,7 +37,7 @@ export default function Home() {
   const [featuredItem, setFeaturedItem] = useState<{ type: string; item: Video | Post | Moment } | null>(null);
   const [linkedVideo, setLinkedVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
-  const [articlesVisible, setArticlesVisible] = useState(true);
+  const [articlesVisible, setArticlesVisible] = useState(false);
   const navigate = useNavigate();
   const { fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchMemberSettings } = useData();
 
