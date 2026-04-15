@@ -2211,6 +2211,17 @@
   animation: video-download-spin 0.6s linear infinite;
 }
 
+.video-player-spinner {
+  display: block;
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: video-download-spin 0.7s linear infinite;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
 @keyframes video-download-spin {
   to { transform: rotate(360deg); }
 }

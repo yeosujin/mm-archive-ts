@@ -30,6 +30,7 @@ export async function stripVideoMetadata(file: File): Promise<File> {
     '-map_metadata', '-1',
     '-metadata', `comment=${SITE_URL}`,
     '-c', 'copy',
+    '-movflags', '+faststart',
     outputName,
   ]);
 
