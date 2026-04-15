@@ -210,6 +210,8 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
                     title={item.moment.title}
                     thumbnailUrl={item.moment.thumbnail_url}
                     priority
+                    autoplayInView
+                    hideControls
                   />
                 </div>
               );
