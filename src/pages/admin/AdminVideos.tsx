@@ -436,7 +436,14 @@ export default function AdminVideos() {
               <select
                 id="video-icon"
                 value={formData.icon}
-                onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
+                onChange={(e) => {
+                  const newIcon = e.target.value;
+                  setFormData(prev => ({
+                    ...prev,
+                    icon: newIcon,
+                    icon_text: newIcon === '🖤' && !prev.icon_text ? '아일릿' : prev.icon_text,
+                  }));
+                }}
                 className="form-select"
               >
                 {HEART_OPTIONS.map(opt => (
