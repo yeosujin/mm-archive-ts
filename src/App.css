@@ -1701,7 +1701,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .thread-video-item:hover {
@@ -1710,6 +1710,18 @@
 
 .dark .thread-video-item:hover {
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
+}
+
+.thread-video-item.is-expanded {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+    linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%) border-box;
+  box-shadow: 0 4px 16px rgba(135, 165, 240, 0.18);
+}
+
+.dark .thread-video-item.is-expanded {
+  box-shadow: 0 4px 18px rgba(135, 165, 240, 0.25);
 }
 
 /* 컴팩트 영상 카드 */
