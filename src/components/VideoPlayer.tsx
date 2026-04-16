@@ -10,6 +10,8 @@ interface Props {
   autoplayInView?: boolean;
   /** 홈 등 '영상만 보이고 컨트롤바 없음 + 클릭은 뮤트 토글'이 필요한 곳 */
   hideControls?: boolean;
+  /** 초기 상태부터 음소거 해제 (사용자 탭으로 재생 시 소리 켜진 채 재생) */
+  initialUnmuted?: boolean;
 }
 
 function getVideoMimeType(url: string): string {
@@ -30,11 +32,12 @@ const VideoPlayer = memo(({
   priority = false,
   autoplayInView = false,
   hideControls = false,
+  initialUnmuted = false,
 }: Props) => {
   const [activated, setActivated] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [paused, setPaused] = useState(true);
-  const [userUnmuted, setUserUnmuted] = useState(false);
+  const [userUnmuted, setUserUnmuted] = useState(initialUnmuted);
   const [downloading, setDownloading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   // 사용자가 수동으로 일시정지한 상태 — autoplay-in-view 재진입 시 재생 방지

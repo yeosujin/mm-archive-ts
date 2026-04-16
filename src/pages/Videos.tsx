@@ -510,6 +510,8 @@ export default function Videos() {
                       url={moment.tweet_url}
                       title={moment.title}
                       thumbnailUrl={moment.thumbnail_url}
+                      hideControls
+                      initialUnmuted
                     />
                   </div>
                 ))}
@@ -584,6 +586,8 @@ export default function Videos() {
                                         title={moment.title}
                                         thumbnailUrl={moment.thumbnail_url}
                                         priority
+                                        hideControls
+                                        initialUnmuted
                                       />
                           </div>
                         ))}
