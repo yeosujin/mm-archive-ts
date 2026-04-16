@@ -15,6 +15,7 @@ export default function Photos() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [loading, setLoading] = useState(!cachedPhotos);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -90,6 +91,7 @@ export default function Photos() {
     if (currentIndex === -1) return;
     const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
     if (newIndex >= 0 && newIndex < filteredPhotos.length) {
+      setSlideDirection(direction === 'next' ? 'left' : 'right');
       setSelectedPhoto(filteredPhotos[newIndex]);
     }
   }, [selectedPhoto, filteredPhotos]);
@@ -103,6 +105,19 @@ export default function Photos() {
     globalThis.addEventListener('keydown', handleKeyDown);
     return () => globalThis.removeEventListener('keydown', handleKeyDown);
   }, [selectedPhoto, navigatePhoto]);
+
+  // 인접 사진 미리 로드
+  useEffect(() => {
+    if (!selectedPhoto) return;
+    const currentIndex = filteredPhotos.findIndex(p => p.id === selectedPhoto.id);
+    const adjacentIndexes = [currentIndex - 1, currentIndex + 1];
+    adjacentIndexes.forEach(i => {
+      if (i >= 0 && i < filteredPhotos.length) {
+        const img = new Image();
+        img.src = filteredPhotos[i].image_url;
+      }
+    });
+  }, [selectedPhoto, filteredPhotos]);
 
   // 스와이프 핸들러
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -216,7 +231,13 @@ export default function Photos() {
                   </button>
                 )}
 
-                <img src={selectedPhoto.image_url} alt={selectedPhoto.title} />
+                <img
+                  key={selectedPhoto.id}
+                  className={slideDirection ? `photo-slide-${slideDirection}` : undefined}
+                  src={selectedPhoto.image_url}
+                  alt={selectedPhoto.title}
+                  onAnimationEnd={() => setSlideDirection(null)}
+                />
 
                 {filteredPhotos.findIndex(p => p.id === selectedPhoto.id) < filteredPhotos.length - 1 && (
                   <button

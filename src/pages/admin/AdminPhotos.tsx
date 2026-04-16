@@ -8,6 +8,37 @@ import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadPhotoToR2, deleteFileFromR2 } from '../../lib/r2Upload';
 
+function resizeImage(file: File, maxSize: number): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      // 이미 작으면 그대로 반환
+      if (img.width <= maxSize && img.height <= maxSize) {
+        URL.revokeObjectURL(img.src);
+        resolve(file);
+        return;
+      }
+      const scale = Math.min(maxSize / img.width, maxSize / img.height);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(img.src);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: file.lastModified }));
+        },
+        'image/jpeg',
+        0.85
+      );
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 interface PendingFile {
   id: string;
   file: File;
@@ -108,28 +139,54 @@ export default function AdminPhotos() {
       const tags = parseTags(formData.tags);
       let completedFiles = 0;
 
-      for (let i = 0; i < pendingFiles.length; i++) {
-        const pending = pendingFiles[i];
-        const title = totalFiles === 1
-          ? formData.title
-          : `${formData.title}-${i + 1}`;
+      // 이미지 리사이즈 + R2 업로드 병렬 처리
+      const BATCH_SIZE = 3;
+      const results: { title: string; imageUrl: string; thumbnailUrl: string }[] = [];
 
-        const imageUrl = await uploadPhotoToR2(pending.file, (progress) => {
-          const overallProgress = ((completedFiles + progress / 100) / totalFiles) * 100;
-          setUploadProgress(Math.round(overallProgress));
-        });
+      for (let batchStart = 0; batchStart < pendingFiles.length; batchStart += BATCH_SIZE) {
+        const batch = pendingFiles.slice(batchStart, batchStart + BATCH_SIZE);
 
-        URL.revokeObjectURL(pending.previewUrl);
+        const batchResults = await Promise.all(
+          batch.map(async (pending, batchIndex) => {
+            const i = batchStart + batchIndex;
+            const title = totalFiles === 1
+              ? formData.title
+              : `${formData.title}-${i + 1}`;
 
-        await createPhoto({
-          title,
-          date: formData.date,
-          tags,
-          image_url: imageUrl,
-        });
+            // 원본(1920px) + 썸네일(400px) 동시 리사이즈
+            const [resizedFile, thumbFile] = await Promise.all([
+              resizeImage(pending.file, 1920),
+              resizeImage(pending.file, 400),
+            ]);
 
-        completedFiles++;
+            // 원본 + 썸네일 동시 업로드
+            const [imageUrl, thumbnailUrl] = await Promise.all([
+              uploadPhotoToR2(resizedFile),
+              uploadPhotoToR2(thumbFile),
+            ]);
+
+            URL.revokeObjectURL(pending.previewUrl);
+            return { title, imageUrl, thumbnailUrl };
+          })
+        );
+
+        results.push(...batchResults);
+        completedFiles += batch.length;
+        setUploadProgress(Math.round((completedFiles / totalFiles) * 100));
       }
+
+      // DB 저장도 병렬
+      await Promise.all(
+        results.map(({ title, imageUrl, thumbnailUrl }) =>
+          createPhoto({
+            title,
+            date: formData.date,
+            tags,
+            image_url: imageUrl,
+            thumbnail_url: thumbnailUrl,
+          })
+        )
+      );
 
       showToast(`${totalFiles}장 업로드 완료!`, 'success');
       resetForm();
