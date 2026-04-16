@@ -7,6 +7,7 @@ import {
   getEpisodes,
   getArticles,
   getAnsweredAsks,
+  getPhotos,
   getMemberSettings,
 } from '../lib/database';
 import { DataContext } from './DataContextValue';
@@ -15,13 +16,14 @@ import type { DataState } from './types';
 const CACHE_TIME = 1000 * 60 * 5;
 
 // 키 이름은 기존 DataState 키와 맞춰서 invalidateCache(key) 호환성 유지
-export const queryKeys = {
+const queryKeys = {
   videos: ['videos'] as const,
   moments: ['moments'] as const,
   posts: ['posts'] as const,
   episodes: ['episodes'] as const,
   articles: ['articles'] as const,
   asks: ['asks'] as const,
+  photos: ['photos'] as const,
   memberSettings: ['memberSettings'] as const,
 } satisfies Record<keyof Omit<DataState, 'lastFetched'>, readonly string[]>;
 
@@ -93,6 +95,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     enabled: false,
     staleTime: CACHE_TIME,
   });
+  const { data: photos = null } = useQuery({
+    queryKey: queryKeys.photos,
+    queryFn: getPhotos,
+    enabled: false,
+    staleTime: CACHE_TIME,
+  });
   const { data: memberSettings = null } = useQuery({
     queryKey: queryKeys.memberSettings,
     queryFn: getMemberSettings,
@@ -158,6 +166,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   }, [qc]);
 
+  const fetchPhotos = useCallback(async (force = false) => {
+    if (force) await qc.invalidateQueries({ queryKey: queryKeys.photos });
+    return qc.fetchQuery({
+      queryKey: queryKeys.photos,
+      queryFn: getPhotos,
+      staleTime: CACHE_TIME,
+    });
+  }, [qc]);
+
   const fetchMemberSettings = useCallback(async (force = false) => {
     if (force) await qc.invalidateQueries({ queryKey: queryKeys.memberSettings });
     return qc.fetchQuery({
@@ -180,6 +197,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     episodes,
     articles,
     asks,
+    photos,
     memberSettings,
     lastFetched: {},
     fetchVideos,
@@ -188,11 +206,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     fetchEpisodes,
     fetchArticles,
     fetchAsks,
+    fetchPhotos,
     fetchMemberSettings,
     invalidateCache,
   }), [
-    videos, moments, posts, episodes, articles, asks, memberSettings,
-    fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchArticles, fetchAsks, fetchMemberSettings, invalidateCache,
+    videos, moments, posts, episodes, articles, asks, photos, memberSettings,
+    fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchArticles, fetchAsks, fetchPhotos, fetchMemberSettings, invalidateCache,
   ]);
 
   return (
