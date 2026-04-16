@@ -16,8 +16,15 @@ type FlatItem =
 // 모먼트를 끝까지 넘기면 자동으로 다음 영상의 모먼트로 이어진다.
 export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [prevVideos, setPrevVideos] = useState(videos);
   const [progressLeft, setProgressLeft] = useState(0);
   const [progressWidth, setProgressWidth] = useState(100);
+
+  // videos prop이 새로 들어오면 첫 영상으로 리셋 (effect 대신 렌더 중 보정)
+  if (prevVideos !== videos) {
+    setPrevVideos(videos);
+    setCurrentIndex(0);
+  }
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const momentsScrollRef = useRef<HTMLDivElement>(null);
   const programmaticScrollRef = useRef(false);
@@ -99,11 +106,6 @@ export default function OnThisDayVideoGroup({ videos, momentsByVideoId }: Props)
     setProgressWidth(Math.min(100, Math.max(0, widthPct)));
     setProgressLeft(Math.min(100 - widthPct, Math.max(0, leftPct)));
   }, []);
-
-  // 마운트 시 첫 영상으로 초기 위치
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [videos]);
 
   // 마운트 후 + 콘텐츠 변경 시 초기 진행률 계산
   useEffect(() => {
