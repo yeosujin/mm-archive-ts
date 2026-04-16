@@ -65,14 +65,14 @@ export default function Layout() {
             >
               모먼트
             </NavLink>
-            <NavLink 
-              to="/posts" 
+            <NavLink
+              to="/posts"
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/Posts')}
             >
               포스트
             </NavLink>
-            <NavLink 
+            <NavLink
               to="/episodes" 
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/Episodes')}

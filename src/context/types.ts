@@ -1,4 +1,4 @@
-import type { Video, Moment, Post, Episode, Article, Ask, MemberSettings } from '../lib/database';
+import type { Video, Moment, Post, Episode, Article, Ask, Photo, MemberSettings } from '../lib/database';
 
 export interface DataState {
   videos: Video[] | null;
@@ -7,6 +7,7 @@ export interface DataState {
   episodes: Episode[] | null;
   articles: Article[] | null;
   asks: Ask[] | null;
+  photos: Photo[] | null;
   memberSettings: MemberSettings | null;
   lastFetched: Record<string, number>;
 }
@@ -18,6 +19,7 @@ export interface DataContextType extends DataState {
   fetchEpisodes: (force?: boolean) => Promise<Episode[]>;
   fetchArticles: (force?: boolean) => Promise<Article[]>;
   fetchAsks: (force?: boolean) => Promise<Ask[]>;
+  fetchPhotos: (force?: boolean) => Promise<Photo[]>;
   fetchMemberSettings: (force?: boolean) => Promise<MemberSettings>;
   invalidateCache: (key: keyof DataState) => void;
 }

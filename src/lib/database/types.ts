@@ -85,6 +85,15 @@ export interface FeaturedContent {
   content_id: string | null;
 }
 
+export interface Photo {
+  id: string;
+  title: string;
+  date: string;
+  tags: string[];
+  image_url: string;
+  thumbnail_url?: string;
+}
+
 export interface Activity {
   id: string;
   name: string;
