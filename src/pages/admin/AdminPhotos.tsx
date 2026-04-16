@@ -141,7 +141,7 @@ export default function AdminPhotos() {
 
       // 이미지 리사이즈 + R2 업로드 병렬 처리
       const BATCH_SIZE = 3;
-      const results: { title: string; imageUrl: string }[] = [];
+      const results: { title: string; imageUrl: string; thumbnailUrl: string }[] = [];
 
       for (let batchStart = 0; batchStart < pendingFiles.length; batchStart += BATCH_SIZE) {
         const batch = pendingFiles.slice(batchStart, batchStart + BATCH_SIZE);
@@ -153,14 +153,20 @@ export default function AdminPhotos() {
               ? formData.title
               : `${formData.title}-${i + 1}`;
 
-            const resizedFile = await resizeImage(pending.file, 1920);
+            // 원본(1920px) + 썸네일(400px) 동시 리사이즈
+            const [resizedFile, thumbFile] = await Promise.all([
+              resizeImage(pending.file, 1920),
+              resizeImage(pending.file, 400),
+            ]);
 
-            const imageUrl = await uploadPhotoToR2(resizedFile, () => {
-              // 개별 progress는 무시하고 완료 단위로 추적
-            });
+            // 원본 + 썸네일 동시 업로드
+            const [imageUrl, thumbnailUrl] = await Promise.all([
+              uploadPhotoToR2(resizedFile),
+              uploadPhotoToR2(thumbFile),
+            ]);
 
             URL.revokeObjectURL(pending.previewUrl);
-            return { title, imageUrl };
+            return { title, imageUrl, thumbnailUrl };
           })
         );
 
@@ -171,12 +177,13 @@ export default function AdminPhotos() {
 
       // DB 저장도 병렬
       await Promise.all(
-        results.map(({ title, imageUrl }) =>
+        results.map(({ title, imageUrl, thumbnailUrl }) =>
           createPhoto({
             title,
             date: formData.date,
             tags,
             image_url: imageUrl,
+            thumbnail_url: thumbnailUrl,
           })
         )
       );

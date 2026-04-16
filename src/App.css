@@ -6255,6 +6255,24 @@ color: white;
   -webkit-user-drag: none;
 }
 
+.photo-lightbox-image img.photo-slide-left {
+  animation: photoSlideLeft 0.25s ease-out;
+}
+
+.photo-lightbox-image img.photo-slide-right {
+  animation: photoSlideRight 0.25s ease-out;
+}
+
+@keyframes photoSlideLeft {
+  from { opacity: 0; transform: translateX(60px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes photoSlideRight {
+  from { opacity: 0; transform: translateX(-60px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 .photo-lightbox-nav {
   position: absolute;
   top: 50%;
