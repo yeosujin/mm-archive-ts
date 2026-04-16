@@ -137,7 +137,7 @@ export default function Moments() {
                       <div className="group-items">
                         {group.map((moment) => (
                           <div key={moment.id} className="moment-item" data-moment-id={moment.id}>
-                            <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} autoplayInView />
+                            <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} hideControls />
                             <p className="moment-card-title">{moment.title}</p>
                           </div>
                         ))}

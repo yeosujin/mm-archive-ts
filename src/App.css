@@ -5691,6 +5691,7 @@ color: white;
   padding: 0 1rem;
   box-sizing: border-box;
   overflow: hidden;
+  animation: fade-in 0.6s ease both;
 }
 
 .on-this-day-title-row {

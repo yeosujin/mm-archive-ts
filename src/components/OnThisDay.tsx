@@ -28,9 +28,9 @@ type YearBundle = {
 export default function OnThisDay({ fallback }: Props) {
   const { videos, moments, posts, episodes, memberSettings } = useData();
   const today = useMemo(() => getTodayString(), []);
-  // 캐시 초기값은 null. 최소 한 종류라도 도착해야 "그 해 오늘" 판정을 내릴 수 있다.
-  // 전부 null인 초기 순간에는 아무것도 렌더하지 않아 PICK 플래시를 막는다.
-  const cacheReady = videos !== null || moments !== null || posts !== null || episodes !== null;
+  // videos + moments 둘 다 도착해야 렌더. 한쪽만 먼저 도착한 상태에서 placeholder가
+  // 스피너로 잠깐 보였다가 실제 영상 카드로 교체되는 '로딩 두 번' 체감을 막는다.
+  const cacheReady = videos !== null && moments !== null;
 
   const yearBundles = useMemo<YearBundle[]>(() => {
     const todayYear = Number(today.slice(0, 4));
