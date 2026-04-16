@@ -28,6 +28,9 @@ type YearBundle = {
 export default function OnThisDay({ fallback }: Props) {
   const { videos, moments, posts, episodes, memberSettings } = useData();
   const today = useMemo(() => getTodayString(), []);
+  // 캐시 초기값은 null. 최소 한 종류라도 도착해야 "그 해 오늘" 판정을 내릴 수 있다.
+  // 전부 null인 초기 순간에는 아무것도 렌더하지 않아 PICK 플래시를 막는다.
+  const cacheReady = videos !== null || moments !== null || posts !== null || episodes !== null;
 
   const yearBundles = useMemo<YearBundle[]>(() => {
     const todayYear = Number(today.slice(0, 4));
@@ -55,6 +58,10 @@ export default function OnThisDay({ fallback }: Props) {
   }, [videos, moments, posts, episodes, today]);
 
   const fallbackMemberSettings: MemberSettings = { member1_name: '멤버1', member2_name: '멤버2' };
+
+  if (!cacheReady) {
+    return null;
+  }
 
   if (yearBundles.length === 0) {
     return <>{fallback}</>;

@@ -36,12 +36,43 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [featuredItem, setFeaturedItem] = useState<{ type: string; item: Video | Post | Moment } | null>(null);
   const [linkedVideo, setLinkedVideo] = useState<Video | null>(null);
-  const [loading, setLoading] = useState(true);
   const [articlesVisible, setArticlesVisible] = useState(false);
   const navigate = useNavigate();
   const { fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchMemberSettings } = useData();
 
   useEffect(() => {
+    const loadFeaturedContent = async () => {
+      try {
+        const visible = await getArticlesVisibility();
+        setArticlesVisible(visible);
+        const featured = await getFeaturedContent();
+
+        if (featured.type && featured.content_id) {
+          let item: Video | Post | Moment | undefined;
+
+          if (featured.type === 'video') {
+            const videos = await fetchVideos();
+            item = videos.find(v => v.id === featured.content_id);
+          } else if (featured.type === 'post') {
+            const posts = await fetchPosts();
+            item = posts.find(p => p.id === featured.content_id);
+          } else if (featured.type === 'moment') {
+            const [moments, videos] = await Promise.all([fetchMoments(), fetchVideos()]);
+            item = moments.find(m => m.id === featured.content_id);
+            if (item && (item as Moment).video_id) {
+              setLinkedVideo(videos.find(v => v.id === (item as Moment).video_id) || null);
+            }
+          }
+
+          if (item) {
+            setFeaturedItem({ type: featured.type, item });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading featured content:', error);
+      }
+    };
+
     loadFeaturedContent();
     // OnThisDay 섹션이 필요한 데이터를 캐시에 적재
     fetchVideos().catch(() => {});
@@ -50,40 +81,6 @@ export default function Home() {
     fetchEpisodes().catch(() => {});
     fetchMemberSettings().catch(() => {});
   }, [fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchMemberSettings]);
-
-  const loadFeaturedContent = async () => {
-    try {
-      const visible = await getArticlesVisibility();
-      setArticlesVisible(visible);
-      const featured = await getFeaturedContent();
-
-      if (featured.type && featured.content_id) {
-        let item: Video | Post | Moment | undefined;
-
-        if (featured.type === 'video') {
-          const videos = await fetchVideos();
-          item = videos.find(v => v.id === featured.content_id);
-        } else if (featured.type === 'post') {
-          const posts = await fetchPosts();
-          item = posts.find(p => p.id === featured.content_id);
-        } else if (featured.type === 'moment') {
-          const [moments, videos] = await Promise.all([fetchMoments(), fetchVideos()]);
-          item = moments.find(m => m.id === featured.content_id);
-          if (item && (item as Moment).video_id) {
-            setLinkedVideo(videos.find(v => v.id === (item as Moment).video_id) || null);
-          }
-        }
-
-        if (item) {
-          setFeaturedItem({ type: featured.type, item });
-        }
-      }
-    } catch (error) {
-      console.error('Error loading featured content:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,9 +221,7 @@ export default function Home() {
       </nav>
 
       {/* 그 해 오늘 — 콘텐츠 0개면 기존 Featured(PICK) 섹션을 fallback으로 렌더 */}
-      {!loading && (
-        <OnThisDay fallback={featuredItem?.item ? renderFeatured() : null} />
-      )}
+      <OnThisDay fallback={featuredItem?.item ? renderFeatured() : null} />
 
       <div className="home-ask-link">
         <Link to="/ask" className="home-ask-btn">
