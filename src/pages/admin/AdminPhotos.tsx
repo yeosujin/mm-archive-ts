@@ -7,7 +7,7 @@ import Toast from '../../components/Toast';
 import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadPhotoToR2, deleteFileFromR2 } from '../../lib/r2Upload';
-import { getNextSuffixStart } from '../../lib/titleSuffix';
+import { getNextSuffixStart, parseTitle } from '../../lib/titleSuffix';
 
 function resizeImage(file: File, maxSize: number): Promise<File> {
   return new Promise((resolve) => {
@@ -248,6 +248,22 @@ export default function AdminPhotos() {
 
     try {
       await deletePhoto(id);
+
+      // 같은 베이스 제목의 사진들 재번호 매기기
+      if (photo) {
+        const { base, suffix } = parseTitle(photo.title);
+        if (suffix !== null) {
+          const siblings = photos
+            .filter(p => p.id !== id && parseTitle(p.title).base === base && parseTitle(p.title).suffix !== null)
+            .sort((a, b) => parseTitle(a.title).suffix! - parseTitle(b.title).suffix!);
+
+          const updates = siblings
+            .map((s, i) => ({ id: s.id, newTitle: `${base}-${i + 1}`, oldTitle: s.title }))
+            .filter(u => u.oldTitle !== u.newTitle);
+          await Promise.all(updates.map(u => updatePhoto(u.id, { title: u.newTitle })));
+        }
+      }
+
       showToast('삭제되었어요!', 'success');
       await fetchPhotos(true);
     } catch (error) {
