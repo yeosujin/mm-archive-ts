@@ -16,6 +16,7 @@ export default function Photos() {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [loading, setLoading] = useState(!cachedPhotos);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const [fullSrc, setFullSrc] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -61,11 +62,16 @@ export default function Photos() {
         );
       })
     : photos
-  ).sort((a, b) =>
-    sortOrder === 'newest' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)
-  );
+  ).sort((a, b) => {
+    const dateCmp = sortOrder === 'newest' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date);
+    if (dateCmp !== 0) return dateCmp;
+    // 같은 날짜면 title suffix 번호순 (최신순이면 역순)
+    const getNum = (t: string) => { const m = /-(\d+)$/.exec(t); return m ? Number(m[1]) : 0; };
+    return sortOrder === 'newest' ? getNum(b.title) - getNum(a.title) : getNum(a.title) - getNum(b.title);
+  });
 
   const openPhoto = (photo: Photo) => {
+    setFullSrc(null);
     setSelectedPhoto(photo);
     dialogRef.current?.showModal();
   };
@@ -92,6 +98,7 @@ export default function Photos() {
     const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
     if (newIndex >= 0 && newIndex < filteredPhotos.length) {
       setSlideDirection(direction === 'next' ? 'left' : 'right');
+      setFullSrc(null);
       setSelectedPhoto(filteredPhotos[newIndex]);
     }
   }, [selectedPhoto, filteredPhotos]);
@@ -105,6 +112,20 @@ export default function Photos() {
     globalThis.addEventListener('keydown', handleKeyDown);
     return () => globalThis.removeEventListener('keydown', handleKeyDown);
   }, [selectedPhoto, navigatePhoto]);
+
+  // 원본 이미지 백그라운드 프리로드 (썸네일 → 원본 교체)
+  useEffect(() => {
+    if (!selectedPhoto) return;
+    // 썸네일이 없으면 이미 원본을 바로 보여주는 것이므로 skip
+    if (!selectedPhoto.thumbnail_url) {
+      setFullSrc(selectedPhoto.image_url);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => setFullSrc(selectedPhoto.image_url);
+    img.src = selectedPhoto.image_url;
+    return () => { img.onload = null; };
+  }, [selectedPhoto]);
 
   // 인접 사진 미리 로드
   useEffect(() => {
@@ -234,7 +255,7 @@ export default function Photos() {
                 <img
                   key={selectedPhoto.id}
                   className={slideDirection ? `photo-slide-${slideDirection}` : undefined}
-                  src={selectedPhoto.image_url}
+                  src={fullSrc || selectedPhoto.thumbnail_url || selectedPhoto.image_url}
                   alt={selectedPhoto.title}
                   onAnimationEnd={() => setSlideDirection(null)}
                 />

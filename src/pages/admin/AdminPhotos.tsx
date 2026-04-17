@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPhoto, updatePhoto, deletePhoto } from '../../lib/database';
 import type { Photo } from '../../lib/database';
 import { useData } from '../../hooks/useData';
@@ -7,6 +7,7 @@ import Toast from '../../components/Toast';
 import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadPhotoToR2, deleteFileFromR2 } from '../../lib/r2Upload';
+import { getNextSuffixStart, parseTitle } from '../../lib/titleSuffix';
 
 function resizeImage(file: File, maxSize: number): Promise<File> {
   return new Promise((resolve) => {
@@ -63,6 +64,42 @@ export default function AdminPhotos() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const previewSuffixStart = useMemo(() => {
+    if (!formData.title) return 1;
+    return getNextSuffixStart(formData.title, (cachedPhotos || []).map(p => p.title));
+  }, [formData.title, cachedPhotos]);
+
+  const filteredPhotos = useMemo(() => {
+    const list = cachedPhotos || [];
+    if (!searchQuery) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter(photo =>
+      photo.title.toLowerCase().includes(q) ||
+      photo.date.includes(searchQuery) ||
+      photo.date.replaceAll('-', '').includes(searchQuery) ||
+      photo.tags.some(tag => tag.toLowerCase().includes(q))
+    );
+  }, [cachedPhotos, searchQuery]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredPhotos.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredPhotos.map(p => p.id)));
+    }
+  };
 
   useEffect(() => {
     fetchPhotos().finally(() => setLoading(false));
@@ -151,7 +188,7 @@ export default function AdminPhotos() {
             const i = batchStart + batchIndex;
             const title = totalFiles === 1
               ? formData.title
-              : `${formData.title}-${i + 1}`;
+              : `${formData.title}-${previewSuffixStart + i}`;
 
             // 원본(1920px) + 썸네일(400px) 동시 리사이즈
             const [resizedFile, thumbFile] = await Promise.all([
@@ -242,10 +279,60 @@ export default function AdminPhotos() {
 
     try {
       await deletePhoto(id);
+
+      // 같은 베이스 제목의 사진들 재번호 매기기
+      if (photo) {
+        const { base, suffix } = parseTitle(photo.title);
+        if (suffix !== null) {
+          const siblings = photos
+            .filter(p => p.id !== id && parseTitle(p.title).base === base && parseTitle(p.title).suffix !== null)
+            .sort((a, b) => parseTitle(a.title).suffix! - parseTitle(b.title).suffix!);
+
+          const updates = siblings
+            .map((s, i) => ({ id: s.id, newTitle: `${base}-${i + 1}`, oldTitle: s.title }))
+            .filter(u => u.oldTitle !== u.newTitle);
+          await Promise.all(updates.map(u => updatePhoto(u.id, { title: u.newTitle })));
+        }
+      }
+
       showToast('삭제되었어요!', 'success');
       await fetchPhotos(true);
     } catch (error) {
       console.error('Error deleting photo:', error);
+      showToast('삭제 중 오류가 발생했어요.', 'error');
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    const confirmed = await confirm({
+      message: `선택한 ${selectedIds.size}장을 삭제하시겠어요?`,
+      type: 'danger',
+    });
+    if (!confirmed) return;
+
+    try {
+      const targets = photos.filter(p => selectedIds.has(p.id));
+
+      // R2 파일 삭제
+      await Promise.all(
+        targets.flatMap(photo => {
+          const tasks = [deleteFileFromR2(photo.image_url).catch(() => {})];
+          if (photo.thumbnail_url) {
+            tasks.push(deleteFileFromR2(photo.thumbnail_url).catch(() => {}));
+          }
+          return tasks;
+        })
+      );
+
+      // DB 삭제
+      await Promise.all(targets.map(p => deletePhoto(p.id)));
+
+      setSelectedIds(new Set());
+      showToast(`${targets.length}장 삭제 완료!`, 'success');
+      await fetchPhotos(true);
+    } catch (error) {
+      console.error('Error batch deleting photos:', error);
       showToast('삭제 중 오류가 발생했어요.', 'error');
     }
   };
@@ -348,7 +435,7 @@ export default function AdminPhotos() {
                         </div>
                         <div className="media-preview-actions">
                           <span className="media-index">
-                            {pendingFiles.length === 1 ? formData.title || '#1' : `${formData.title || ''}-${index + 1}`}
+                            {pendingFiles.length === 1 ? formData.title || '#1' : `${formData.title || ''}-${previewSuffixStart + index}`}
                           </span>
                           <button
                             type="button"
@@ -381,10 +468,43 @@ export default function AdminPhotos() {
 
         <div className="admin-section">
           <h2>등록된 사진 ({photos.length}개)</h2>
+
+          <div className="admin-search-box">
+            <input
+              type="text"
+              className="admin-search-input"
+              placeholder="제목, 날짜, 태그로 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="admin-batch-actions">
+            <label className="admin-select-all">
+              <input
+                type="checkbox"
+                checked={filteredPhotos.length > 0 && selectedIds.size === filteredPhotos.length}
+                onChange={toggleSelectAll}
+              />
+              전체 선택 ({selectedIds.size}/{filteredPhotos.length})
+            </label>
+            {selectedIds.size > 0 && (
+              <button className="delete-btn" onClick={handleBatchDelete}>
+                선택 삭제 ({selectedIds.size})
+              </button>
+            )}
+          </div>
+
           <div className="admin-photos-grid">
-            {photos.map((photo) => (
-              <div key={photo.id} className="admin-photo-card">
+            {filteredPhotos.map((photo) => (
+              <div key={photo.id} className={`admin-photo-card${selectedIds.has(photo.id) ? ' selected' : ''}`}>
                 <div className="admin-photo-card-thumb">
+                  <input
+                    type="checkbox"
+                    className="photo-select-checkbox"
+                    checked={selectedIds.has(photo.id)}
+                    onChange={() => toggleSelect(photo.id)}
+                  />
                   <img src={photo.thumbnail_url || photo.image_url} alt={photo.title} loading="lazy" />
                 </div>
                 <div className="admin-photo-card-info">
