@@ -6247,7 +6247,7 @@ color: white;
 }
 
 .photo-lightbox-image img {
-  max-width: 90vw;
+  width: 90vw;
   max-height: 75vh;
   object-fit: contain;
   border-radius: 4px;
