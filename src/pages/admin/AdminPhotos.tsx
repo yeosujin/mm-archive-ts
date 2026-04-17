@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPhoto, updatePhoto, deletePhoto } from '../../lib/database';
 import type { Photo } from '../../lib/database';
 import { useData } from '../../hooks/useData';
@@ -7,6 +7,7 @@ import Toast from '../../components/Toast';
 import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadPhotoToR2, deleteFileFromR2 } from '../../lib/r2Upload';
+import { getNextSuffixStart } from '../../lib/titleSuffix';
 
 function resizeImage(file: File, maxSize: number): Promise<File> {
   return new Promise((resolve) => {
@@ -63,6 +64,11 @@ export default function AdminPhotos() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const previewSuffixStart = useMemo(() => {
+    if (!formData.title) return 1;
+    return getNextSuffixStart(formData.title, (cachedPhotos || []).map(p => p.title));
+  }, [formData.title, cachedPhotos]);
 
   useEffect(() => {
     fetchPhotos().finally(() => setLoading(false));
@@ -151,7 +157,7 @@ export default function AdminPhotos() {
             const i = batchStart + batchIndex;
             const title = totalFiles === 1
               ? formData.title
-              : `${formData.title}-${i + 1}`;
+              : `${formData.title}-${previewSuffixStart + i}`;
 
             // 원본(1920px) + 썸네일(400px) 동시 리사이즈
             const [resizedFile, thumbFile] = await Promise.all([
@@ -348,7 +354,7 @@ export default function AdminPhotos() {
                         </div>
                         <div className="media-preview-actions">
                           <span className="media-index">
-                            {pendingFiles.length === 1 ? formData.title || '#1' : `${formData.title || ''}-${index + 1}`}
+                            {pendingFiles.length === 1 ? formData.title || '#1' : `${formData.title || ''}-${previewSuffixStart + index}`}
                           </span>
                           <button
                             type="button"
