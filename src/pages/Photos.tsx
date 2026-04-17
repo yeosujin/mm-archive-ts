@@ -61,9 +61,13 @@ export default function Photos() {
         );
       })
     : photos
-  ).sort((a, b) =>
-    sortOrder === 'newest' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)
-  );
+  ).sort((a, b) => {
+    const dateCmp = sortOrder === 'newest' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date);
+    if (dateCmp !== 0) return dateCmp;
+    // 같은 날짜면 title suffix 번호순 (최신순이면 역순)
+    const getNum = (t: string) => { const m = /-(\d+)$/.exec(t); return m ? Number(m[1]) : 0; };
+    return sortOrder === 'newest' ? getNum(b.title) - getNum(a.title) : getNum(a.title) - getNum(b.title);
+  });
 
   const openPhoto = (photo: Photo) => {
     setSelectedPhoto(photo);
