@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, MenuIcon, CloseIcon, VideoIcon, PostIcon, ChatIcon, BookIcon, ArrowUpIcon } from './Icons';
+import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, MenuIcon, CloseIcon, VideoIcon, PhotoIcon, PostIcon, ChatIcon, BookIcon, ArrowUpIcon } from './Icons';
 import { useData } from '../hooks/useData';
 
 export default function Layout() {
@@ -64,6 +64,13 @@ export default function Layout() {
               onMouseEnter={() => import('../pages/Videos')}
             >
               모먼트
+            </NavLink>
+            <NavLink
+              to="/photos"
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/Photos')}
+            >
+              사진
             </NavLink>
             <NavLink
               to="/posts"
@@ -156,6 +163,13 @@ export default function Layout() {
               onClick={handleNavClick}
             >
               <VideoIcon size={18} /> 모먼트
+            </NavLink>
+            <NavLink
+              to="/photos"
+              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              <PhotoIcon size={18} /> 사진
             </NavLink>
             <NavLink
               to="/posts"

@@ -27,6 +27,7 @@ const PLATFORM_NAMES: Record<string, string> = {
 
 const NAV_ITEMS = [
   { to: '/videos', label: '모먼트' },
+  { to: '/photos', label: '사진' },
   { to: '/posts', label: '포스트' },
   { to: '/episodes', label: '에피소드' },
   { to: '/articles', label: '도서관' },
