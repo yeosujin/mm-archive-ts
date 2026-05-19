@@ -1,4 +1,5 @@
-import { memo, useCallback, useState, type ImgHTMLAttributes } from 'react';
+import { memo, useCallback, useMemo, useState, type ImgHTMLAttributes } from 'react';
+import { thumbHashToUrl } from '../lib/thumbHash';
 
 interface Props extends ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -6,6 +7,7 @@ interface Props extends ImgHTMLAttributes<HTMLImageElement> {
   wrapperClassName?: string;
   wrapperStyle?: React.CSSProperties;
   priority?: boolean;
+  thumbHash?: string | null;
 }
 
 const LazyImage = memo(({
@@ -15,10 +17,13 @@ const LazyImage = memo(({
   wrapperClassName = '',
   wrapperStyle,
   priority = false,
+  thumbHash,
   ...rest
 }: Props) => {
   const [loaded, setLoaded] = useState(priority);
   const [errored, setErrored] = useState(false);
+
+  const placeholderUrl = useMemo(() => thumbHashToUrl(thumbHash), [thumbHash]);
 
   const handleImgRef = useCallback((node: HTMLImageElement | null) => {
     if (node?.complete && node.naturalWidth > 0) {
@@ -31,11 +36,21 @@ const LazyImage = memo(({
     loaded ? 'is-loaded' : '',
     errored ? 'is-errored' : '',
     priority ? 'is-priority' : '',
+    placeholderUrl ? 'has-thumbhash' : '',
     wrapperClassName,
   ].filter(Boolean).join(' ');
 
+  const mergedWrapperStyle: React.CSSProperties = {
+    ...wrapperStyle,
+    ...(placeholderUrl ? {
+      backgroundImage: `url(${placeholderUrl})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    } : null),
+  };
+
   return (
-    <span className={wrapperClasses} style={wrapperStyle}>
+    <span className={wrapperClasses} style={mergedWrapperStyle}>
       <img
         {...rest}
         ref={handleImgRef}

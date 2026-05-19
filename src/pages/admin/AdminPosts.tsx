@@ -10,6 +10,7 @@ import Toast from '../../components/Toast';
 import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadPhotoToR2, uploadVideoToR2, uploadThumbnailFromVideo, generateThumbnailFromUrl, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
+import { encodeThumbHashFromFile } from '../../lib/thumbHash';
 
 // 로컬 파일 미리보기용 타입
 interface PendingMedia {
@@ -176,11 +177,19 @@ export default function AdminPosts() {
 
           newlyUploadedMedia.push({ type: 'video', url, thumbnail });
         } else {
-          url = await uploadPhotoToR2(pending.file, (progress) => {
-            const overallProgress = ((completedFiles + progress / 100) / totalFiles) * 100;
-            setUploadProgress(Math.round(overallProgress));
+          const [uploadedUrl, thumbHash] = await Promise.all([
+            uploadPhotoToR2(pending.file, (progress) => {
+              const overallProgress = ((completedFiles + progress / 100) / totalFiles) * 100;
+              setUploadProgress(Math.round(overallProgress));
+            }),
+            encodeThumbHashFromFile(pending.file),
+          ]);
+          url = uploadedUrl;
+          newlyUploadedMedia.push({
+            type: 'image',
+            url,
+            ...(thumbHash ? { thumb_hash: thumbHash } : {}),
           });
-          newlyUploadedMedia.push({ type: 'image', url });
         }
 
         // 미리보기 URL 정리
