@@ -34,8 +34,10 @@ export default function AdminMoments() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  // 입력은 즉시 반영하고, 1360+개 아이템 필터링/재렌더는 지연(중단 가능)시켜 입력이 막히지 않게 함
-  const deferredQuery = useDeferredValue(searchQuery);
+  // 실제 필터에 반영되는 확정 검색어 — Enter 또는 검색 버튼으로만 갱신
+  const [submittedQuery, setSubmittedQuery] = useState('');
+  // 1360+개 아이템 필터/재렌더를 지연(중단 가능)시켜 검색 실행 시에도 입력·UI가 막히지 않게 함
+  const deferredQuery = useDeferredValue(submittedQuery);
 
   // 이전 선택 영상 기억
   const lastVideoIdRef = useRef<string>('');
@@ -384,6 +386,69 @@ export default function AdminMoments() {
     showToast(`완료! ${success}/${targets.length}개 썸네일 생성됨`, 'success');
   };
 
+  // 타임라인 서브트리 메모이즈: searchQuery(입력)만 바뀌는 렌더에서는 deps가 그대로라
+  // 같은 엘리먼트 참조를 반환 → React가 1360+개 서브트리 재조정을 통째로 건너뜀 → 입력 즉시 반영
+  const timeline = useMemo(() => (
+    <div className="moments-timeline">
+      {groupedMoments.map(([date, dateMoments]) => (
+        <div key={date} className="moment-date-group">
+          <div className="moment-date-header expanded">
+            <span className="date-marker">✨</span>
+            <time>{date}</time>
+            <button
+              className={`sort-date-btn ${sortingDate === date ? 'active' : ''}`}
+              onClick={() => setSortingDate(sortingDate === date ? null : date)}
+            >
+              {sortingDate === date ? '완료' : '순서'}
+            </button>
+          </div>
+
+          <div className="moment-list">
+            {dateMoments.map((moment, idx) => (
+              <div key={moment.id} className="admin-item-wrapper admin-moment-card">
+                <div className="admin-item-content">
+                  <div className="moment-item">
+                    <div className="admin-moment-title">{moment.title}</div>
+                    <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} />
+                  </div>
+                  {sortingDate !== date && (
+                    <div className="admin-moment-actions">
+                      <button className="admin-control-btn edit" onClick={() => handleEdit(moment)}>수정</button>
+                      {moment.tweet_url?.startsWith(import.meta.env.VITE_R2_PUBLIC_URL) && (
+                        <button
+                          className="admin-control-btn"
+                          onClick={() => handleGenerateThumbnail(moment)}
+                          disabled={thumbGenerating}
+                        >
+                          {thumbGenerating ? '생성중...' : '썸네일'}
+                        </button>
+                      )}
+                      <button className="admin-control-btn delete" onClick={() => handleDelete(moment.id)}>삭제</button>
+                    </div>
+                  )}
+                </div>
+                {sortingDate === date && (
+                  <div className="sort-buttons">
+                    <button
+                      className="sort-arrow-btn"
+                      onClick={() => handleMove(moment.id, 'up')}
+                      disabled={idx === 0}
+                    >▲</button>
+                    <button
+                      className="sort-arrow-btn"
+                      onClick={() => handleMove(moment.id, 'down')}
+                      disabled={idx === dateMoments.length - 1}
+                    >▼</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  ), [groupedMoments, sortingDate, thumbGenerating]);
+
   if (loading) {
     return (
       <div className="admin-page">
@@ -419,77 +484,32 @@ export default function AdminMoments() {
           <button className="admin-add-btn-header" onClick={handleOpenAddModal}>+ 추가</button>
         </div>
       </div>
-      <input
-        type="text"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="날짜 또는 제목으로 검색..."
-        className="ask-search-input"
-      />
+      <div className="admin-search-bar">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) setSubmittedQuery(searchQuery);
+          }}
+          placeholder="날짜 또는 제목 입력 후 Enter"
+          className="ask-search-input"
+        />
+        <button
+          type="button"
+          className="admin-search-btn"
+          onClick={() => setSubmittedQuery(searchQuery)}
+        >
+          검색
+        </button>
+      </div>
       {thumbProgress && (
         <div style={{ padding: '8px 16px', fontSize: '13px', color: '#666' }}>
           {thumbProgress}
         </div>
       )}
 
-      <div className="moments-timeline">
-        {groupedMoments.map(([date, dateMoments]) => (
-          <div key={date} className="moment-date-group">
-            <div className="moment-date-header expanded">
-              <span className="date-marker">✨</span>
-              <time>{date}</time>
-              <button
-                className={`sort-date-btn ${sortingDate === date ? 'active' : ''}`}
-                onClick={() => setSortingDate(sortingDate === date ? null : date)}
-              >
-                {sortingDate === date ? '완료' : '순서'}
-              </button>
-            </div>
-
-            <div className="moment-list">
-              {dateMoments.map((moment, idx) => (
-                <div key={moment.id} className="admin-item-wrapper admin-moment-card">
-                  <div className="admin-item-content">
-                    <div className="moment-item">
-                      <div className="admin-moment-title">{moment.title}</div>
-                      <VideoEmbed url={moment.tweet_url} title={moment.title} thumbnailUrl={moment.thumbnail_url} />
-                    </div>
-                    {sortingDate !== date && (
-                      <div className="admin-moment-actions">
-                        <button className="admin-control-btn edit" onClick={() => handleEdit(moment)}>수정</button>
-                        {moment.tweet_url?.startsWith(import.meta.env.VITE_R2_PUBLIC_URL) && (
-                          <button
-                            className="admin-control-btn"
-                            onClick={() => handleGenerateThumbnail(moment)}
-                            disabled={thumbGenerating}
-                          >
-                            {thumbGenerating ? '생성중...' : '썸네일'}
-                          </button>
-                        )}
-                        <button className="admin-control-btn delete" onClick={() => handleDelete(moment.id)}>삭제</button>
-                      </div>
-                    )}
-                  </div>
-                  {sortingDate === date && (
-                    <div className="sort-buttons">
-                      <button
-                        className="sort-arrow-btn"
-                        onClick={() => handleMove(moment.id, 'up')}
-                        disabled={idx === 0}
-                      >▲</button>
-                      <button
-                        className="sort-arrow-btn"
-                        onClick={() => handleMove(moment.id, 'down')}
-                        disabled={idx === dateMoments.length - 1}
-                      >▼</button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      {timeline}
 
       <AdminModal 
         isOpen={isModalOpen} 
