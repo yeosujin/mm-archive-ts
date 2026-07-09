@@ -8,6 +8,7 @@ import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadPhotoToR2, deleteFileFromR2 } from '../../lib/r2Upload';
 import { getNextSuffixStart, parseTitle } from '../../lib/titleSuffix';
+import { encodeThumbHashFromFile } from '../../lib/thumbHash';
 
 function resizeImage(file: File, maxSize: number): Promise<File> {
   return new Promise((resolve) => {
@@ -178,7 +179,7 @@ export default function AdminPhotos() {
 
       // 이미지 리사이즈 + R2 업로드 병렬 처리
       const BATCH_SIZE = 3;
-      const results: { title: string; imageUrl: string; thumbnailUrl: string }[] = [];
+      const results: { title: string; imageUrl: string; thumbnailUrl: string; thumbHash: string | null }[] = [];
 
       for (let batchStart = 0; batchStart < pendingFiles.length; batchStart += BATCH_SIZE) {
         const batch = pendingFiles.slice(batchStart, batchStart + BATCH_SIZE);
@@ -196,14 +197,15 @@ export default function AdminPhotos() {
               resizeImage(pending.file, 400),
             ]);
 
-            // 원본 + 썸네일 동시 업로드
-            const [imageUrl, thumbnailUrl] = await Promise.all([
+            // 원본 + 썸네일 동시 업로드 + ThumbHash 인코딩
+            const [imageUrl, thumbnailUrl, thumbHash] = await Promise.all([
               uploadPhotoToR2(resizedFile),
               uploadPhotoToR2(thumbFile),
+              encodeThumbHashFromFile(thumbFile),
             ]);
 
             URL.revokeObjectURL(pending.previewUrl);
-            return { title, imageUrl, thumbnailUrl };
+            return { title, imageUrl, thumbnailUrl, thumbHash };
           })
         );
 
@@ -214,13 +216,14 @@ export default function AdminPhotos() {
 
       // DB 저장도 병렬
       await Promise.all(
-        results.map(({ title, imageUrl, thumbnailUrl }) =>
+        results.map(({ title, imageUrl, thumbnailUrl, thumbHash }) =>
           createPhoto({
             title,
             date: formData.date,
             tags,
             image_url: imageUrl,
             thumbnail_url: thumbnailUrl,
+            ...(thumbHash ? { thumb_hash: thumbHash } : {}),
           })
         )
       );

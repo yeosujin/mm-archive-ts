@@ -6024,7 +6024,8 @@ color: white;
 }
 
 .lazy-image.is-loaded::before,
-.lazy-image.is-errored::before {
+.lazy-image.is-errored::before,
+.lazy-image.has-thumbhash::before {
   display: none;
 }
 

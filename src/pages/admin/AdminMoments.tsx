@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
 import { createMoment, updateMoment, deleteMoment, updateMomentPositions } from '../../lib/database';
 import type { Moment } from '../../lib/database';
 import { uploadVideoToR2, uploadThumbnailFromVideo, generateThumbnailFromUrl, deleteFileFromR2, isVideoFile } from '../../lib/r2Upload';
@@ -34,6 +34,8 @@ export default function AdminMoments() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  // 입력은 즉시 반영하고, 1360+개 아이템 필터링/재렌더는 지연(중단 가능)시켜 입력이 막히지 않게 함
+  const deferredQuery = useDeferredValue(searchQuery);
 
   // 이전 선택 영상 기억
   const lastVideoIdRef = useRef<string>('');
@@ -84,7 +86,7 @@ export default function AdminMoments() {
   // 타임라인 그룹화 로직
   const groupedMoments = useMemo(() => {
     const groups: Record<string, Moment[]> = {};
-    const q = searchQuery.toLowerCase().trim();
+    const q = deferredQuery.toLowerCase().trim();
 
     const filtered = q
       ? moments.filter(m => m.date.includes(q) || m.title.toLowerCase().includes(q))
@@ -104,7 +106,7 @@ export default function AdminMoments() {
     });
 
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  }, [moments, searchQuery]);
+  }, [moments, deferredQuery]);
 
   // 같은 날짜 그룹 내에서 아이템 이동
   const handleMove = async (momentId: string, direction: 'up' | 'down') => {

@@ -24,6 +24,7 @@ export interface PostMedia {
   type: 'image' | 'video';
   url: string;
   thumbnail?: string;
+  thumb_hash?: string;
 }
 
 export interface Post {
@@ -92,6 +93,7 @@ export interface Photo {
   tags: string[];
   image_url: string;
   thumbnail_url?: string;
+  thumb_hash?: string;
 }
 
 export interface Activity {

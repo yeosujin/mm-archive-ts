@@ -212,6 +212,7 @@ export default function Photos() {
                 src={photo.thumbnail_url || photo.image_url}
                 alt={photo.title}
                 priority={index < 12}
+                thumbHash={photo.thumb_hash}
               />
             </button>
           ))}
