@@ -5373,6 +5373,13 @@ color: white;
   transition: all 0.2s;
 }
 
+.load-more-sentinel {
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 .ask-feed {
   display: flex;
   flex-direction: column;

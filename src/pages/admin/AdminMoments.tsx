@@ -10,6 +10,9 @@ import Toast from '../../components/Toast';
 import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
+// 무한 스크롤: 한 번에 렌더할 모먼트 개수 (스크롤 하단 도달 시 이만큼씩 추가)
+const BATCH_SIZE = 50;
+
 export default function AdminMoments() {
   const { moments: cachedMoments, videos: cachedVideos, fetchMoments, fetchVideos } = useData();
   const { toasts, showToast, removeToast } = useToast();
@@ -36,6 +39,9 @@ export default function AdminMoments() {
   const [searchQuery, setSearchQuery] = useState('');
   // 실제 필터에 반영되는 확정 검색어 — Enter 또는 검색 버튼으로만 갱신
   const [submittedQuery, setSubmittedQuery] = useState('');
+  // 무한 스크롤: 현재 화면에 렌더 중인 모먼트 개수
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // 이전 선택 영상 기억
   const lastVideoIdRef = useRef<string>('');
@@ -107,6 +113,49 @@ export default function AdminMoments() {
 
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
   }, [moments, submittedQuery]);
+
+  // 필터 결과 전체 모먼트 개수
+  const totalCount = useMemo(
+    () => groupedMoments.reduce((sum, [, list]) => sum + list.length, 0),
+    [groupedMoments]
+  );
+
+  // 무한 스크롤: visibleCount만큼만 그룹을 잘라서 렌더 (날짜 그룹 경계 유지)
+  const visibleGroups = useMemo(() => {
+    const result: [string, Moment[]][] = [];
+    let count = 0;
+    for (const [date, list] of groupedMoments) {
+      if (count >= visibleCount) break;
+      const slice = list.slice(0, visibleCount - count);
+      result.push([date, slice]);
+      count += slice.length;
+    }
+    return result;
+  }, [groupedMoments, visibleCount]);
+
+  const hasMore = visibleCount < totalCount;
+
+  // 검색어가 바뀌면 렌더 개수 초기화
+  useEffect(() => {
+    setVisibleCount(BATCH_SIZE);
+  }, [submittedQuery]);
+
+  // 목록 하단 센티넬이 보이면 다음 배치 로드
+  useEffect(() => {
+    if (!hasMore) return;
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => prev + BATCH_SIZE);
+        }
+      },
+      { rootMargin: '400px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, visibleCount]);
 
   // 같은 날짜 그룹 내에서 아이템 이동
   const handleMove = async (momentId: string, direction: 'up' | 'down') => {
@@ -388,7 +437,7 @@ export default function AdminMoments() {
   // 같은 엘리먼트 참조를 반환 → React가 1360+개 서브트리 재조정을 통째로 건너뜀 → 입력 즉시 반영
   const timeline = useMemo(() => (
     <div className="moments-timeline">
-      {groupedMoments.map(([date, dateMoments]) => (
+      {visibleGroups.map(([date, dateMoments]) => (
         <div key={date} className="moment-date-group">
           <div className="moment-date-header expanded">
             <span className="date-marker">✨</span>
@@ -445,7 +494,7 @@ export default function AdminMoments() {
         </div>
       ))}
     </div>
-  ), [groupedMoments, sortingDate, thumbGenerating]);
+  ), [visibleGroups, sortingDate, thumbGenerating]);
 
   if (loading) {
     return (
@@ -509,7 +558,13 @@ export default function AdminMoments() {
 
       {timeline}
 
-      <AdminModal 
+      {hasMore && (
+        <div ref={loadMoreRef} className="load-more-sentinel">
+          불러오는 중...
+        </div>
+      )}
+
+      <AdminModal
         isOpen={isModalOpen} 
         onClose={handleCloseModal} 
         title={editingId ? '모먼트 수정' : '새 모먼트 추가'}
