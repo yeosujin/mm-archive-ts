@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import type { Video } from './types';
+import { syncEmbedding } from './embeddings';
 
 export async function getVideos(): Promise<Video[]> {
   const { data, error } = await supabase
@@ -31,6 +32,7 @@ export async function createVideo(video: Omit<Video, 'id'>): Promise<Video> {
     .single();
 
   if (error) throw error;
+  syncEmbedding('video', data.id);
   return data;
 }
 
@@ -43,6 +45,7 @@ export async function updateVideo(id: string, video: Partial<Omit<Video, 'id'>>)
     .single();
 
   if (error) throw error;
+  syncEmbedding('video', data.id);
   return data;
 }
 
@@ -53,4 +56,5 @@ export async function deleteVideo(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+  syncEmbedding('video', id);
 }

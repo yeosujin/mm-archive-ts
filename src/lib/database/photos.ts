@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import type { Photo } from './types';
+import { syncEmbedding } from './embeddings';
 
 export async function getPhotos(): Promise<Photo[]> {
   const { data, error } = await supabase
@@ -19,6 +20,7 @@ export async function createPhoto(photo: Omit<Photo, 'id'>): Promise<Photo> {
     .single();
 
   if (error) throw error;
+  syncEmbedding('photo', data.id);
   return data;
 }
 
@@ -31,6 +33,7 @@ export async function updatePhoto(id: string, photo: Partial<Omit<Photo, 'id'>>)
     .single();
 
   if (error) throw error;
+  syncEmbedding('photo', data.id);
   return data;
 }
 
@@ -41,4 +44,5 @@ export async function deletePhoto(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+  syncEmbedding('photo', id);
 }

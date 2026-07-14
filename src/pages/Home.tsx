@@ -35,6 +35,7 @@ const NAV_ITEMS = [
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchMode, setSearchMode] = useState<'keyword' | 'ai'>('keyword');
   const [featuredItem, setFeaturedItem] = useState<{ type: string; item: Video | Post | Moment } | null>(null);
   const [linkedVideo, setLinkedVideo] = useState<Video | null>(null);
   const [articlesVisible, setArticlesVisible] = useState(false);
@@ -86,7 +87,8 @@ export default function Home() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      const suffix = searchMode === 'ai' ? '&mode=ai' : '';
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}${suffix}`);
     }
   };
 
@@ -194,21 +196,28 @@ export default function Home() {
         <p className="home-subtitle">지나간 시간을 모아두는 곳</p>
 
         <div className="home-search-row">
-          <form onSubmit={handleSearch} className="home-search">
+          <form onSubmit={handleSearch} className={`home-search ${searchMode === 'ai' ? 'ai-mode' : ''}`}>
             <input
               type="text"
               className="home-search-input"
-              placeholder="검색..."
+              placeholder={searchMode === 'ai' ? 'AI로 검색...' : '검색...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            <button
+              type="button"
+              className={`home-ai-switch ${searchMode === 'ai' ? 'on' : ''}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setSearchMode(searchMode === 'ai' ? 'keyword' : 'ai')}
+              aria-pressed={searchMode === 'ai'}
+              title={searchMode === 'ai' ? 'AI 검색 켜짐 (끄려면 클릭)' : 'AI 검색으로 전환'}
+            >
+              ✨ AI
+            </button>
             <button type="submit" className="home-search-btn" aria-label="검색">
               <SearchIcon size={16} />
             </button>
           </form>
-          <Link to="/calendar" className="home-calendar-btn" aria-label="캘린더">
-            <CalendarIcon size={18} />
-          </Link>
         </div>
       </section>
 
@@ -219,6 +228,9 @@ export default function Home() {
             {item.label}
           </Link>
         ))}
+        <Link to="/calendar" className="home-nav-link home-nav-calendar" aria-label="캘린더">
+          <CalendarIcon size={16} />
+        </Link>
       </nav>
 
       {/* 그 해 오늘 — 콘텐츠 0개면 기존 Featured(PICK) 섹션을 fallback으로 렌더 */}

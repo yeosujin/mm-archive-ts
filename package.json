@@ -1,14 +1,15 @@
 {
   "name": "mmemory",
   "private": true,
-  "version": "1.17.0",
+  "version": "1.18.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "backfill:thumb-hash": "tsx scripts/backfill-thumb-hash.ts"
+    "backfill:thumb-hash": "tsx scripts/backfill-thumb-hash.ts",
+    "backfill:embeddings": "tsx scripts/backfill-embeddings.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.971.0",

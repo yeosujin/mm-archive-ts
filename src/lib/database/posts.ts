@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import type { Post } from './types';
+import { syncEmbedding } from './embeddings';
 
 export async function getPosts(): Promise<Post[]> {
   const { data, error } = await supabase
@@ -19,6 +20,7 @@ export async function createPost(post: Omit<Post, 'id'>): Promise<Post> {
     .single();
 
   if (error) throw error;
+  syncEmbedding('post', data.id);
   return data;
 }
 
@@ -31,6 +33,7 @@ export async function updatePost(id: string, post: Partial<Omit<Post, 'id'>>): P
     .single();
 
   if (error) throw error;
+  syncEmbedding('post', data.id);
   return data;
 }
 
@@ -41,4 +44,5 @@ export async function deletePost(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+  syncEmbedding('post', id);
 }

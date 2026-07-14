@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import type { Moment } from './types';
+import { syncEmbedding } from './embeddings';
 
 export async function getMoments(): Promise<Moment[]> {
   const allData: Moment[] = [];
@@ -48,6 +49,7 @@ export async function createMoment(moment: Omit<Moment, 'id'>): Promise<Moment> 
     .single();
 
   if (error) throw error;
+  syncEmbedding('moment', data.id);
   return data;
 }
 
@@ -60,6 +62,7 @@ export async function updateMoment(id: string, moment: Partial<Omit<Moment, 'id'
     .single();
 
   if (error) throw error;
+  syncEmbedding('moment', data.id);
   return data;
 }
 
@@ -70,6 +73,7 @@ export async function deleteMoment(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+  syncEmbedding('moment', id);
 }
 
 export async function updateMomentPositions(updates: { id: string; position: number }[]): Promise<void> {

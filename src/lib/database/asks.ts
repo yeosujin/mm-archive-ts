@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import type { Ask } from './types';
+import { syncEmbedding } from './embeddings';
 
 export async function getAsks(): Promise<Ask[]> {
   const { data, error } = await supabase
@@ -45,6 +46,7 @@ export async function createAsk(ask: Pick<Ask, 'content' | 'image_url'>): Promis
     .single();
 
   if (error) throw error;
+  syncEmbedding('ask', data.id);
   return data;
 }
 
@@ -61,6 +63,7 @@ export async function answerAsk(id: string, answer: string): Promise<Ask> {
     .single();
 
   if (error) throw error;
+  syncEmbedding('ask', data.id);
   return data;
 }
 
@@ -73,6 +76,7 @@ export async function updateAsk(id: string, ask: Partial<Omit<Ask, 'id'>>): Prom
     .single();
 
   if (error) throw error;
+  syncEmbedding('ask', data.id);
   return data;
 }
 
@@ -83,6 +87,7 @@ export async function deleteAsk(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+  syncEmbedding('ask', id);
 }
 
 export async function getExpiredImageAsks(): Promise<Ask[]> {

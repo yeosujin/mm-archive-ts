@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import type { Episode } from './types';
+import { syncEmbedding } from './embeddings';
 
 export async function getEpisodes(): Promise<Episode[]> {
   const { data, error } = await supabase
@@ -19,6 +20,7 @@ export async function createEpisode(episode: Omit<Episode, 'id'>): Promise<Episo
     .single();
 
   if (error) throw error;
+  syncEmbedding('episode', data.id);
   return data;
 }
 
@@ -31,6 +33,7 @@ export async function updateEpisode(id: string, episode: Partial<Omit<Episode, '
     .single();
 
   if (error) throw error;
+  syncEmbedding('episode', data.id);
   return data;
 }
 
@@ -41,4 +44,5 @@ export async function deleteEpisode(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+  syncEmbedding('episode', id);
 }
