@@ -6183,6 +6183,10 @@ color: white;
   margin: 0 auto;
 }
 
+.on-this-day-photos-grid {
+  margin-top: 0.75rem;
+}
+
 .photo-grid-item {
   position: relative;
   aspect-ratio: 1;

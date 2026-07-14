@@ -2,11 +2,12 @@ import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useData } from '../hooks/useData';
 import { getTodayString, filterOnThisDay } from '../lib/dailyPick';
-import type { Video, Moment, Post, Episode, MemberSettings } from '../lib/database';
+import type { Video, Moment, Post, Episode, Photo, MemberSettings } from '../lib/database';
 import OnThisDayVideoGroup from './OnThisDayVideoGroup';
 import PostDetailContent from './PostDetailContent';
 import EpisodeContentBody from './EpisodeContentBody';
 import PlatformIcon from './PlatformIcon';
+import LazyImage from './LazyImage';
 import { ArrowRightIcon } from './Icons';
 
 type Props = Readonly<{
@@ -20,13 +21,14 @@ type YearBundle = {
   moments: Moment[];
   posts: Post[];
   episodes: Episode[];
+  photos: Photo[];
 };
 
 // 홈의 "그 해 오늘" 섹션.
 // 오늘과 같은 월/일에 과거 등록된 콘텐츠를 연도별로 묶어서 보여줌.
 // 과거 콘텐츠가 0개면 fallback (Featured Content)을 그대로 렌더.
 export default function OnThisDay({ fallback }: Props) {
-  const { videos, moments, posts, episodes, memberSettings } = useData();
+  const { videos, moments, posts, episodes, photos, memberSettings } = useData();
   const today = useMemo(() => getTodayString(), []);
   // videos + moments 둘 다 도착해야 렌더. 한쪽만 먼저 도착한 상태에서 placeholder가
   // 스피너로 잠깐 보였다가 실제 영상 카드로 교체되는 '로딩 두 번' 체감을 막는다.
@@ -38,12 +40,14 @@ export default function OnThisDay({ fallback }: Props) {
     const m = filterOnThisDay(moments ?? [], today);
     const p = filterOnThisDay(posts ?? [], today);
     const e = filterOnThisDay(episodes ?? [], today);
+    const ph = filterOnThisDay(photos ?? [], today);
 
     const years = new Set<string>();
     v.forEach(x => years.add(x.date.slice(0, 4)));
     m.forEach(x => years.add(x.date.slice(0, 4)));
     p.forEach(x => years.add(x.date.slice(0, 4)));
     e.forEach(x => years.add(x.date.slice(0, 4)));
+    ph.forEach(x => years.add(x.date.slice(0, 4)));
 
     return Array.from(years)
       .sort((a, b) => b.localeCompare(a))
@@ -54,8 +58,9 @@ export default function OnThisDay({ fallback }: Props) {
         moments: m.filter(x => x.date.slice(0, 4) === year),
         posts: p.filter(x => x.date.slice(0, 4) === year),
         episodes: e.filter(x => x.date.slice(0, 4) === year),
+        photos: ph.filter(x => x.date.slice(0, 4) === year),
       }));
-  }, [videos, moments, posts, episodes, today]);
+  }, [videos, moments, posts, episodes, photos, today]);
 
   const fallbackMemberSettings: MemberSettings = { member1_name: '멤버1', member2_name: '멤버2' };
 
@@ -116,6 +121,25 @@ export default function OnThisDay({ fallback }: Props) {
                     )}
                   </div>
                 ))}
+            </div>
+          )}
+
+          {/* 사진 */}
+          {bundle.photos.length > 0 && (
+            <div className="photos-grid on-this-day-photos-grid">
+              {bundle.photos.map(photo => (
+                <Link
+                  key={photo.id}
+                  to={`/photos?highlight=${photo.id}`}
+                  className="photo-grid-item"
+                >
+                  <LazyImage
+                    src={photo.thumbnail_url || photo.image_url}
+                    alt={photo.title}
+                    thumbHash={photo.thumb_hash}
+                  />
+                </Link>
+              ))}
             </div>
           )}
 
