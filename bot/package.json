@@ -1,0 +1,23 @@
+{
+  "name": "mmemory-x-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "mmemory '그 해 오늘' 콘텐츠를 매일 X(트위터)에 자동 게시하는 봇",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dry-run": "tsx src/index.ts --dry-run",
+    "test:plan": "tsx test/threadPlan.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.90.1",
+    "dotenv": "^17.4.2",
+    "twitter-api-v2": "^1.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "~5.9.3"
+  }
+}
