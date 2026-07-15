@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "backfill:thumb-hash": "tsx scripts/backfill-thumb-hash.ts",
-    "backfill:embeddings": "tsx scripts/backfill-embeddings.ts"
+    "backfill:embeddings": "tsx scripts/backfill-embeddings.ts",
+    "test": "vitest run",
+    "tweet:dry": "tsx scripts/dailyTweet/index.ts --dry-run"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.971.0",
@@ -27,7 +29,8 @@
     "react-tweet": "^3.3.0",
     "satori": "^0.19.2",
     "tesseract.js": "^7.0.0",
-    "thumbhash": "^0.1.1"
+    "thumbhash": "^0.1.1",
+    "twitter-api-v2": "^1.29.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -44,6 +47,7 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.10"
   }
 }
