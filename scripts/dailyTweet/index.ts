@@ -11,6 +11,7 @@ import { makeSupabase, alreadyPosted, recordRun } from './dedup';
 import { fetchAllRows } from './fetch';
 
 const DRY_RUN = process.argv.includes('--dry-run');
+const FORCE = process.argv.includes('--force'); // 중복 방지(tweet_bot_log) 무시하고 재게시
 
 async function main() {
   const runDate = getKstDateString();
@@ -18,9 +19,12 @@ async function main() {
 
   const sb = makeSupabase();
 
-  if (!DRY_RUN && (await alreadyPosted(sb, runDate))) {
-    console.log('[bot] 이미 오늘 게시함 → 스킵');
+  if (!DRY_RUN && !FORCE && (await alreadyPosted(sb, runDate))) {
+    console.log('[bot] 이미 오늘 게시함 → 스킵 (재게시하려면 --force)');
     return;
+  }
+  if (FORCE && !DRY_RUN) {
+    console.log('[bot] --force: 중복 방지 무시하고 재게시 (기존 게시분과 중복될 수 있음)');
   }
 
   // 콘텐츠 조회 (Supabase 기본 1000행 제한 회피: 전체 페이지네이션)

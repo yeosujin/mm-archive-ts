@@ -19,8 +19,9 @@ export async function alreadyPosted(sb: SupabaseClient, runDate: string): Promis
 }
 
 export async function recordRun(sb: SupabaseClient, runDate: string, tweetCount: number): Promise<void> {
+  // upsert: --force 재게시 시에도 run_date 중복 에러 없이 갱신
   const { error } = await sb
     .from('tweet_bot_log')
-    .insert({ run_date: runDate, tweet_count: tweetCount });
+    .upsert({ run_date: runDate, tweet_count: tweetCount }, { onConflict: 'run_date' });
   if (error) throw error;
 }
