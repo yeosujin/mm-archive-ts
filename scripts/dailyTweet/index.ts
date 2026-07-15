@@ -92,8 +92,12 @@ async function main() {
   const posted = await postThread(x, prepared);
   console.log(`[bot] ${posted.length}개 트윗 게시 완료`);
 
-  await recordRun(sb, runDate, posted.length);
-  console.log('[bot] tweet_bot_log 기록 완료');
+  if (posted.length > 0) {
+    await recordRun(sb, runDate, posted.length);
+    console.log('[bot] tweet_bot_log 기록 완료');
+  } else {
+    console.log('[bot] 게시된 트윗 없음 → 로그 미기록(재시도 가능)');
+  }
 }
 
 main().catch(err => {

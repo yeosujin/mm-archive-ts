@@ -25,9 +25,13 @@ export async function postThread(client: TwitterApi, tweets: PreparedTweet[]): P
       media: { media_ids: t.mediaIds as [string] },
     };
     if (replyTo) payload.reply = { in_reply_to_tweet_id: replyTo };
-    const res = await client.v2.tweet(t.text, payload);
-    replyTo = res.data.id;
-    ids.push(res.data.id);
+    try {
+      const res = await client.v2.tweet(t.text, payload);
+      replyTo = res.data.id;
+      ids.push(res.data.id);
+    } catch (e) {
+      console.error(`[bot] 트윗 실패(스킵): "${t.text}"`, e);
+    }
   }
   return ids;
 }
