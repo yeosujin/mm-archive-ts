@@ -1,4 +1,4 @@
-import { TwitterApi } from 'twitter-api-v2';
+import { TwitterApi, type SendTweetV2Params } from 'twitter-api-v2';
 
 export function makeXClient(): TwitterApi {
   return new TwitterApi({
@@ -21,7 +21,7 @@ export async function postThread(client: TwitterApi, tweets: PreparedTweet[]): P
   const ids: string[] = [];
   let replyTo: string | undefined;
   for (const t of tweets) {
-    const payload: Parameters<typeof client.v2.tweet>[1] = {
+    const payload: SendTweetV2Params = {
       media: { media_ids: t.mediaIds as [string] },
     };
     if (replyTo) payload.reply = { in_reply_to_tweet_id: replyTo };
