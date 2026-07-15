@@ -74,6 +74,13 @@ async function main() {
     console.log(`[dry] videos(영상=봇 제외대상): ${fVideos.length}건`);
     fVideos.forEach(v =>
       console.log(`   - ${v.date} | ${v.title || '(제목없음)'} | ${v.url}`));
+    console.log('[dry] --- 매칭된 영상별 연결 순간(하위 모먼트) ---');
+    fVideos.forEach(v => {
+      const linked = moments.filter(m => m.video_id === v.id);
+      console.log(`   [영상] ${v.date} | ${(v.title || '').slice(0, 25)} (id=${v.id}) → 연결 순간 ${linked.length}개`);
+      linked.forEach(m =>
+        console.log(`       · ${m.date} | ${m.title || '(제목없음)'} | R2=${isR2Url(m.tweet_url, r2Public)} | ${m.tweet_url}`));
+    });
     console.log('[dry] ------------------------------------');
     console.log('[bot] DRY RUN 종료 (게시 안 함)');
     return;
