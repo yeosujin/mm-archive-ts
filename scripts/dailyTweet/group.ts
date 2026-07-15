@@ -3,6 +3,7 @@ import type { MediaItem } from './normalize';
 export type PlannedTweet = {
   text: string;
   mediaUrls: string[]; // 미디어 1~4개 (이미지/영상 혼합 가능)
+  groupKey: string;    // 같은 그룹끼리만 쓰레드로 이어짐(다른 그룹은 독립 트윗)
 };
 
 const MAX_MEDIA_PER_TWEET = 4;
@@ -25,8 +26,9 @@ export function planTweets(items: MediaItem[]): PlannedTweet[] {
   const tweets: PlannedTweet[] = [];
   for (const group of ordered) {
     const text = group[0].text;
+    const groupKey = group[0].groupKey;
     for (let i = 0; i < group.length; i += MAX_MEDIA_PER_TWEET) {
-      tweets.push({ text, mediaUrls: group.slice(i, i + MAX_MEDIA_PER_TWEET).map(x => x.url) });
+      tweets.push({ text, mediaUrls: group.slice(i, i + MAX_MEDIA_PER_TWEET).map(x => x.url), groupKey });
     }
   }
   return tweets;

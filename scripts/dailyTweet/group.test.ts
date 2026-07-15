@@ -49,4 +49,14 @@ describe('planTweets', () => {
     expect(tweets[0].text).toBe('200714 B');
     expect(tweets[1].text).toBe('220714 A');
   });
+
+  it('각 트윗에 groupKey가 실려 그룹 구분이 유지된다', () => {
+    const items: MediaItem[] = [
+      img('a', 'g2020', '2020-07-14', '200714 A'),
+      img('b', 'g2022', '2022-07-14', '220714 B'),
+    ];
+    const tweets = planTweets(items);
+    expect(tweets[0].groupKey).toBe('g2020');
+    expect(tweets[1].groupKey).toBe('g2022');
+  });
 });

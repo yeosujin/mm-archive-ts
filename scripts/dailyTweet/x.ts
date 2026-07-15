@@ -14,13 +14,17 @@ export async function uploadMedia(client: TwitterApi, buffer: Buffer, mimeType: 
   return client.v1.uploadMedia(buffer, { mimeType });
 }
 
-export type PreparedTweet = { text: string; mediaIds: string[] };
+export type PreparedTweet = { text: string; mediaIds: string[]; groupKey: string };
 
-// 쓰레드 게시. 각 트윗을 직전 트윗에 답글로 연결. 게시된 트윗 id 배열 반환.
+// 게시. 같은 groupKey끼리는 직전 트윗에 답글로 이어(쓰레드), 그룹이 바뀌면
+// 답글 연결을 끊어 독립 트윗으로 올린다. 게시된 트윗 id 배열 반환.
 export async function postThread(client: TwitterApi, tweets: PreparedTweet[]): Promise<string[]> {
   const ids: string[] = [];
   let replyTo: string | undefined;
+  let prevGroup: string | undefined;
   for (const t of tweets) {
+    if (t.groupKey !== prevGroup) replyTo = undefined; // 새 그룹 = 독립 트윗
+    prevGroup = t.groupKey;
     const payload: SendTweetV2Params = {
       media: { media_ids: t.mediaIds as [string] },
     };

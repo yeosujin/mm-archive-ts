@@ -105,7 +105,7 @@ async function main() {
         console.error(`[bot] 미디어 스킵: ${url}`, e);
       }
     }
-    if (mediaIds.length > 0) prepared.push({ text: tw.text, mediaIds });
+    if (mediaIds.length > 0) prepared.push({ text: tw.text, mediaIds, groupKey: tw.groupKey });
   }
 
   if (prepared.length === 0) {
