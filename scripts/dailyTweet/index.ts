@@ -9,6 +9,7 @@ import { makeR2Client, urlToKey, downloadFromR2 } from './r2';
 import { makeXClient, uploadMedia, postThread, type PreparedTweet } from './x';
 import { makeSupabase, alreadyPosted, recordRun } from './dedup';
 import { fetchAllRows } from './fetch';
+import { notifyDiscord } from './notify';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force'); // 중복 방지(tweet_bot_log) 무시하고 재게시
@@ -119,6 +120,7 @@ async function main() {
   if (posted.length > 0) {
     await recordRun(sb, runDate, posted.length);
     console.log('[bot] tweet_bot_log 기록 완료');
+    await notifyDiscord(posted.length, prepared.map(p => p.text));
   } else {
     console.log('[bot] 게시된 트윗 없음 → 로그 미기록(재시도 가능)');
   }

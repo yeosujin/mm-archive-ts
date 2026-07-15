@@ -21,6 +21,7 @@ jobs:
       X_APP_SECRET: ${{ secrets.X_APP_SECRET }}
       X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
       X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
