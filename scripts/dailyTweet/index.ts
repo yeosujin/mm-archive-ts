@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { filterOnThisDay } from '../../src/lib/dailyPick';
 import type { Moment, Photo, Post, Video } from '../../src/lib/database';
 import { getKstDateString } from './date';
-import { normalizeMoments, normalizePhotos, normalizePosts } from './normalize';
+import { normalizeMoments, normalizePhotos, normalizePosts, isR2Url } from './normalize';
 import { planTweets } from './group';
 import { mimeFromUrl } from './mime';
 import { makeR2Client, urlToKey, downloadFromR2 } from './r2';
@@ -56,6 +56,26 @@ async function main() {
   tweets.forEach((t, i) => console.log(`  ${i + 1}. "${t.text}" (${t.mediaUrls.length}개 미디어)`));
 
   if (DRY_RUN) {
+    // 진단: 그해 오늘로 매칭된 원본을 종류별로, R2 여부까지 출력.
+    // 영상(Videos)은 봇 제외 대상이지만 "왜 안 올라갔는지" 확인용으로 함께 표시.
+    const fVideos = filterOnThisDay(videos, runDate);
+    console.log('[dry] --- 그해 오늘 매칭 원본 (R2=업로드 가능 여부) ---');
+    console.log(`[dry] moments(순간): ${fMoments.length}건`);
+    fMoments.forEach(m =>
+      console.log(`   - ${m.date} | ${m.title || '(제목없음)'} | R2=${isR2Url(m.tweet_url, r2Public)} | ${m.tweet_url}`));
+    console.log(`[dry] photos(사진): ${fPhotos.length}건`);
+    fPhotos.forEach(p =>
+      console.log(`   - ${p.date} | ${p.title || '(제목없음)'} | R2=${isR2Url(p.image_url, r2Public)}`));
+    console.log(`[dry] posts(포스트): ${fPosts.length}건`);
+    fPosts.forEach(p => {
+      const media = p.media ?? [];
+      const r2count = media.filter(mm => isR2Url(mm.url, r2Public)).length;
+      console.log(`   - ${p.date} | ${p.title || '(제목없음)'} | 미디어 ${media.length}개(R2 ${r2count}개) | platform=${p.platform}`);
+    });
+    console.log(`[dry] videos(영상=봇 제외대상): ${fVideos.length}건`);
+    fVideos.forEach(v =>
+      console.log(`   - ${v.date} | ${v.title || '(제목없음)'} | ${v.url}`));
+    console.log('[dry] ------------------------------------');
     console.log('[bot] DRY RUN 종료 (게시 안 함)');
     return;
   }
