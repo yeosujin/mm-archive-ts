@@ -10,7 +10,7 @@ function vid(url: string, key: string, date: string, text: string): MediaItem {
 }
 
 describe('planTweets', () => {
-  it('같은 그룹 이미지는 4장씩 묶는다', () => {
+  it('같은 그룹은 종류 상관없이 4개씩 묶는다', () => {
     const items: MediaItem[] = ['a', 'b', 'c', 'd', 'e'].map(u =>
       img(u, 'g1', '2022-07-14', '220714 생일'));
     const tweets = planTweets(items);
@@ -20,16 +20,24 @@ describe('planTweets', () => {
     expect(tweets[0].text).toBe('220714 생일');
   });
 
-  it('영상은 1개당 1트윗, 이미지와 안 섞인다', () => {
+  it('영상 4개도 한 트윗에 들어간다', () => {
+    const items: MediaItem[] = ['v1', 'v2', 'v3', 'v4'].map(u =>
+      vid(u, 'g1', '2024-07-15', '240715 유튜브'));
+    const tweets = planTweets(items);
+    expect(tweets).toHaveLength(1);
+    expect(tweets[0].mediaUrls).toEqual(['v1', 'v2', 'v3', 'v4']);
+    expect(tweets[0].text).toBe('240715 유튜브');
+  });
+
+  it('이미지+영상 혼합도 한 그룹이면 함께 묶는다', () => {
     const items: MediaItem[] = [
-      img('i1', 'g1', '2022-07-14', '220714 생일'),
-      img('i2', 'g1', '2022-07-14', '220714 생일'),
-      vid('v1', 'g1', '2022-07-14', '220714 생일'),
+      img('i1', 'g1', '2025-10-10', '251010 생일'),
+      vid('v1', 'g1', '2025-10-10', '251010 생일'),
+      img('i2', 'g1', '2025-10-10', '251010 생일'),
     ];
     const tweets = planTweets(items);
-    expect(tweets).toHaveLength(2);
-    expect(tweets[0].mediaUrls).toEqual(['i1', 'i2']);
-    expect(tweets[1].mediaUrls).toEqual(['v1']);
+    expect(tweets).toHaveLength(1);
+    expect(tweets[0].mediaUrls).toEqual(['i1', 'v1', 'i2']);
   });
 
   it('오래된 날짜 그룹이 먼저 온다', () => {

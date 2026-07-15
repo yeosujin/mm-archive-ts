@@ -29,24 +29,38 @@ describe('normalizePhotos', () => {
 });
 
 describe('normalizeMoments', () => {
-  it('상위 영상 있는 R2 모먼트', () => {
+  it('상위 영상 있는 R2 모먼트 (한글 플랫폼)', () => {
     const videos = new Map<string, Video>([
       ['v1', { id: 'v1', title: '위버스 라이브', url: 'https://weverse.io/x', date: '2022-07-14' }],
     ]);
     const moments: Moment[] = [
       { id: 'm1', title: '순간', tweet_url: `${R2}/m.mp4`, date: '2022-07-14', video_id: 'v1' },
     ];
-    const items = normalizeMoments(moments, videos, R2);
+    const items = normalizeMoments(moments, videos, R2, '2026-07-14');
     expect(items[0]).toMatchObject({
       contentType: 'moment', mediaType: 'video', url: `${R2}/m.mp4`,
-      groupKey: 'moment|위버스 라이브|2022-07-14', text: '220714 Weverse',
+      groupKey: 'moment|위버스 라이브|2022-07-14', text: '220714 위버스',
     });
   });
-  it('상위 영상 없으면 날짜만 텍스트 + 자기 title로 그룹', () => {
+  it('상위 영상 날짜로 선정 (모먼트 자체 날짜는 달라도 포함)', () => {
+    const videos = new Map<string, Video>([
+      ['v9', { id: 'v9', title: '럭키 피크닉', url: 'https://youtu.be/x', date: '2024-07-15' }],
+    ]);
+    const moments: Moment[] = [
+      // 모먼트 자체 date는 07-15가 아니지만 상위 영상이 2024-07-15라 포함돼야 함
+      { id: 'mm', title: '클립', tweet_url: `${R2}/c.mp4`, date: '2026-01-01', video_id: 'v9' },
+    ];
+    const items = normalizeMoments(moments, videos, R2, '2026-07-15');
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      date: '2024-07-15', groupKey: 'moment|럭키 피크닉|2024-07-15', text: '240715 유튜브',
+    });
+  });
+  it('상위 영상 없으면 자기 날짜만 텍스트 + 자기 title로 그룹', () => {
     const moments: Moment[] = [
       { id: 'm2', title: '독립순간', tweet_url: `${R2}/m2.mp4`, date: '2021-07-14' },
     ];
-    const items = normalizeMoments(moments, new Map(), R2);
+    const items = normalizeMoments(moments, new Map(), R2, '2026-07-14');
     expect(items[0]).toMatchObject({ text: '210714', groupKey: 'moment|독립순간|2021-07-14' });
   });
 });

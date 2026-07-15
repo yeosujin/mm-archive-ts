@@ -38,18 +38,17 @@ async function main() {
   const videos = (videosRes.data ?? []) as Video[];
 
   // 그해 오늘 필터 (KST)
-  const fMoments = filterOnThisDay(moments, runDate);
+  // 사진·포스트는 자체 날짜 기준, 모먼트는 상위 영상 날짜 기준(normalizeMoments 내부에서 처리)
   const fPhotos = filterOnThisDay(photos, runDate);
   const fPosts = filterOnThisDay(posts, runDate);
 
   const videosById = new Map(videos.map(v => [v.id, v]));
   const r2Public = process.env.VITE_R2_PUBLIC_URL!;
 
-  const items = [
-    ...normalizeMoments(fMoments, videosById, r2Public),
-    ...normalizePhotos(fPhotos, r2Public),
-    ...normalizePosts(fPosts, r2Public),
-  ];
+  const momentItems = normalizeMoments(moments, videosById, r2Public, runDate);
+  const photoItems = normalizePhotos(fPhotos, r2Public);
+  const postItems = normalizePosts(fPosts, r2Public);
+  const items = [...momentItems, ...photoItems, ...postItems];
   const tweets = planTweets(items);
 
   console.log(`[bot] 계획된 트윗 ${tweets.length}개:`);
@@ -59,10 +58,10 @@ async function main() {
     // 진단: 그해 오늘로 매칭된 원본을 종류별로, R2 여부까지 출력.
     // 영상(Videos)은 봇 제외 대상이지만 "왜 안 올라갔는지" 확인용으로 함께 표시.
     const fVideos = filterOnThisDay(videos, runDate);
-    console.log('[dry] --- 그해 오늘 매칭 원본 (R2=업로드 가능 여부) ---');
-    console.log(`[dry] moments(순간): ${fMoments.length}건`);
-    fMoments.forEach(m =>
-      console.log(`   - ${m.date} | ${m.title || '(제목없음)'} | R2=${isR2Url(m.tweet_url, r2Public)} | ${m.tweet_url}`));
+    console.log('[dry] --- 그해 오늘 매칭 (R2=업로드 가능 여부) ---');
+    console.log(`[dry] moments(순간, 상위영상 날짜 반영): ${momentItems.length}건`);
+    momentItems.forEach(it =>
+      console.log(`   - ${it.date} | "${it.text}" | ${it.url}`));
     console.log(`[dry] photos(사진): ${fPhotos.length}건`);
     fPhotos.forEach(p =>
       console.log(`   - ${p.date} | ${p.title || '(제목없음)'} | R2=${isR2Url(p.image_url, r2Public)}`));

@@ -36,24 +36,38 @@ export function normalizePhotos(photos: Photo[], r2PublicUrl: string): MediaItem
     });
 }
 
+// 같은 MM-DD + 과거 연도만 (오늘 연도 제외). dailyPick.filterOnThisDay와 동일 규칙.
+function isOnThisDay(date: string, todayString: string): boolean {
+  if (!date || date.length < 10) return false;
+  return date.slice(5, 10) === todayString.slice(5, 10) && date.slice(0, 4) !== todayString.slice(0, 4);
+}
+
+// 홈 "그해 오늘"과 동일하게, 상위 영상이 있으면 그 영상 날짜로 선정/라벨링하고,
+// 독립 모먼트면 모먼트 자체 날짜를 쓴다.
 export function normalizeMoments(
   moments: Moment[],
   videosById: Map<string, Video>,
   r2PublicUrl: string,
+  todayString: string,
 ): MediaItem[] {
   return moments
-    .filter(m => isR2Url(m.tweet_url, r2PublicUrl))
     .map(m => {
       const parent = m.video_id ? videosById.get(m.video_id) : undefined;
+      const effDate = parent?.date || m.date; // 연결 영상 있으면 그 날짜
+      return { m, parent, effDate };
+    })
+    .filter(({ effDate }) => isOnThisDay(effDate, todayString))
+    .filter(({ m }) => isR2Url(m.tweet_url, r2PublicUrl))
+    .map(({ m, parent, effDate }) => {
       const label = momentPlatformLabel(parent);
       const groupTitle = (parent?.title?.trim() || m.title.trim());
       return {
         contentType: 'moment' as const,
         mediaType: 'video' as const,
         url: m.tweet_url,
-        date: m.date,
-        groupKey: `moment|${groupTitle}|${m.date}`,
-        text: momentText(label, m.date),
+        date: effDate,
+        groupKey: `moment|${groupTitle}|${effDate}`,
+        text: momentText(label, effDate),
       };
     });
 }
