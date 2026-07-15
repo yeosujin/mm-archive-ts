@@ -17,7 +17,7 @@ describe('planTweets', () => {
     expect(tweets).toHaveLength(2);
     expect(tweets[0].mediaUrls).toEqual(['a', 'b', 'c', 'd']);
     expect(tweets[1].mediaUrls).toEqual(['e']);
-    expect(tweets[0].text).toBe('220714 생일');
+    expect(tweets[0].text).toBe('220714 생일\n\n#그해오늘');
   });
 
   it('영상 4개도 한 트윗에 들어간다', () => {
@@ -26,7 +26,7 @@ describe('planTweets', () => {
     const tweets = planTweets(items);
     expect(tweets).toHaveLength(1);
     expect(tweets[0].mediaUrls).toEqual(['v1', 'v2', 'v3', 'v4']);
-    expect(tweets[0].text).toBe('240715 유튜브');
+    expect(tweets[0].text).toBe('240715 유튜브\n\n#그해오늘');
   });
 
   it('이미지+영상 혼합도 한 그룹이면 함께 묶는다', () => {
@@ -46,8 +46,8 @@ describe('planTweets', () => {
       img('old', 'g2020', '2020-07-14', '200714 B'),
     ];
     const tweets = planTweets(items);
-    expect(tweets[0].text).toBe('200714 B');
-    expect(tweets[1].text).toBe('220714 A');
+    expect(tweets[0].text).toBe('200714 B\n\n#그해오늘');
+    expect(tweets[1].text).toBe('220714 A\n\n#그해오늘');
   });
 
   it('각 트윗에 groupKey가 실려 그룹 구분이 유지된다', () => {

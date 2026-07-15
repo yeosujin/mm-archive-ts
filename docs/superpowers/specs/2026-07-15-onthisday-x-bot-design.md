@@ -44,6 +44,7 @@
 - 모먼트 플랫폼 판별: `detectVideoPlatform(parentVideo.url)` → 한글 라벨 매핑(`platform.ts`의 `PLATFORM_KO`); `'other'`면 `parentVideo.platform_name`.
 - **모먼트 날짜/선정 기준(홈 일치)**: 상위 영상이 있으면 **그 영상의 `date`** 로 "그해 오늘" 판정 및 `YYMMDD` 라벨링(모먼트 자체 날짜가 달라도 상위 영상 날짜로 포함). 독립 모먼트(연결 영상 없음)는 모먼트 자체 `date`.
 - 사진·포스트의 `YYMMDD`는 각 자체 `date`(과거 연도) 기준. 예: `2022-07-14` → `220714`.
+- **해시태그**: 모든 트윗 본문 아래 한 줄 띄우고 `#그해오늘` 부착 (`text.ts`의 `HASHTAGS`, `planTweets`에서 적용). 해시태그는 URL이 아니라 추가 과금 없음.
 
 ## 5. 그룹 / 배칭 / 순서
 

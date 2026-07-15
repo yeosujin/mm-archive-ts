@@ -32,3 +32,10 @@ export function postText(title: string | undefined, date: string): string {
 export function momentText(platformLabel: string | null, date: string): string {
   return join(toYYMMDD(date), platformLabel ?? '');
 }
+
+// 모든 트윗 하단에 붙는 해시태그
+export const HASHTAGS = '#그해오늘';
+
+export function withHashtags(text: string): string {
+  return `${text}\n\n${HASHTAGS}`;
+}

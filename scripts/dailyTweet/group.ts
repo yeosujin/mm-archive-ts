@@ -1,4 +1,5 @@
 import type { MediaItem } from './normalize';
+import { withHashtags } from './text';
 
 export type PlannedTweet = {
   text: string;
@@ -25,7 +26,7 @@ export function planTweets(items: MediaItem[]): PlannedTweet[] {
 
   const tweets: PlannedTweet[] = [];
   for (const group of ordered) {
-    const text = group[0].text;
+    const text = withHashtags(group[0].text);
     const groupKey = group[0].groupKey;
     for (let i = 0; i < group.length; i += MAX_MEDIA_PER_TWEET) {
       tweets.push({ text, mediaUrls: group.slice(i, i + MAX_MEDIA_PER_TWEET).map(x => x.url), groupKey });

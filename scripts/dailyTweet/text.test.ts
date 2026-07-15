@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toYYMMDD, stripSubfix, stripYearPrefix, photoText, postText, momentText } from './text';
+import { toYYMMDD, stripSubfix, stripYearPrefix, photoText, postText, momentText, withHashtags } from './text';
 
 describe('toYYMMDD', () => {
   it('YYYY-MM-DD를 YYMMDD로', () => {
@@ -51,5 +51,11 @@ describe('momentText', () => {
   });
   it('플랫폼 없으면 날짜만', () => {
     expect(momentText(null, '2022-07-14')).toBe('220714');
+  });
+});
+
+describe('withHashtags', () => {
+  it('본문 아래 한 줄 띄우고 #그해오늘', () => {
+    expect(withHashtags('240715 유튜브')).toBe('240715 유튜브\n\n#그해오늘');
   });
 });
