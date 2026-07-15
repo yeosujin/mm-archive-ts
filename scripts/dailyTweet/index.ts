@@ -8,6 +8,7 @@ import { mimeFromUrl } from './mime';
 import { makeR2Client, urlToKey, downloadFromR2 } from './r2';
 import { makeXClient, uploadMedia, postThread, type PreparedTweet } from './x';
 import { makeSupabase, alreadyPosted, recordRun } from './dedup';
+import { fetchAllRows } from './fetch';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
@@ -22,20 +23,13 @@ async function main() {
     return;
   }
 
-  // 콘텐츠 조회
-  const [momentsRes, photosRes, postsRes, videosRes] = await Promise.all([
-    sb.from('moments').select('*'),
-    sb.from('photos').select('*'),
-    sb.from('posts').select('*'),
-    sb.from('videos').select('*'),
+  // 콘텐츠 조회 (Supabase 기본 1000행 제한 회피: 전체 페이지네이션)
+  const [moments, photos, posts, videos] = await Promise.all([
+    fetchAllRows<Moment>(sb, 'moments'),
+    fetchAllRows<Photo>(sb, 'photos'),
+    fetchAllRows<Post>(sb, 'posts'),
+    fetchAllRows<Video>(sb, 'videos'),
   ]);
-  for (const r of [momentsRes, photosRes, postsRes, videosRes]) {
-    if (r.error) throw r.error;
-  }
-  const moments = (momentsRes.data ?? []) as Moment[];
-  const photos = (photosRes.data ?? []) as Photo[];
-  const posts = (postsRes.data ?? []) as Post[];
-  const videos = (videosRes.data ?? []) as Video[];
 
   // 그해 오늘 필터 (KST)
   // 사진·포스트는 자체 날짜 기준, 모먼트는 상위 영상 날짜 기준(normalizeMoments 내부에서 처리)
