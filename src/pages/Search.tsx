@@ -148,7 +148,7 @@ export default function Search() {
 
   // 유사도 점수가 압축돼 있어(대부분 0.65~0.72) 고정 임계값은 부적합.
   // "절대 바닥값(무관한 노이즈 제거) + 최고점 대비 상대 컷(뚜렷한 결과만 강조)" 조합.
-  const AI_SIM_FLOOR = 0.68;   // 이보다 낮으면 사실상 무관 → 제거
+  const AI_SIM_FLOOR = 0.64;   // 이보다 낮으면 사실상 무관 → 제거 (교차언어 매칭은 같은 언어보다 유사도가 낮게 나와 값을 낮춤)
   const AI_SIM_MARGIN = 0.05;  // 최고점보다 이만큼 이상 낮으면 제거
   const topSim = aiHits.length ? aiHits[0].similarity : 0;
   const aiCutoff = Math.max(AI_SIM_FLOOR, topSim - AI_SIM_MARGIN);
