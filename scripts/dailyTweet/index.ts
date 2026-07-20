@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { filterOnThisDay } from '../../src/lib/dailyPick';
 import type { Moment, Photo, Post, Video } from '../../src/lib/database';
-import { getKstDateString } from './date';
+import { getKstDateString, msUntilKstMidnight } from './date';
 import { normalizeMoments, normalizePhotos, normalizePosts, isR2Url } from './normalize';
 import { planTweets } from './group';
 import { mimeFromUrl } from './mime';
@@ -14,7 +14,21 @@ import { notifyDiscord } from './notify';
 const DRY_RUN = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force'); // 중복 방지(tweet_bot_log) 무시하고 재게시
 
+// cron은 KST 23:50에 트리거된다. Actions 스케줄 큐 지연을 버퍼로 흡수하려는 것이라
+// 지연 없이 시작했다면 자정까지 기다렸다가 게시한다(runDate가 전날이 되는 것도 함께 막는다).
+// 대기가 길면 정기 실행이 아니라 수동 실행이므로 기다리지 않는다.
+const MAX_WAIT_MS = 30 * 60 * 1000;
+
+async function waitForKstMidnight() {
+  const wait = msUntilKstMidnight();
+  if (wait === 0 || wait > MAX_WAIT_MS) return;
+  console.log(`[bot] KST 자정까지 ${Math.ceil(wait / 1000)}초 대기`);
+  await new Promise(resolve => setTimeout(resolve, wait));
+}
+
 async function main() {
+  if (!DRY_RUN) await waitForKstMidnight();
+
   const runDate = getKstDateString();
   console.log(`[bot] 실행일(KST)=${runDate}${DRY_RUN ? ' (DRY RUN)' : ''}`);
 

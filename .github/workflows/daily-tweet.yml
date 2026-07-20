@@ -2,7 +2,9 @@ name: Daily Tweet
 
 on:
   schedule:
-    - cron: '0 15 * * *' # UTC 15:00 = KST 00:00
+    # UTC 14:50 = KST 23:50. 정시는 Actions 스케줄 큐가 가장 밀리는 시간대라 앞당겨 트리거하고,
+    # 스크립트가 KST 자정까지 대기했다가 게시한다(scripts/dailyTweet/index.ts).
+    - cron: '50 14 * * *'
   workflow_dispatch: {} # 수동 실행 허용
 
 jobs:
