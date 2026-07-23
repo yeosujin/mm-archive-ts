@@ -10,8 +10,8 @@ import { semanticSearch, type SemanticHit } from '../lib/semanticSearch';
 type FilterType = 'all' | 'video' | 'moment' | 'post' | 'episode' | 'article';
 type SearchMode = 'keyword' | 'ai';
 
-// AI 모드 placeholder 예시 (정확한 단어 없이도 찾을 수 있음을 보여주기 위한 유도 문구)
-const AI_EXAMPLES = ['민주가 웃는 영상', '비 오는 날 사진', '데뷔 초 포스트', '겨울 느낌 모먼트'];
+// AI 모드 placeholder 예시 (정확한 단어 없이도, 한국어/영어 모두 찾을 수 있음을 보여주기 위한 유도 문구)
+const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
 
 // 키워드 모드에서 매칭된 부분을 <mark>로 강조 (첫 번째 일치 지점). query가 비면 원본 그대로 반환
 function highlightText(text: string, query: string): React.ReactNode {

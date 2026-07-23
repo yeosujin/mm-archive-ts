@@ -33,8 +33,8 @@ const NAV_ITEMS = [
   { to: '/articles', label: '도서관' },
 ];
 
-// AI 모드 placeholder 예시 (정확한 단어 없이도 찾을 수 있음을 보여주기 위한 유도 문구)
-const AI_EXAMPLES = ['민주가 웃는 영상', '비 오는 날 사진', '데뷔 초 포스트', '겨울 느낌 모먼트'];
+// AI 모드 placeholder 예시 (정확한 단어 없이도, 한국어/영어 모두 찾을 수 있음을 보여주기 위한 유도 문구)
+const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
