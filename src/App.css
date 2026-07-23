@@ -1507,6 +1507,38 @@
   padding: 0 0.1em;
 }
 
+/* 키워드 0건 → AI 재검색 유도 버튼 */
+.ai-retry-btn {
+  margin-top: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  border-radius: 22px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.ai-retry-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* AI 모드 검색창 설명 힌트 */
+.ai-search-hint,
+.home-search-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
 /* ===== Responsive - Mobile First ===== */
 
 /* Extra Small (< 480px) */

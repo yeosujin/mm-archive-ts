@@ -10,6 +10,9 @@ import { semanticSearch, type SemanticHit } from '../lib/semanticSearch';
 type FilterType = 'all' | 'video' | 'moment' | 'post' | 'episode' | 'article';
 type SearchMode = 'keyword' | 'ai';
 
+// AI 모드 placeholder 예시 (정확한 단어 없이도 찾을 수 있음을 보여주기 위한 유도 문구)
+const AI_EXAMPLES = ['민주가 웃는 영상', '비 오는 날 사진', '데뷔 초 포스트', '겨울 느낌 모먼트'];
+
 // 키워드 모드에서 매칭된 부분을 <mark>로 강조 (첫 번째 일치 지점). query가 비면 원본 그대로 반환
 function highlightText(text: string, query: string): React.ReactNode {
   if (!query) return text;
@@ -66,6 +69,16 @@ export default function Search() {
   const [aiHits, setAiHits] = useState<SemanticHit[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(false);
+  const [aiExampleIdx, setAiExampleIdx] = useState(0);
+
+  // AI 모드일 때 placeholder 예시를 일정 주기로 회전
+  useEffect(() => {
+    if (mode !== 'ai') return;
+    const id = setInterval(() => {
+      setAiExampleIdx(i => (i + 1) % AI_EXAMPLES.length);
+    }, 2800);
+    return () => clearInterval(id);
+  }, [mode]);
 
   // URL q → 입력창 동기화 (뒤로가기/홈 재진입 등)
   useEffect(() => {
@@ -215,7 +228,7 @@ export default function Search() {
         <input
           type="text"
           className="search-input"
-          placeholder={mode === 'ai' ? 'AI로 검색해요' : '검색어를 입력하세요'}
+          placeholder={mode === 'ai' ? `예: ${AI_EXAMPLES[aiExampleIdx]}` : '검색어를 입력하세요'}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           autoFocus
@@ -231,6 +244,9 @@ export default function Search() {
           ✨ AI
         </button>
       </div>
+      {mode === 'ai' && (
+        <p className="ai-search-hint">정확한 단어를 몰라도 느낌·상황으로 찾아드려요</p>
+      )}
     </form>
   );
 
@@ -268,6 +284,11 @@ export default function Search() {
         <div className="empty-state">
           <p>검색 결과가 없어요 😢</p>
           <p>{mode === 'ai' ? '다른 표현으로 검색해보세요' : '다른 키워드로 검색해보세요'}</p>
+          {mode === 'keyword' && (
+            <button type="button" className="ai-retry-btn" onClick={() => setMode('ai')}>
+              ✨ AI로 다시 찾아볼까요?
+            </button>
+          )}
         </div>
       ) : (
         <div className="search-results">
