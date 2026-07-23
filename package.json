@@ -1,7 +1,7 @@
 {
   "name": "mmemory",
   "private": true,
-  "version": "1.19.3",
+  "version": "1.20.1",
   "type": "module",
   "scripts": {
     "dev": "vite",

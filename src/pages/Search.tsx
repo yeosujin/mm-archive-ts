@@ -10,6 +10,32 @@ import { semanticSearch, type SemanticHit } from '../lib/semanticSearch';
 type FilterType = 'all' | 'video' | 'moment' | 'post' | 'episode' | 'article';
 type SearchMode = 'keyword' | 'ai';
 
+// AI 모드 placeholder 예시 (정확한 단어 없이도, 한국어/영어 모두 찾을 수 있음을 보여주기 위한 유도 문구)
+const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
+
+// 키워드 모드에서 매칭된 부분을 <mark>로 강조 (첫 번째 일치 지점). query가 비면 원본 그대로 반환
+function highlightText(text: string, query: string): React.ReactNode {
+  if (!query) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="search-mark">{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
+// 본문에서 매칭 지점 주변을 잘라 스니펫 생성 (제목이 아닌 내용에만 걸렸을 때 근거를 보여주기 위함)
+function contentSnippet(content: string, query: string): string | null {
+  const idx = content.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return null;
+  const start = Math.max(0, idx - 20);
+  const snippet = content.slice(start, start + 70).trim();
+  return (start > 0 ? '…' : '') + snippet + (start + 70 < content.length ? '…' : '');
+}
+
 export default function Search() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -43,6 +69,16 @@ export default function Search() {
   const [aiHits, setAiHits] = useState<SemanticHit[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(false);
+  const [aiExampleIdx, setAiExampleIdx] = useState(0);
+
+  // AI 모드일 때 placeholder 예시를 일정 주기로 회전
+  useEffect(() => {
+    if (mode !== 'ai') return;
+    const id = setInterval(() => {
+      setAiExampleIdx(i => (i + 1) % AI_EXAMPLES.length);
+    }, 2800);
+    return () => clearInterval(id);
+  }, [mode]);
 
   // URL q → 입력창 동기화 (뒤로가기/홈 재진입 등)
   useEffect(() => {
@@ -182,6 +218,9 @@ export default function Search() {
   const totalResults =
     rVideos.length + rMoments.length + rPosts.length + rEpisodes.length + rArticles.length;
 
+  // 하이라이트는 키워드 모드에서만 (AI 모드는 의미 기반이라 정확한 일치 지점이 없음)
+  const kw = mode === 'keyword' ? trimmedQuery : '';
+
   const searchBox = (
     <form className="page-controls" onSubmit={handleSubmit}>
       <div className={`search-box ${mode === 'ai' ? 'ai-mode' : ''}`}>
@@ -189,7 +228,7 @@ export default function Search() {
         <input
           type="text"
           className="search-input"
-          placeholder={mode === 'ai' ? 'AI로 검색해요' : '검색어를 입력하세요'}
+          placeholder={mode === 'ai' ? `예: ${AI_EXAMPLES[aiExampleIdx]}` : '검색어를 입력하세요'}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           autoFocus
@@ -205,6 +244,9 @@ export default function Search() {
           ✨ AI
         </button>
       </div>
+      {mode === 'ai' && (
+        <p className="ai-search-hint">정확한 단어를 몰라도 느낌·상황으로 찾아드려요</p>
+      )}
     </form>
   );
 
@@ -242,6 +284,11 @@ export default function Search() {
         <div className="empty-state">
           <p>검색 결과가 없어요 😢</p>
           <p>{mode === 'ai' ? '다른 표현으로 검색해보세요' : '다른 키워드로 검색해보세요'}</p>
+          {mode === 'keyword' && (
+            <button type="button" className="ai-retry-btn" onClick={() => setMode('ai')}>
+              ✨ AI로 다시 찾아볼까요?
+            </button>
+          )}
         </div>
       ) : (
         <div className="search-results">
@@ -304,7 +351,7 @@ export default function Search() {
               <div className="search-list">
                 {rVideos.map(video => (
                   <Link to={`/videos?highlight=${video.id}`} key={video.id} className="search-item">
-                    <span className="search-item-title">{video.title}</span>
+                    <span className="search-item-title">{highlightText(video.title, kw)}</span>
                     <span className="search-item-date">{video.date}</span>
                   </Link>
                 ))}
@@ -320,7 +367,7 @@ export default function Search() {
                 {rMoments.map(moment => (
                   <div key={moment.id} className="moment-card">
                     <div className="moment-card-header">
-                      <h4 className="moment-card-title">{moment.title}</h4>
+                      <h4 className="moment-card-title">{highlightText(moment.title, kw)}</h4>
                       {moment.video_id && (
                         <Link to={`/videos?highlight=${moment.video_id}`} className="moment-card-link">
                           영상 보러가기 <ArrowRightIcon size={14} />
@@ -344,12 +391,22 @@ export default function Search() {
             <div className="search-section">
               <h2><PostIcon size={18} /> 포스트 ({rPosts.length})</h2>
               <div className="search-list">
-                {rPosts.map(post => (
-                  <Link to={`/posts?highlight=${post.id}`} key={post.id} className="search-item">
-                    <span className="search-item-title">{post.title || post.platform}</span>
-                    <span className="search-item-date">{post.date}</span>
-                  </Link>
-                ))}
+                {rPosts.map(post => {
+                  const title = post.title || post.platform;
+                  const titleHit = kw !== '' && title.toLowerCase().includes(searchLower);
+                  const snippet = kw !== '' && !titleHit && post.content
+                    ? contentSnippet(post.content, kw)
+                    : null;
+                  return (
+                    <Link to={`/posts?highlight=${post.id}`} key={post.id} className="search-item">
+                      <span className="search-item-title">{highlightText(title, kw)}</span>
+                      {snippet && (
+                        <span className="search-item-snippet">{highlightText(snippet, kw)}</span>
+                      )}
+                      <span className="search-item-date">{post.date}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -361,7 +418,7 @@ export default function Search() {
               <div className="search-list">
                 {rEpisodes.map(episode => (
                   <Link to={`/episodes?highlight=${episode.id}`} key={episode.id} className="search-item">
-                    <span className="search-item-title">{episode.title || episode.date}</span>
+                    <span className="search-item-title">{highlightText(episode.title || episode.date, kw)}</span>
                     <span className="search-item-date">{episode.date}</span>
                   </Link>
                 ))}
@@ -376,7 +433,7 @@ export default function Search() {
               <div className="search-list">
                 {rArticles.map(article => (
                   <Link to={`/articles?highlight=${article.id}`} key={article.id} className="search-item">
-                    <span className="search-item-title">{article.title}</span>
+                    <span className="search-item-title">{highlightText(article.title, kw)}</span>
                     <span className="search-item-date">{article.date}</span>
                   </Link>
                 ))}

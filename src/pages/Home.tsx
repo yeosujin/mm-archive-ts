@@ -33,9 +33,13 @@ const NAV_ITEMS = [
   { to: '/articles', label: '도서관' },
 ];
 
+// AI 모드 placeholder 예시 (정확한 단어 없이도, 한국어/영어 모두 찾을 수 있음을 보여주기 위한 유도 문구)
+const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchMode, setSearchMode] = useState<'keyword' | 'ai'>('keyword');
+  const [aiExampleIdx, setAiExampleIdx] = useState(0);
   const [featuredItem, setFeaturedItem] = useState<{ type: string; item: Video | Post | Moment } | null>(null);
   const [linkedVideo, setLinkedVideo] = useState<Video | null>(null);
   const [articlesVisible, setArticlesVisible] = useState(false);
@@ -83,6 +87,15 @@ export default function Home() {
     fetchEpisodes().catch(() => {});
     fetchMemberSettings().catch(() => {});
   }, [fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchMemberSettings]);
+
+  // AI 모드일 때 placeholder 예시를 일정 주기로 회전
+  useEffect(() => {
+    if (searchMode !== 'ai') return;
+    const id = setInterval(() => {
+      setAiExampleIdx(i => (i + 1) % AI_EXAMPLES.length);
+    }, 2800);
+    return () => clearInterval(id);
+  }, [searchMode]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,7 +213,7 @@ export default function Home() {
             <input
               type="text"
               className="home-search-input"
-              placeholder={searchMode === 'ai' ? 'AI로 검색...' : '검색...'}
+              placeholder={searchMode === 'ai' ? `예: ${AI_EXAMPLES[aiExampleIdx]}` : '검색...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -218,6 +231,9 @@ export default function Home() {
               <SearchIcon size={16} />
             </button>
           </form>
+          {searchMode === 'ai' && (
+            <p className="home-search-hint">정확한 단어를 몰라도 느낌·상황으로 찾아드려요</p>
+          )}
         </div>
       </section>
 

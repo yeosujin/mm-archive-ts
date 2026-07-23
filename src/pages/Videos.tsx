@@ -39,7 +39,7 @@ const YOUTUBE_CATEGORIES = [
 ] as const;
 
 export default function Videos() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
   const momentId = searchParams.get('moment');
   const { videos: cachedVideos, moments: cachedMoments, fetchVideos, fetchMoments } = useData();
@@ -258,6 +258,16 @@ export default function Videos() {
     setContentTypeFilter('videos');
   }, []);
 
+  // 확장된 영상을 닫으면 URL의 highlight/moment 파라미터도 제거 (새로고침/뒤로가기 시 재확장 방지)
+  const clearHighlightParams = useCallback(() => {
+    if (searchParams.has('highlight') || searchParams.has('moment')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('highlight');
+      next.delete('moment');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const toggleVideo = useCallback(async (videoId: string, anchor?: HTMLElement | null) => {
     const isCollapsing = expandedVideo === videoId;
     const beforeTop = anchor?.getBoundingClientRect().top ?? null;
@@ -267,6 +277,7 @@ export default function Videos() {
         setExpandedVideo(null);
         setExpandedMoments(null);
       });
+      clearHighlightParams();
       if (anchor && beforeTop !== null) {
         const delta = anchor.getBoundingClientRect().top - beforeTop;
         if (delta !== 0) window.scrollBy(0, delta);
@@ -285,7 +296,7 @@ export default function Videos() {
       window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
     }
     await loadMomentsForVideo(videoId);
-  }, [expandedVideo, loadMomentsForVideo]);
+  }, [expandedVideo, loadMomentsForVideo, clearHighlightParams]);
 
   const toggleMoments = useCallback((videoId: string, anchor?: HTMLElement | null) => {
     const beforeTop = anchor?.getBoundingClientRect().top ?? null;
@@ -305,11 +316,12 @@ export default function Videos() {
       if (e.key === 'Escape') {
         setExpandedVideo(null);
         setExpandedMoments(null);
+        clearHighlightParams();
       }
     };
     globalThis.addEventListener('keydown', handleKeyDown);
     return () => globalThis.removeEventListener('keydown', handleKeyDown);
-  }, [expandedVideo]);
+  }, [expandedVideo, clearHighlightParams]);
 
   if (loading) {
     return (
@@ -370,7 +382,8 @@ export default function Videos() {
               {isPlatformDropdownOpen && (
                 <div className="platform-dropdown-menu">
                   {PLATFORM_OPTIONS.map((option) => (
-                    <div
+                    <button
+                      type="button"
                       key={option.value}
                       className={`platform-dropdown-item ${platformFilter === option.value ? 'selected' : ''}`}
                       onClick={() => {
@@ -382,7 +395,7 @@ export default function Videos() {
                     >
                       {option.icon && <PlatformIcon platform={option.icon} size={16} />}
                       <span>{option.label}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -400,7 +413,8 @@ export default function Videos() {
                 </button>
                 {isMemberDropdownOpen && (
                   <div className="platform-dropdown-menu">
-                    <div
+                    <button
+                      type="button"
                       className={`platform-dropdown-item ${memberFilter === 'all' ? 'selected' : ''}`}
                       onClick={() => {
                         setMemberFilter('all');
@@ -408,9 +422,10 @@ export default function Videos() {
                       }}
                     >
                       <span>라이브 전체</span>
-                    </div>
+                    </button>
                     {WEVERSE_MEMBERS.map(m => (
-                      <div
+                      <button
+                        type="button"
                         key={m.icon}
                         className={`platform-dropdown-item ${memberFilter === m.icon ? 'selected' : ''}`}
                         onClick={() => {
@@ -419,7 +434,7 @@ export default function Videos() {
                         }}
                       >
                         <span>{m.icon} {m.name}</span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -439,7 +454,8 @@ export default function Videos() {
                 {isYoutubeCategoryDropdownOpen && (
                   <div className="platform-dropdown-menu">
                     {YOUTUBE_CATEGORIES.map(category => (
-                      <div
+                      <button
+                        type="button"
                         key={category.value}
                         className={`platform-dropdown-item ${youtubeCategoryFilter === category.value ? 'selected' : ''}`}
                         onClick={() => {
@@ -448,7 +464,7 @@ export default function Videos() {
                         }}
                       >
                         <span>{category.label}</span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
