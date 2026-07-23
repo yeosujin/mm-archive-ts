@@ -31,6 +31,15 @@ export default function Layout() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // 모바일 메뉴 오버레이가 열려 있을 때 배경(body) 스크롤 잠금
+  useEffect(() => {
+    if (!showMobileMenu) return;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showMobileMenu]);
   const navigate = useNavigate();
   const location = useLocation();
   const isAskPage = location.pathname === '/ask' || location.pathname.startsWith('/ask/');

@@ -10,6 +10,29 @@ import { semanticSearch, type SemanticHit } from '../lib/semanticSearch';
 type FilterType = 'all' | 'video' | 'moment' | 'post' | 'episode' | 'article';
 type SearchMode = 'keyword' | 'ai';
 
+// 키워드 모드에서 매칭된 부분을 <mark>로 강조 (첫 번째 일치 지점). query가 비면 원본 그대로 반환
+function highlightText(text: string, query: string): React.ReactNode {
+  if (!query) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="search-mark">{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
+// 본문에서 매칭 지점 주변을 잘라 스니펫 생성 (제목이 아닌 내용에만 걸렸을 때 근거를 보여주기 위함)
+function contentSnippet(content: string, query: string): string | null {
+  const idx = content.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return null;
+  const start = Math.max(0, idx - 20);
+  const snippet = content.slice(start, start + 70).trim();
+  return (start > 0 ? '…' : '') + snippet + (start + 70 < content.length ? '…' : '');
+}
+
 export default function Search() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -182,6 +205,9 @@ export default function Search() {
   const totalResults =
     rVideos.length + rMoments.length + rPosts.length + rEpisodes.length + rArticles.length;
 
+  // 하이라이트는 키워드 모드에서만 (AI 모드는 의미 기반이라 정확한 일치 지점이 없음)
+  const kw = mode === 'keyword' ? trimmedQuery : '';
+
   const searchBox = (
     <form className="page-controls" onSubmit={handleSubmit}>
       <div className={`search-box ${mode === 'ai' ? 'ai-mode' : ''}`}>
@@ -304,7 +330,7 @@ export default function Search() {
               <div className="search-list">
                 {rVideos.map(video => (
                   <Link to={`/videos?highlight=${video.id}`} key={video.id} className="search-item">
-                    <span className="search-item-title">{video.title}</span>
+                    <span className="search-item-title">{highlightText(video.title, kw)}</span>
                     <span className="search-item-date">{video.date}</span>
                   </Link>
                 ))}
@@ -320,7 +346,7 @@ export default function Search() {
                 {rMoments.map(moment => (
                   <div key={moment.id} className="moment-card">
                     <div className="moment-card-header">
-                      <h4 className="moment-card-title">{moment.title}</h4>
+                      <h4 className="moment-card-title">{highlightText(moment.title, kw)}</h4>
                       {moment.video_id && (
                         <Link to={`/videos?highlight=${moment.video_id}`} className="moment-card-link">
                           영상 보러가기 <ArrowRightIcon size={14} />
@@ -344,12 +370,22 @@ export default function Search() {
             <div className="search-section">
               <h2><PostIcon size={18} /> 포스트 ({rPosts.length})</h2>
               <div className="search-list">
-                {rPosts.map(post => (
-                  <Link to={`/posts?highlight=${post.id}`} key={post.id} className="search-item">
-                    <span className="search-item-title">{post.title || post.platform}</span>
-                    <span className="search-item-date">{post.date}</span>
-                  </Link>
-                ))}
+                {rPosts.map(post => {
+                  const title = post.title || post.platform;
+                  const titleHit = kw !== '' && title.toLowerCase().includes(searchLower);
+                  const snippet = kw !== '' && !titleHit && post.content
+                    ? contentSnippet(post.content, kw)
+                    : null;
+                  return (
+                    <Link to={`/posts?highlight=${post.id}`} key={post.id} className="search-item">
+                      <span className="search-item-title">{highlightText(title, kw)}</span>
+                      {snippet && (
+                        <span className="search-item-snippet">{highlightText(snippet, kw)}</span>
+                      )}
+                      <span className="search-item-date">{post.date}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -361,7 +397,7 @@ export default function Search() {
               <div className="search-list">
                 {rEpisodes.map(episode => (
                   <Link to={`/episodes?highlight=${episode.id}`} key={episode.id} className="search-item">
-                    <span className="search-item-title">{episode.title || episode.date}</span>
+                    <span className="search-item-title">{highlightText(episode.title || episode.date, kw)}</span>
                     <span className="search-item-date">{episode.date}</span>
                   </Link>
                 ))}
@@ -376,7 +412,7 @@ export default function Search() {
               <div className="search-list">
                 {rArticles.map(article => (
                   <Link to={`/articles?highlight=${article.id}`} key={article.id} className="search-item">
-                    <span className="search-item-title">{article.title}</span>
+                    <span className="search-item-title">{highlightText(article.title, kw)}</span>
                     <span className="search-item-date">{article.date}</span>
                   </Link>
                 ))}

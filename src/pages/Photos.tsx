@@ -7,7 +7,7 @@ import Skeleton from '../components/Skeleton';
 import { CloseIcon } from '../components/Icons';
 
 export default function Photos() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
   const { photos: cachedPhotos, fetchPhotos } = useData();
   const [photos, setPhotos] = useState<Photo[]>(cachedPhotos || []);
@@ -79,7 +79,13 @@ export default function Photos() {
   const closePhoto = useCallback(() => {
     dialogRef.current?.close();
     setSelectedPhoto(null);
-  }, []);
+    // 라이트박스를 닫으면 URL의 highlight 파라미터도 제거 (새로고침/뒤로가기 시 재오픈 방지)
+    if (searchParams.has('highlight')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('highlight');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -207,6 +213,7 @@ export default function Photos() {
               key={photo.id}
               className="photo-grid-item"
               onClick={() => openPhoto(photo)}
+              aria-label={`${photo.title} · ${photo.date}`}
             >
               <LazyImage
                 src={photo.thumbnail_url || photo.image_url}
@@ -242,6 +249,11 @@ export default function Photos() {
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
               >
+                {filteredPhotos.length > 1 && (
+                  <span className="photo-lightbox-counter">
+                    {filteredPhotos.findIndex(p => p.id === selectedPhoto.id) + 1} / {filteredPhotos.length}
+                  </span>
+                )}
                 {filteredPhotos.findIndex(p => p.id === selectedPhoto.id) > 0 && (
                   <button
                     className="photo-lightbox-nav photo-lightbox-prev"
@@ -279,7 +291,14 @@ export default function Photos() {
                 {selectedPhoto.tags.length > 0 && (
                   <div className="photo-lightbox-tags">
                     {selectedPhoto.tags.map(tag => (
-                      <span key={tag} className="photo-tag">#{tag}</span>
+                      <button
+                        key={tag}
+                        type="button"
+                        className="photo-tag"
+                        onClick={() => { setSearchQuery(tag); closePhoto(); }}
+                      >
+                        #{tag}
+                      </button>
                     ))}
                   </div>
                 )}

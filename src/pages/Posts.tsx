@@ -8,7 +8,7 @@ import Skeleton from '../components/Skeleton';
 import PostDetailContent from '../components/PostDetailContent';
 
 export default function Posts() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
   const { posts: cachedPosts, fetchPosts } = useData();
   const [posts, setPosts] = useState<Post[]>(cachedPosts || []);
@@ -69,7 +69,13 @@ export default function Posts() {
   const closePost = useCallback(() => {
     dialogRef.current?.close();
     setSelectedPost(null);
-  }, []);
+    // 상세를 닫으면 URL의 highlight 파라미터도 제거 (새로고침/뒤로가기 시 재오픈 방지)
+    if (searchParams.has('highlight')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('highlight');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // ESC 키로 닫기 (dialog의 기본 close 이벤트와 동기화)
   useEffect(() => {
@@ -152,6 +158,7 @@ export default function Posts() {
                 key={post.id}
                 className="post-grid-item"
                 onClick={() => openPost(post)}
+                aria-label={`${post.title || post.platform} · ${post.date}`}
               >
                 <div className="post-grid-thumb">
                   {thumbnail ? (
