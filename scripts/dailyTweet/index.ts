@@ -14,12 +14,15 @@ import { notifyDiscord } from './notify';
 const DRY_RUN = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force'); // 중복 방지(tweet_bot_log) 무시하고 재게시
 
-// cron은 KST 23:50에 트리거된다. Actions 스케줄 큐 지연을 버퍼로 흡수하려는 것이라
-// 지연 없이 시작했다면 자정까지 기다렸다가 게시한다(runDate가 전날이 되는 것도 함께 막는다).
-// 대기가 길면 정기 실행이 아니라 수동 실행이므로 기다리지 않는다.
-const MAX_WAIT_MS = 30 * 60 * 1000;
+// cron은 KST 21:50에 트리거된다. GitHub 스케줄 디스패치는 이 저장소에서 상습적으로 60~90분
+// 밀려(실측), 자정 직전 트리거로는 새벽 1시 넘어 게시됐다. 그래서 자정 2시간여 전에 트리거만
+// 걸어두고, 스케줄 실행이면 KST 자정까지 대기했다가 게시한다(runDate가 전날이 되는 것도 함께 막는다).
+// 대기값이 비정상적으로 크면(=이미 자정을 넘겨 시작) 지연이 버퍼를 초과한 것이므로 즉시 게시한다.
+const MAX_WAIT_MS = 3 * 60 * 60 * 1000;
 
 async function waitForKstMidnight() {
+  // 스케줄 실행만 대기. 수동(workflow_dispatch)·로컬 실행은 즉시 진행한다.
+  if (process.env.GITHUB_EVENT_NAME !== 'schedule') return;
   const wait = msUntilKstMidnight();
   if (wait === 0 || wait > MAX_WAIT_MS) return;
   console.log(`[bot] KST 자정까지 ${Math.ceil(wait / 1000)}초 대기`);
