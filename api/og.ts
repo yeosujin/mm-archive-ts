@@ -15,6 +15,19 @@ type VNode = {
   };
 };
 
+// 이모지 → Twemoji 파일명. ZWJ(200d) 조합이면 VS16(fe0f)를 유지하고, 아니면 떼어낸 뒤
+// 모든 코드포인트를 '-'로 잇는다. (첫 코드포인트만 쓰면 하트류·조합·키캡 이모지가 깨진다)
+function twemojiCode(segment: string): string {
+  const hasZwj = segment.includes('\u200d'); // ZWJ
+  const cps: string[] = [];
+  for (const ch of segment) {
+    const cp = ch.codePointAt(0)!;
+    if (!hasZwj && cp === 0xfe0f) continue;
+    cps.push(cp.toString(16));
+  }
+  return cps.join('-');
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = req.query.id as string | undefined;
 
@@ -282,11 +295,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           weight: 400,
         },
       ],
-      // Twemoji fallback
+      // Twemoji fallback (satori는 컬러 이모지 폰트를 못 써서 SVG로 대체한다)
       loadAdditionalAsset: async (code, segment) => {
         if (code === 'emoji') {
-          const codePoint = segment.codePointAt(0)?.toString(16);
-          const res = await fetch(`https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/${codePoint}.svg`);
+          const res = await fetch(
+            `https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/${twemojiCode(segment)}.svg`
+          );
           if (res.ok) {
             return `data:image/svg+xml,${encodeURIComponent(await res.text())}`;
           }
