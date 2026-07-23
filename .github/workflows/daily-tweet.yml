@@ -2,10 +2,11 @@ name: Daily Tweet
 
 on:
   schedule:
-    # UTC 14:50 = KST 23:50. 정시는 Actions 스케줄 큐가 가장 밀리는 시간대라 앞당겨 트리거하고,
+    # UTC 12:50 = KST 21:50. GitHub 스케줄 디스패치가 이 저장소에선 상습적으로 60~90분 밀려서
+    # 자정 직전 트리거로는 새벽 1시 넘어 게시됐다. 자정 2시간여 전에 트리거만 걸어두고,
     # 스크립트가 KST 자정까지 대기했다가 게시한다(scripts/dailyTweet/index.ts).
-    - cron: '50 14 * * *'
-  workflow_dispatch: {} # 수동 실행 허용
+    - cron: '50 12 * * *'
+  workflow_dispatch: {} # 수동 실행 허용(대기 없이 즉시 게시)
 
 jobs:
   post:
