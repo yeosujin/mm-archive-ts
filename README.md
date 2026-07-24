@@ -1,73 +1,41 @@
-# React + TypeScript + Vite
+# mmemory
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+팬 커뮤니티 아카이브. 두 멤버의 활동(영상, 순간, 포스트, 사진, 에피소드, 외부 글)을 한곳에 모아 시간순으로 보여준다. 모바일 우선 PWA.
 
-Currently, two official plugins are available:
+## 시작하기
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+# knowledge-vault/wiki/tooling/env-vars.md 의 표를 보고 .env 작성
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 스크립트
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| 명령 | 설명 |
+|---|---|
+| `npm run dev` | 개발 서버 |
+| `npm run build` | 타입체크 + 프로덕션 빌드 |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest |
+| `npm run tweet:dry` | '그해 오늘' 봇 dry-run |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 주요 기능
+
+- 도메인별 아카이브 (모먼트 / 순간 / 포스트 / 사진 / 에피소드 / 도서관)
+- 전체 통합 캘린더
+- 키워드 검색 + Gemini 임베딩 기반 AI 의미 검색
+- 익명 질문(Ask) + 답변 공유용 동적 OG 카드
+- 매일 KST 자정 '그해 오늘' X 자동 게시 봇
+
+## 스택
+
+React 19 · TypeScript · Vite · Supabase(PostgreSQL + pgvector) · Cloudflare R2 · Vercel
+
+## 문서
+
+프로젝트 위키는 `knowledge-vault/wiki/`에 있다.
+
+- [overview.md](knowledge-vault/wiki/overview.md) — 전체 구조와 먼저 알아야 할 함정
+- [index.md](knowledge-vault/wiki/index.md) — 전 페이지 목록
+- [meta/conventions.md](knowledge-vault/wiki/meta/conventions.md) — 위키 작성 규칙

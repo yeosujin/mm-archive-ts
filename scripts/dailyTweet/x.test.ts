@@ -2,13 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { postThread } from './x';
 import type { TwitterApi } from 'twitter-api-v2';
 
+interface TweetPayload {
+  media?: { media_ids: string[] };
+  reply?: { in_reply_to_tweet_id: string };
+}
+
 // v2.tweet만 흉내내는 가짜 클라이언트 (failOnText 텍스트면 throw)
 function fakeClient(failOnText: string) {
-  const calls: { text: string; payload: any }[] = [];
+  const calls: { text: string; payload: TweetPayload }[] = [];
   let counter = 0;
   const client = {
     v2: {
-      tweet: async (text: string, payload: any) => {
+      tweet: async (text: string, payload: TweetPayload) => {
         calls.push({ text, payload });
         if (text === failOnText) throw new Error('duplicate content');
         counter += 1;
@@ -29,7 +34,7 @@ describe('postThread', () => {
     ]);
     expect(ids).toEqual(['id1', 'id2']);
     // 같은 그룹 C는 실패한 B가 아니라 마지막 성공(A=id1)에 답글로 연결
-    expect(calls[2].payload.reply.in_reply_to_tweet_id).toBe('id1');
+    expect(calls[2].payload.reply?.in_reply_to_tweet_id).toBe('id1');
   });
 
   it('첫 트윗은 reply 없이 게시', async () => {
@@ -55,6 +60,6 @@ describe('postThread', () => {
       { text: '251010 생일', mediaIds: ['m2'], groupKey: 'g1' }, // 같은 그룹 (미디어 5개 이상)
     ]);
     expect(calls[0].payload.reply).toBeUndefined();
-    expect(calls[1].payload.reply.in_reply_to_tweet_id).toBe('id1'); // 이어짐
+    expect(calls[1].payload.reply?.in_reply_to_tweet_id).toBe('id1'); // 이어짐
   });
 });

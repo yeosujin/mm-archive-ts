@@ -18,7 +18,7 @@ export async function uploadAskImage(file: File): Promise<string> {
 
   if (error) {
     console.error('Upload error detail:', JSON.stringify(error, null, 2));
-    console.error('Error props:', { name: error.name, message: error.message, status: (error as any).statusCode });
+    console.error('Error props:', { name: error.name, message: error.message, status: (error as { statusCode?: string }).statusCode });
     throw error;
   }
 
