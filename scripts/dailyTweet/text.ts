@@ -29,8 +29,11 @@ export function postText(title: string | undefined, date: string): string {
   return join(toYYMMDD(date), t ? stripYearPrefix(t, date) : '');
 }
 
-export function momentText(platformLabel: string | null, date: string): string {
-  return join(toYYMMDD(date), platformLabel ?? '');
+// 'YYMMDD 플랫폼' 다음 줄에 제목. 제목은 상위 영상 제목(없으면 모먼트 제목).
+export function momentText(platformLabel: string | null, title: string, date: string): string {
+  const head = join(toYYMMDD(date), platformLabel ?? '');
+  const t = title.trim();
+  return t ? `${head}\n${t}` : head;
 }
 
 // 모든 트윗 하단에 붙는 해시태그
