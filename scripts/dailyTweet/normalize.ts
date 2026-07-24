@@ -67,7 +67,7 @@ export function normalizeMoments(
         url: m.tweet_url,
         date: effDate,
         groupKey: `moment|${groupTitle}|${effDate}`,
-        text: momentText(label, effDate),
+        text: momentText(label, groupTitle, effDate),
       };
     });
 }

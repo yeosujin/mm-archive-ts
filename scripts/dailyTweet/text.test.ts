@@ -46,11 +46,14 @@ describe('postText', () => {
 });
 
 describe('momentText', () => {
-  it('플랫폼 있으면 YYMMDD 플랫폼', () => {
-    expect(momentText('Weverse', '2022-07-14')).toBe('220714 Weverse');
+  it('플랫폼 + 제목이면 둘째 줄에 제목', () => {
+    expect(momentText('유튜브', '슈일릿 EP.12', '2022-07-14')).toBe('220714 유튜브\n슈일릿 EP.12');
   });
-  it('플랫폼 없으면 날짜만', () => {
-    expect(momentText(null, '2022-07-14')).toBe('220714');
+  it('플랫폼 없으면 날짜 + 제목', () => {
+    expect(momentText(null, '독립순간', '2022-07-14')).toBe('220714\n독립순간');
+  });
+  it('제목 없으면 첫 줄만', () => {
+    expect(momentText('위버스', '', '2022-07-14')).toBe('220714 위버스');
   });
 });
 
