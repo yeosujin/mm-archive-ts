@@ -6,7 +6,7 @@
 
 ```bash
 npm install
-# docs/STACK.md 의 환경변수 표를 보고 .env 작성
+# knowledge-vault/wiki/tooling/env-vars.md 의 표를 보고 .env 작성
 npm run dev
 ```
 
@@ -34,8 +34,8 @@ React 19 · TypeScript · Vite · Supabase(PostgreSQL + pgvector) · Cloudflare 
 
 ## 문서
 
-- [docs/DOMAIN.md](docs/DOMAIN.md) — 콘텐츠 도메인
-- [docs/STRUCTURE.md](docs/STRUCTURE.md) — 구조 · 라우트 · 데이터 모델
-- [docs/STACK.md](docs/STACK.md) — 스택 · 의존성 · 환경변수
-- [docs/API.md](docs/API.md) — 서버리스 · DB · 외부 연동
-- [docs/AUTOMATION.md](docs/AUTOMATION.md) — 자동화 · 배포
+프로젝트 위키는 `knowledge-vault/wiki/`에 있다.
+
+- [overview.md](knowledge-vault/wiki/overview.md) — 전체 구조와 먼저 알아야 할 함정
+- [index.md](knowledge-vault/wiki/index.md) — 전 페이지 목록
+- [meta/conventions.md](knowledge-vault/wiki/meta/conventions.md) — 위키 작성 규칙
