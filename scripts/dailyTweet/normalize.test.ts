@@ -63,6 +63,19 @@ describe('normalizeMoments', () => {
     const items = normalizeMoments(moments, new Map(), R2, '2026-07-14');
     expect(items[0]).toMatchObject({ text: '210714', groupKey: 'moment|독립순간|2021-07-14' });
   });
+  it('클립은 id 순이 아니라 position 순으로 정렬된다', () => {
+    const videos = new Map<string, Video>([
+      ['v1', { id: 'v1', title: '라이브', url: 'https://youtu.be/x', date: '2022-07-14' }],
+    ]);
+    // id 순(zeta, alpha)과 position 순(1, 0)이 어긋나게 구성
+    const moments: Moment[] = [
+      { id: 'zeta', title: '두번째', tweet_url: `${R2}/b.mp4`, date: '2022-07-14', video_id: 'v1', position: 1 },
+      { id: 'alpha', title: '첫번째', tweet_url: `${R2}/a.mp4`, date: '2022-07-14', video_id: 'v1', position: 0 },
+    ];
+    const items = normalizeMoments(moments, videos, R2, '2026-07-14');
+    // position 0(a.mp4)이 먼저, position 1(b.mp4)이 뒤여야 함
+    expect(items.map(i => i.url)).toEqual([`${R2}/a.mp4`, `${R2}/b.mp4`]);
+  });
 });
 
 describe('normalizePosts', () => {
