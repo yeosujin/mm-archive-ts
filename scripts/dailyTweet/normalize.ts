@@ -1,6 +1,5 @@
 import type { Photo, Moment, Post, Video } from '../../src/lib/database';
 import { photoText, postText, momentText, stripSubfix } from './text';
-import { momentPlatformLabel } from './platform';
 
 export type MediaItem = {
   contentType: 'photo' | 'moment' | 'post';
@@ -31,7 +30,7 @@ export function normalizePhotos(photos: Photo[], r2PublicUrl: string): MediaItem
         url: p.image_url,
         date: p.date,
         groupKey: `photo|${groupTitle}|${p.date}`,
-        text: photoText(p.title, p.date),
+        text: photoText(p.date),
       };
     });
 }
@@ -59,7 +58,6 @@ export function normalizeMoments(
     .filter(({ effDate }) => isOnThisDay(effDate, todayString))
     .filter(({ m }) => isR2Url(m.tweet_url, r2PublicUrl))
     .map(({ m, parent, effDate }) => {
-      const label = momentPlatformLabel(parent);
       const groupTitle = (parent?.title?.trim() || m.title.trim());
       return {
         contentType: 'moment' as const,
@@ -67,7 +65,7 @@ export function normalizeMoments(
         url: m.tweet_url,
         date: effDate,
         groupKey: `moment|${groupTitle}|${effDate}`,
-        text: momentText(label, groupTitle, effDate),
+        text: momentText(effDate),
       };
     });
 }
@@ -77,7 +75,7 @@ export function normalizePosts(posts: Post[], r2PublicUrl: string): MediaItem[] 
   for (const post of posts) {
     if (!post.media || post.media.length === 0) continue;
     const groupTitle = (post.title ?? '').trim();
-    const text = postText(post.title, post.date);
+    const text = postText(post.date);
     for (const media of post.media) {
       if (!isR2Url(media.url, r2PublicUrl)) continue;
       items.push({
