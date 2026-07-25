@@ -6,7 +6,16 @@ on:
     # 자정 직전 트리거로는 새벽 1시 넘어 게시됐다. 자정 2시간여 전에 트리거만 걸어두고,
     # 스크립트가 KST 자정까지 대기했다가 게시한다(scripts/dailyTweet/index.ts).
     - cron: '50 12 * * *'
-  workflow_dispatch: {} # 수동 실행 허용(대기 없이 즉시 게시)
+  workflow_dispatch: # 수동 실행 허용(대기 없이 즉시 게시)
+    inputs:
+      dry_run:
+        description: '드라이런(게시 안 하고 계획만 출력)'
+        type: boolean
+        default: false
+      force:
+        description: '중복 방지 무시하고 강제 재게시'
+        type: boolean
+        default: false
 
 jobs:
   post:
@@ -32,4 +41,4 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npx tsx scripts/dailyTweet/index.ts
+      - run: npx tsx scripts/dailyTweet/index.ts ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.force && '--force' || '' }}
