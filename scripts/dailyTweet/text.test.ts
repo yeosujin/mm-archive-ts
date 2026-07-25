@@ -30,30 +30,22 @@ describe('stripYearPrefix', () => {
 });
 
 describe('photoText', () => {
-  it('subfix 제거 + YYMMDD', () => {
-    expect(photoText('생일-2', '2022-07-14')).toBe('220714 생일');
+  it('날짜(YYMMDD)만', () => {
+    expect(photoText('2022-07-14')).toBe('220714');
   });
 });
 
 describe('postText', () => {
-  it('제목 없으면 날짜만', () => {
-    expect(postText(undefined, '2029-01-11')).toBe('290111');
-    expect(postText('', '2029-01-11')).toBe('290111');
-  });
-  it('연도 prefix 제거', () => {
-    expect(postText('2025 생일', '2025-10-10')).toBe('251010 생일');
+  it('날짜(YYMMDD)만', () => {
+    expect(postText('2029-01-11')).toBe('290111');
+    expect(postText('2025-10-10')).toBe('251010');
   });
 });
 
 describe('momentText', () => {
-  it('플랫폼 + 제목이면 둘째 줄에 제목', () => {
-    expect(momentText('유튜브', '슈일릿 EP.12', '2022-07-14')).toBe('220714 유튜브\n슈일릿 EP.12');
-  });
-  it('플랫폼 없으면 날짜 + 제목', () => {
-    expect(momentText(null, '독립순간', '2022-07-14')).toBe('220714\n독립순간');
-  });
-  it('제목 없으면 첫 줄만', () => {
-    expect(momentText('위버스', '', '2022-07-14')).toBe('220714 위버스');
+  it('날짜(YYMMDD)만 (플랫폼/제목 없음)', () => {
+    expect(momentText('2022-07-14')).toBe('220714');
+    expect(momentText('2024-07-15')).toBe('240715');
   });
 });
 
