@@ -49,7 +49,20 @@ export function normalizeMoments(
   r2PublicUrl: string,
   todayString: string,
 ): MediaItem[] {
-  return moments
+  // 클립 순서를 앱(getMoments)과 동일하게 position 오름차순으로 맞춘다.
+  // (fetchAllRows는 페이지 안정성 때문에 id 순으로 가져오므로 여기서 재정렬)
+  // 동률이면 created_at → id 로 안정화. 그룹핑이 뒤따르므로 영상 간 섞임은 무관하고,
+  // 각 영상 내부의 상대 순서만 position 순으로 유지되면 된다.
+  const sorted = [...moments].sort((a, b) => {
+    const pa = a.position ?? 0;
+    const pb = b.position ?? 0;
+    if (pa !== pb) return pa - pb;
+    const ca = (a as { created_at?: string }).created_at ?? '';
+    const cb = (b as { created_at?: string }).created_at ?? '';
+    if (ca !== cb) return ca.localeCompare(cb);
+    return a.id.localeCompare(b.id);
+  });
+  return sorted
     .map(m => {
       const parent = m.video_id ? videosById.get(m.video_id) : undefined;
       const effDate = parent?.date || m.date; // 연결 영상 있으면 그 날짜
