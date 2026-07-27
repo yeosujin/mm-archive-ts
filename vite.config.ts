@@ -52,9 +52,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        // AWS SDK는 admin 전용(r2Upload)이라 vendor 청크로 고정하지 않는다.
+        // 고정하면 vite preload 헬퍼가 그 청크에 얹혀 entry가 SDK 전체를 static import하게 된다.
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-aws': ['@aws-sdk/client-s3', '@aws-sdk/lib-storage'],
           'vendor-supabase': ['@supabase/supabase-js'],
         },
       },
