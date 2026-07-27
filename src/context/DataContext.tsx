@@ -29,8 +29,14 @@ const queryKeys = {
 
 const preloadedThumbnails = new Set<string>();
 
+// 첫 화면에 보일 만큼만 프리로드한다. 목록 전체를 받으면 항목이 늘수록
+// 대역폭을 독점해 LCP 요소(홈 피처드 영상의 poster)까지 밀린다.
+const PRELOAD_LIMIT = 12;
+
 function preloadThumbnails(urls: (string | undefined | null)[]) {
-  const validUrls = urls.filter((url): url is string => !!url && !preloadedThumbnails.has(url));
+  const validUrls = urls
+    .filter((url): url is string => !!url && !preloadedThumbnails.has(url))
+    .slice(0, PRELOAD_LIMIT);
   if (validUrls.length === 0) return;
 
   const BATCH_SIZE = 3;

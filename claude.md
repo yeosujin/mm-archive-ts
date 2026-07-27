@@ -37,7 +37,7 @@ vault 작성 규칙은 [meta/conventions.md](knowledge-vault/wiki/meta/conventio
 
 ## 버전
 
-기능 추가나 주요 스타일 변경 시 `package.json`의 version을 올린다 (현재 1.20.2).
+기능 추가나 주요 스타일 변경 시 `package.json`의 version을 올린다 (현재 1.20.5).
 
 - patch — 버그 수정, 작은 스타일 변경
 - minor — 새 기능, 큰 UI 변경

@@ -210,7 +210,7 @@ export async function deleteFileFromR2(url: string): Promise<void> {
  */
 export async function uploadThumbnailFromVideo(file: File, videoKey: string): Promise<string> {
   const thumbnailBlob = await extractFirstFrame(file);
-  const thumbnailKey = videoKey.replace(/\.[^.]+$/, '_thumb.jpg');
+  const thumbnailKey = videoKey.replace(/\.[^.]+$/, `_thumb.${thumbnailExt(thumbnailBlob)}`);
 
   const upload = new Upload({
     client: r2Client,
@@ -218,7 +218,7 @@ export async function uploadThumbnailFromVideo(file: File, videoKey: string): Pr
       Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
       Key: thumbnailKey,
       Body: thumbnailBlob,
-      ContentType: 'image/jpeg',
+      ContentType: thumbnailBlob.type,
       StorageClass: 'STANDARD',
     },
   });
@@ -302,9 +302,9 @@ function extractFirstFrame(file: File): Promise<Blob> {
 export async function generateThumbnailFromUrl(videoUrl: string): Promise<string> {
   const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
   const videoKey = videoUrl.replace(`${r2PublicUrl}/`, '');
-  const thumbnailKey = videoKey.replace(/\.[^.]+$/, '_thumb.jpg');
 
   const blob = await extractFirstFrameFromUrl(videoUrl);
+  const thumbnailKey = videoKey.replace(/\.[^.]+$/, `_thumb.${thumbnailExt(blob)}`);
 
   const upload = new Upload({
     client: r2Client,
@@ -312,7 +312,7 @@ export async function generateThumbnailFromUrl(videoUrl: string): Promise<string
       Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
       Key: thumbnailKey,
       Body: blob,
-      ContentType: 'image/jpeg',
+      ContentType: blob.type,
       StorageClass: 'STANDARD',
     },
   });
@@ -409,10 +409,27 @@ function captureFrame(video: HTMLVideoElement): Promise<Blob> {
         if (blob) resolve(blob);
         else reject(new Error('썸네일 Blob 생성 실패'));
       },
-      'image/jpeg',
+      thumbnailMimeType,
       0.8
     );
   });
+}
+
+/**
+ * canvas가 WebP 인코딩을 지원하면 WebP, 아니면 JPEG.
+ * 미지원 브라우저에서 toBlob에 'image/webp'를 넘기면 PNG로 폴백돼 오히려 커진다.
+ */
+const thumbnailMimeType: string = (() => {
+  const probe = document.createElement('canvas');
+  probe.width = probe.height = 1;
+  return probe.toDataURL('image/webp').startsWith('data:image/webp')
+    ? 'image/webp'
+    : 'image/jpeg';
+})();
+
+/** 썸네일 blob의 MIME에 대응하는 파일 확장자 */
+function thumbnailExt(blob: Blob): string {
+  return blob.type === 'image/webp' ? 'webp' : 'jpg';
 }
 
 /**

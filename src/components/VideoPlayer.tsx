@@ -270,6 +270,10 @@ const VideoPlayer = memo(({
 
   return (
     <div className={`video-player ${className}`}>
+      {/* poster는 React 렌더 이후에야 발견되므로 LCP 후보는 미리 예열한다 (React 19가 head로 hoist) */}
+      {priority && thumbnailUrl && (
+        <link rel="preload" as="image" href={thumbnailUrl} fetchPriority="high" />
+      )}
       <div style={containerStyle}>
         <video
           ref={videoRef}
