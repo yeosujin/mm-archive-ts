@@ -285,16 +285,11 @@ export default function Videos() {
       return;
     }
 
+    // 펼칠 때는 스크롤을 건드리지 않는다 — 누른 카드가 그 자리에 머물러야 한다.
+    // (상단 정렬 스크롤은 애니메이션 중 모먼트를 누르면 카드가 끌려 올라가는 원인이었다)
     flushSync(() => {
       setExpandedVideo(videoId);
     });
-    if (anchor) {
-      const dateHeader = anchor.closest('.date-thread')?.querySelector('.thread-date-header') as HTMLElement | null;
-      const dateHeaderHeight = dateHeader?.offsetHeight ?? 0;
-      const rect = anchor.getBoundingClientRect();
-      const target = rect.top + window.scrollY - 72 - dateHeaderHeight - 10;
-      window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
-    }
     await loadMomentsForVideo(videoId);
   }, [expandedVideo, loadMomentsForVideo, clearHighlightParams]);
 
@@ -305,7 +300,8 @@ export default function Videos() {
     });
     if (anchor && beforeTop !== null) {
       const delta = anchor.getBoundingClientRect().top - beforeTop;
-      if (delta !== 0) window.scrollBy(0, delta);
+      // html에 scroll-behavior: smooth가 걸려 있어 instant를 명시하지 않으면 보정이 애니메이션된다
+      if (delta !== 0) window.scrollBy({ top: delta, behavior: 'instant' });
     }
   }, []);
 
