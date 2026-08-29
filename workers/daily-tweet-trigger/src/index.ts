@@ -98,10 +98,14 @@ async function notifyFailure(env: Env, reason: string): Promise<void> {
 }
 
 export default {
-  /** Cron 트리거: wrangler.toml의 crons 설정에 따라 호출된다. */
-  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+  /**
+   * Cron 트리거: wrangler.toml의 crons 설정에 따라 호출된다.
+   * waitUntil로 넘기지 않고 await 한다 — 실패가 Cloudflare 대시보드/`wrangler tail`에
+   * 정상적으로 에러로 남아야 문제를 알아챌 수 있기 때문.
+   */
+  async scheduled(event: ScheduledController, env: Env): Promise<void> {
     console.log(`[trigger] cron=${event.cron} at ${new Date(event.scheduledTime).toISOString()}`);
-    ctx.waitUntil(dispatch(env));
+    await dispatch(env);
   },
 
   /** 수동 확인용. TRIGGER_SECRET을 설정한 경우에만 열린다. */
