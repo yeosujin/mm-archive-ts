@@ -1,0 +1,18 @@
+name = "mmemory-daily-tweet-trigger"
+main = "src/index.ts"
+compatibility_date = "2026-08-29"
+
+# KST 자정 = 15:00 UTC. Cloudflare Cron도 UTC 기준이다.
+# (GitHub schedule과 달리 거의 정시에 실행된다 — 이 워커를 두는 이유)
+[triggers]
+crons = ["0 15 * * *"]
+
+[vars]
+GITHUB_OWNER = "yeosujin"
+GITHUB_REPO = "mm-archive-ts"
+EVENT_TYPE = "daily-tweet"
+
+# 시크릿은 파일에 두지 않는다. 아래 명령으로 주입:
+#   npx wrangler secret put GITHUB_TOKEN
+#   npx wrangler secret put DISCORD_WEBHOOK_URL   (선택)
+#   npx wrangler secret put TRIGGER_SECRET        (선택, 수동 트리거 엔드포인트용)

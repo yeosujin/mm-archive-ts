@@ -27,3 +27,7 @@ dist-ssr
 .env*.local
 .claude/
 .bkit/
+
+# Cloudflare Worker
+workers/*/node_modules
+workers/*/.wrangler
