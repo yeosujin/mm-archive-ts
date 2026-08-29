@@ -1,0 +1,17 @@
+{
+  "name": "mmemory-daily-tweet-trigger",
+  "version": "1.0.0",
+  "private": true,
+  "description": "매일 KST 자정에 GitHub repository_dispatch를 쏴서 자동 트윗 워크플로를 정시에 실행시키는 Cloudflare Worker",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "test:cron": "wrangler dev --test-scheduled"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260828.1",
+    "typescript": "~5.9.3",
+    "wrangler": "^4.20.0"
+  }
+}

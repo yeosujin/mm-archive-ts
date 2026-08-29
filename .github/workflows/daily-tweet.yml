@@ -1,12 +1,17 @@
 name: Daily Tweet
 
 on:
+  # 정시 게시의 주 경로. Cloudflare Worker가 매일 15:00 UTC(KST 자정)에 쏜다.
+  # (workers/daily-tweet-trigger) GitHub schedule과 달리 즉시 실행되므로
+  # 스크립트의 자정 대기 없이 곧바로 게시된다.
+  repository_dispatch:
+    types: [daily-tweet]
+
+  # 이하 schedule은 위 Worker가 죽었을 때를 대비한 예비 경로다.
+  # GitHub 스케줄 디스패치는 지연이 크고 불규칙해(상시 60~90분, 2026-08-27~29에는 약 10시간
+  # 지연되거나 아예 뜨지 않음) 정시 게시를 기대할 수 없다. 늦게라도 그날 몫이 나가게만 한다.
+  # Worker가 이미 게시했으면 tweet_bot_log(dedup)에 걸려 조용히 스킵된다.
   schedule:
-    # 목표: KST 자정(= 15:00 UTC) 게시.
-    # 트리거만 미리 걸어두고 스크립트가 KST 자정까지 대기한다(scripts/dailyTweet/index.ts).
-    # 다만 GitHub 스케줄 디스패치 지연이 일정하지 않아(상시 60~90분, 2026-08-27~28에는 약 10시간)
-    # 단일 트리거로는 정시를 보장할 수 없다. 트리거를 여러 개 깔아 하나가 크게 밀려도
-    # 다른 하나가 제때 뜨도록 하고, 중복 게시는 tweet_bot_log(dedup) + 아래 concurrency로 막는다.
     - cron: '50 12 * * *' # 21:50 KST — 주 트리거(지연 2h10m까지 흡수 후 자정 정시 게시)
     - cron: '30 14 * * *' # 23:30 KST — 백업1(지연 30분까지 흡수 후 자정 정시 게시)
     - cron: '10 15 * * *' # 00:10 KST — 백업2(자정 직후 즉시 게시)
@@ -56,4 +61,6 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npx tsx scripts/dailyTweet/index.ts ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.force && '--force' || '' }}
+      # 플래그는 수동 실행(inputs) 또는 Worker(client_payload) 양쪽에서 올 수 있다.
+      # schedule 이벤트에서는 둘 다 비어 있어 플래그 없이 실행된다.
+      - run: npx tsx scripts/dailyTweet/index.ts ${{ (inputs.dry_run || github.event.client_payload.dry_run) && '--dry-run' || '' }} ${{ (inputs.force || github.event.client_payload.force) && '--force' || '' }}
