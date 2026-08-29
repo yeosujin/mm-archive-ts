@@ -2,10 +2,16 @@ name: Daily Tweet
 
 on:
   schedule:
-    # UTC 12:50 = KST 21:50. GitHub 스케줄 디스패치가 이 저장소에선 상습적으로 60~90분 밀려서
-    # 자정 직전 트리거로는 새벽 1시 넘어 게시됐다. 자정 2시간여 전에 트리거만 걸어두고,
-    # 스크립트가 KST 자정까지 대기했다가 게시한다(scripts/dailyTweet/index.ts).
-    - cron: '50 12 * * *'
+    # 목표: KST 자정(= 15:00 UTC) 게시.
+    # 트리거만 미리 걸어두고 스크립트가 KST 자정까지 대기한다(scripts/dailyTweet/index.ts).
+    # 다만 GitHub 스케줄 디스패치 지연이 일정하지 않아(상시 60~90분, 2026-08-27~28에는 약 10시간)
+    # 단일 트리거로는 정시를 보장할 수 없다. 트리거를 여러 개 깔아 하나가 크게 밀려도
+    # 다른 하나가 제때 뜨도록 하고, 중복 게시는 tweet_bot_log(dedup) + 아래 concurrency로 막는다.
+    - cron: '50 12 * * *' # 21:50 KST — 주 트리거(지연 2h10m까지 흡수 후 자정 정시 게시)
+    - cron: '30 14 * * *' # 23:30 KST — 백업1(지연 30분까지 흡수 후 자정 정시 게시)
+    - cron: '10 15 * * *' # 00:10 KST — 백업2(자정 직후 즉시 게시)
+    - cron: '10 16 * * *' # 01:10 KST — 백업3
+    - cron: '10 18 * * *' # 03:10 KST — 백업4(최후)
   workflow_dispatch: # 수동 실행 허용(대기 없이 즉시 게시)
     inputs:
       dry_run:
@@ -16,6 +22,15 @@ on:
         description: '중복 방지 무시하고 강제 재게시'
         type: boolean
         default: false
+
+# 중복 게시 방지의 핵심.
+# 게시 여부 판정(alreadyPosted)은 "확인 후 게시"라서, 두 트리거가 나란히 자정까지 대기하다
+# 15:00:00에 동시에 깨어나면 둘 다 "아직 안 올림"으로 보고 중복 게시한다.
+# 한 번에 하나만 실행시키면 뒤엣것은 앞엣것이 끝난 뒤 시작해 dedup 검사에 정상적으로 걸린다.
+# (cancel-in-progress: false — 대기 중인 앞 실행을 취소하면 정시 게시를 놓치므로 취소하지 않는다)
+concurrency:
+  group: daily-tweet
+  cancel-in-progress: false
 
 jobs:
   post:
