@@ -28,9 +28,14 @@ Cloudflare Cron (15:00 UTC, 정시)
 기존 `schedule` 크론들은 **예비 경로로 남겨뒀다.** 워커가 죽어도 늦게나마 그날 몫이 나가고,
 워커가 이미 올렸으면 `tweet_bot_log` 중복 방지에 걸려 조용히 스킵된다.
 
-## 설정 (최초 1회)
+## 설정하는 두 가지 방법
 
-### 1. GitHub 토큰 발급
+- **A. 대시보드** — CLI 없이 브라우저에서 클릭만. 아래 "대시보드로 설정하기" 참고.
+- **B. wrangler CLI** — 코드가 저장소와 함께 관리된다. "CLI로 설정하기" 참고.
+
+둘 중 **하나만** 하면 된다. 공통으로 GitHub 토큰은 먼저 만들어야 한다.
+
+## 1. GitHub 토큰 발급 (공통, 최초 1회)
 
 `repository_dispatch` 권한이 있는 PAT가 필요하다. 둘 중 하나:
 
@@ -40,7 +45,43 @@ Cloudflare Cron (15:00 UTC, 정시)
 
 만료일을 길게 잡고, 만료 전 갱신을 잊지 말 것. (만료되면 워커가 실패 알림을 보낸다)
 
-### 2. 배포
+## 대시보드로 설정하기 (CLI 불필요)
+
+붙여넣을 코드: **`dashboard-paste.js`** (이 폴더에 있음)
+저장소 정보가 코드에 들어 있어 **시크릿은 `GITHUB_TOKEN` 하나만** 넣으면 된다.
+
+1. **워커 생성**
+   Cloudflare 대시보드 → **Workers & Pages** → **Create** → **Start with Hello World!** → Deploy
+   이름은 `mmemory-daily-tweet-trigger` 권장.
+
+2. **코드 붙여넣기**
+   생성된 워커 → **Edit code** → 편집기 내용을 전부 지우고
+   `dashboard-paste.js` 전체를 붙여넣기 → **Deploy**
+
+3. **토큰 넣기**
+   워커 → **Settings** → **Variables and Secrets** → **Add**
+   - Type: **Secret**
+   - Name: `GITHUB_TOKEN`
+   - Value: 위 1단계에서 만든 토큰
+   → **Deploy**
+
+   (선택) 같은 방법으로 `DISCORD_WEBHOOK_URL`(실패 알림), `TRIGGER_SECRET`(수동 트리거) 추가.
+
+4. **정시 실행 등록**
+   워커 → **Settings** → **Triggers** → **Cron Triggers** → **Add Cron Trigger**
+   → `0 15 * * *` 입력 후 저장. (UTC 기준 = KST 자정)
+
+5. **동작 확인**
+   `TRIGGER_SECRET`을 넣었다면 브라우저에서:
+   `https://<워커주소>/trigger?secret=<TRIGGER_SECRET>&dry_run=true`
+   → `dispatched (dry-run)` 이 뜨고, GitHub Actions에 실행이 하나 생기면 성공.
+
+   시크릿을 안 넣었다면 GitHub Actions 탭에서 다음 날 자정 이후 실행이 생겼는지 확인하면 된다.
+
+> `dashboard-paste.js`는 `src/index.ts`와 동작이 같은 사본이다.
+> 로직을 고칠 일이 생기면 **두 파일을 같이** 고쳐야 한다.
+
+## CLI로 설정하기
 
 ```bash
 cd workers/daily-tweet-trigger
