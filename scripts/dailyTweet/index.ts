@@ -6,7 +6,7 @@ import { normalizeMoments, normalizePhotos, normalizePosts, isR2Url } from './no
 import { planTweets } from './group';
 import { mimeFromUrl } from './mime';
 import { makeR2Client, urlToKey, downloadFromR2 } from './r2';
-import { makeXClient, uploadMedia, postThread, type PreparedTweet } from './x';
+import { makeXClient, uploadMedia, postThread, tweetUrl, type PreparedTweet } from './x';
 import { makeSupabase, alreadyPosted, recordRun } from './dedup';
 import { fetchAllRows } from './fetch';
 import { notifyDiscord } from './notify';
@@ -133,11 +133,15 @@ async function main() {
 
   const posted = await postThread(x, prepared);
   console.log(`[bot] ${posted.length}개 트윗 게시 완료`);
+  // 계획 대비 실제 게시 수가 다르면 즉시 눈에 띄게 남긴다.
+  if (posted.length !== prepared.length) {
+    console.warn(`[bot] ⚠️ 계획 ${prepared.length}개 중 ${posted.length}개만 게시됨`);
+  }
 
   if (posted.length > 0) {
     await recordRun(sb, runDate, posted.length);
     console.log('[bot] tweet_bot_log 기록 완료');
-    await notifyDiscord(posted.length, prepared.map(p => p.text));
+    await notifyDiscord(posted.length, prepared.map(p => p.text), posted.map(tweetUrl));
   } else {
     console.log('[bot] 게시된 트윗 없음 → 로그 미기록(재시도 가능)');
   }
