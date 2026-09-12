@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { postThread } from './x';
+import { postThread, describeError } from './x';
 import type { TwitterApi } from 'twitter-api-v2';
 
 interface TweetPayload {
@@ -27,7 +27,7 @@ function fakeClient(failOnText: string) {
 describe('postThread', () => {
   it('중간 트윗이 실패해도 나머지는 계속 게시하고 성공한 id만 반환', async () => {
     const { client, calls } = fakeClient('220714 B');
-    const ids = await postThread(client, [
+    const { ids } = await postThread(client, [
       { text: '220714 A', mediaIds: ['m1'], groupKey: 'g1' },
       { text: '220714 B', mediaIds: ['m2'], groupKey: 'g1' }, // 실패
       { text: '220714 C', mediaIds: ['m3'], groupKey: 'g1' },
@@ -35,6 +35,16 @@ describe('postThread', () => {
     expect(ids).toEqual(['id1', 'id2']);
     // 같은 그룹 C는 실패한 B가 아니라 마지막 성공(A=id1)에 답글로 연결
     expect(calls[2].payload.reply?.in_reply_to_tweet_id).toBe('id1');
+  });
+
+  it('실패 사유를 수집해 반환한다 (알림에 원인을 싣기 위해)', async () => {
+    const { client } = fakeClient('220714 B');
+    const { ids, failures } = await postThread(client, [
+      { text: '220714 A', mediaIds: ['m1'], groupKey: 'g1' },
+      { text: '220714 B', mediaIds: ['m2'], groupKey: 'g1' }, // 실패
+    ]);
+    expect(ids).toEqual(['id1']);
+    expect(failures).toEqual(['duplicate content']);
   });
 
   it('첫 트윗은 reply 없이 게시', async () => {
@@ -61,5 +71,30 @@ describe('postThread', () => {
     ]);
     expect(calls[0].payload.reply).toBeUndefined();
     expect(calls[1].payload.reply?.in_reply_to_tweet_id).toBe('id1'); // 이어짐
+  });
+});
+
+describe('describeError', () => {
+  // 2026-09-13 00:01 실제 장애 payload (인증 만료)
+  it('X 인증 오류(401 code 32)를 한 줄로', () => {
+    const err = {
+      code: 401,
+      errors: [{ message: 'Could not authenticate you', code: 32 }],
+      data: { errors: [{ message: 'Could not authenticate you', code: 32 }] },
+    };
+    expect(describeError(err)).toBe('HTTP 401 Could not authenticate you');
+  });
+
+  // 2026-09-12 / 09-13 실제 장애 payload (X 서버 장애)
+  it('X 서버 장애(503)를 한 줄로', () => {
+    const err = {
+      code: 503,
+      data: { status: 503, title: 'Service Unavailable', detail: 'Service Unavailable' },
+    };
+    expect(describeError(err)).toBe('HTTP 503 Service Unavailable');
+  });
+
+  it('평범한 Error는 message를', () => {
+    expect(describeError(new Error('duplicate content'))).toBe('duplicate content');
   });
 });

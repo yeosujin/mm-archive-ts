@@ -6,10 +6,22 @@ import { normalizeMoments, normalizePhotos, normalizePosts, isR2Url } from './no
 import { planTweets } from './group';
 import { mimeFromUrl } from './mime';
 import { makeR2Client, urlToKey, downloadFromR2 } from './r2';
-import { makeXClient, uploadMedia, postThread, tweetUrl, type PreparedTweet } from './x';
+import {
+  makeXClient,
+  uploadMedia,
+  postThread,
+  tweetUrl,
+  describeError,
+  type PreparedTweet,
+} from './x';
 import { makeSupabase, alreadyPosted, recordRun } from './dedup';
 import { fetchAllRows } from './fetch';
-import { notifyDiscord } from './notify';
+import {
+  notifyDiscord,
+  notifyDiscordAlert,
+  buildFailureSummary,
+  buildCrashSummary,
+} from './notify';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force'); // 중복 방지(tweet_bot_log) 무시하고 재게시
@@ -112,6 +124,7 @@ async function main() {
   const bucket = process.env.VITE_R2_BUCKET_NAME!;
 
   const prepared: PreparedTweet[] = [];
+  const mediaFailures: string[] = [];
   for (const tw of tweets) {
     const mediaIds: string[] = [];
     for (const url of tw.mediaUrls) {
@@ -120,6 +133,7 @@ async function main() {
         const id = await uploadMedia(x, buf, mimeFromUrl(url));
         mediaIds.push(id);
       } catch (e) {
+        mediaFailures.push(describeError(e));
         console.error(`[bot] 미디어 스킵: ${url}`, e);
       }
     }
@@ -128,14 +142,24 @@ async function main() {
 
   if (prepared.length === 0) {
     console.log('[bot] 업로드 성공한 미디어 없음 → 게시 안 함');
+    // 미디어 업로드가 전멸하면 게시가 통째로 누락된다. 반드시 알린다.
+    await notifyDiscordAlert(
+      buildFailureSummary(runDate, tweets.length, 0, mediaFailures),
+    );
     return;
   }
 
-  const posted = await postThread(x, prepared);
+  const { ids: posted, failures } = await postThread(x, prepared);
   console.log(`[bot] ${posted.length}개 트윗 게시 완료`);
-  // 계획 대비 실제 게시 수가 다르면 즉시 눈에 띄게 남긴다.
+  // 계획 대비 실제 게시 수가 다르면 로그와 디스코드 양쪽에 남긴다.
   if (posted.length !== prepared.length) {
     console.warn(`[bot] ⚠️ 계획 ${prepared.length}개 중 ${posted.length}개만 게시됨`);
+    await notifyDiscordAlert(
+      buildFailureSummary(runDate, prepared.length, posted.length, [
+        ...failures,
+        ...mediaFailures,
+      ]),
+    );
   }
 
   if (posted.length > 0) {
@@ -147,7 +171,14 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch(async err => {
   console.error('[bot] 실패:', err);
+  // 예외로 죽으면 여기까지 오는데, 알리지 않으면 GitHub Actions를 직접 봐야만 안다.
+  // (실제로 X 인증 만료(401)로 봇이 죽었을 때 아무 연락이 없었다)
+  try {
+    await notifyDiscordAlert(buildCrashSummary(getKstDateString(), describeError(err)));
+  } catch {
+    /* 알림 실패가 종료를 막지 않게 한다 */
+  }
   process.exit(1);
 });
