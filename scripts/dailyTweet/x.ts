@@ -21,10 +21,42 @@ export function tweetUrl(id: string): string {
   return `https://x.com/i/web/status/${id}`;
 }
 
+export type PostThreadResult = {
+  /** 게시에 성공한 트윗 id */
+  ids: string[];
+  /** 실패 사유(트윗별). 알림에 원인을 싣기 위해 수집한다. */
+  failures: string[];
+};
+
+/**
+ * X 에러에서 사람이 읽을 수 있는 한 줄을 뽑는다.
+ * 원본 객체는 헤더·쿠키까지 딸려와 알림에 싣기엔 너무 길다.
+ * 예) "HTTP 401 Could not authenticate you" / "HTTP 503 Service Unavailable"
+ */
+export function describeError(e: unknown): string {
+  if (e && typeof e === 'object') {
+    const err = e as {
+      code?: number;
+      message?: string;
+      errors?: { message?: string }[];
+      data?: { status?: number; title?: string; detail?: string };
+    };
+    const status = err.code ?? err.data?.status;
+    const detail = err.errors?.[0]?.message ?? err.data?.detail ?? err.data?.title;
+    if (detail) return status ? `HTTP ${status} ${detail}` : detail;
+    if (err.message) return err.message;
+  }
+  return String(e);
+}
+
 // 게시. 같은 groupKey끼리는 직전 트윗에 답글로 이어(쓰레드), 그룹이 바뀌면
-// 답글 연결을 끊어 독립 트윗으로 올린다. 게시된 트윗 id 배열 반환.
-export async function postThread(client: TwitterApi, tweets: PreparedTweet[]): Promise<string[]> {
+// 답글 연결을 끊어 독립 트윗으로 올린다. 성공 id와 실패 사유를 함께 반환.
+export async function postThread(
+  client: TwitterApi,
+  tweets: PreparedTweet[],
+): Promise<PostThreadResult> {
   const ids: string[] = [];
+  const failures: string[] = [];
   let replyTo: string | undefined;
   let prevGroup: string | undefined;
   for (const t of tweets) {
@@ -46,8 +78,10 @@ export async function postThread(client: TwitterApi, tweets: PreparedTweet[]): P
       replyTo = res.data.id;
       ids.push(res.data.id);
     } catch (e) {
-      console.error(`[bot] 트윗 실패(스킵): "${t.text}"`, e);
+      const reason = describeError(e);
+      failures.push(reason);
+      console.error(`[bot] 트윗 실패(스킵): "${t.text}" — ${reason}`, e);
     }
   }
-  return ids;
+  return { ids, failures };
 }
