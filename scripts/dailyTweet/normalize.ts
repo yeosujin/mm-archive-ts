@@ -71,13 +71,16 @@ export function normalizeMoments(
     .filter(({ effDate }) => isOnThisDay(effDate, todayString))
     .filter(({ m }) => isR2Url(m.tweet_url, r2PublicUrl))
     .map(({ m, parent, effDate }) => {
-      const groupTitle = (parent?.title?.trim() || m.title.trim());
+      // 영상 출처가 다르면 반드시 다른 트윗이어야 하므로 제목이 아니라 id로 묶는다.
+      // 제목으로 묶으면 같은 날 제목이 같은 다른 영상이 한 스레드로 합쳐진다.
+      // 상위 영상이 없는 독립 모먼트는 자기 id로 묶어 서로 섞이지 않게 한다.
+      const groupId = parent ? parent.id : `solo:${m.id}`;
       return {
         contentType: 'moment' as const,
         mediaType: 'video' as const,
         url: m.tweet_url,
         date: effDate,
-        groupKey: `moment|${groupTitle}|${effDate}`,
+        groupKey: `moment|${groupId}|${effDate}`,
         text: momentText(effDate),
       };
     });
@@ -87,7 +90,6 @@ export function normalizePosts(posts: Post[], r2PublicUrl: string): MediaItem[] 
   const items: MediaItem[] = [];
   for (const post of posts) {
     if (!post.media || post.media.length === 0) continue;
-    const groupTitle = (post.title ?? '').trim();
     const text = postText(post.date);
     for (const media of post.media) {
       if (!isR2Url(media.url, r2PublicUrl)) continue;
@@ -96,7 +98,9 @@ export function normalizePosts(posts: Post[], r2PublicUrl: string): MediaItem[] 
         mediaType: media.type,
         url: media.url,
         date: post.date,
-        groupKey: `post|${groupTitle}|${post.date}`,
+        // 모먼트와 같은 이유로 제목이 아니라 id로 묶는다
+        // (같은 날 제목이 같은 다른 포스트가 한 스레드로 합쳐지는 것을 막는다)
+        groupKey: `post|${post.id}|${post.date}`,
         text,
       });
     }

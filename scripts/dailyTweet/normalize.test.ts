@@ -39,7 +39,7 @@ describe('normalizeMoments', () => {
     const items = normalizeMoments(moments, videos, R2, '2026-07-14');
     expect(items[0]).toMatchObject({
       contentType: 'moment', mediaType: 'video', url: `${R2}/m.mp4`,
-      groupKey: 'moment|위버스 라이브|2022-07-14', text: '220714',
+      groupKey: 'moment|v1|2022-07-14', text: '220714',
     });
   });
   it('상위 영상 날짜로 선정 (모먼트 자체 날짜는 달라도 포함)', () => {
@@ -53,15 +53,37 @@ describe('normalizeMoments', () => {
     const items = normalizeMoments(moments, videos, R2, '2026-07-15');
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({
-      date: '2024-07-15', groupKey: 'moment|럭키 피크닉|2024-07-15', text: '240715',
+      date: '2024-07-15', groupKey: 'moment|v9|2024-07-15', text: '240715',
     });
   });
-  it('상위 영상 없으면 자기 날짜 기준 (groupKey는 자기 title)', () => {
+  it('제목이 같아도 영상이 다르면 다른 그룹 (다른 트윗으로 나간다)', () => {
+    const videos = new Map<string, Video>([
+      ['v1', { id: 'v1', title: '같은제목', url: 'https://youtu.be/a', date: '2022-07-14' }],
+      ['v2', { id: 'v2', title: '같은제목', url: 'https://youtu.be/b', date: '2022-07-14' }],
+    ]);
+    const moments: Moment[] = [
+      { id: 'm1', title: 'A', tweet_url: `${R2}/a.mp4`, date: '2022-07-14', video_id: 'v1' },
+      { id: 'm2', title: 'B', tweet_url: `${R2}/b.mp4`, date: '2022-07-14', video_id: 'v2' },
+    ];
+    const items = normalizeMoments(moments, videos, R2, '2026-07-14');
+    expect(items).toHaveLength(2);
+    // 제목으로 묶으면 둘이 합쳐져 한 스레드가 된다 — id로 묶어야 분리된다
+    expect(items[0].groupKey).not.toBe(items[1].groupKey);
+  });
+  it('독립 모먼트는 제목이 같아도 서로 섞이지 않는다', () => {
+    const moments: Moment[] = [
+      { id: 'm1', title: '귀여워', tweet_url: `${R2}/a.mp4`, date: '2021-07-14' },
+      { id: 'm2', title: '귀여워', tweet_url: `${R2}/b.mp4`, date: '2021-07-14' },
+    ];
+    const items = normalizeMoments(moments, new Map(), R2, '2026-07-14');
+    expect(items[0].groupKey).not.toBe(items[1].groupKey);
+  });
+  it('상위 영상 없으면 자기 날짜 기준 (groupKey는 자기 id)', () => {
     const moments: Moment[] = [
       { id: 'm2', title: '독립순간', tweet_url: `${R2}/m2.mp4`, date: '2021-07-14' },
     ];
     const items = normalizeMoments(moments, new Map(), R2, '2026-07-14');
-    expect(items[0]).toMatchObject({ text: '210714', groupKey: 'moment|독립순간|2021-07-14' });
+    expect(items[0]).toMatchObject({ text: '210714', groupKey: 'moment|solo:m2|2021-07-14' });
   });
   it('클립은 id 순이 아니라 position 순으로 정렬된다', () => {
     const videos = new Map<string, Video>([
@@ -91,7 +113,21 @@ describe('normalizePosts', () => {
     ];
     const items = normalizePosts(posts, R2);
     expect(items).toHaveLength(2);
-    expect(items[0]).toMatchObject({ mediaType: 'image', text: '251010', groupKey: 'post|2025 생일|2025-10-10' });
+    expect(items[0]).toMatchObject({ mediaType: 'image', text: '251010', groupKey: 'post|po1|2025-10-10' });
     expect(items[1]).toMatchObject({ mediaType: 'video', text: '251010' });
+  });
+});
+
+describe('normalizePosts - 제목 충돌', () => {
+  it('제목이 같아도 포스트가 다르면 다른 그룹', () => {
+    const posts: Post[] = [
+      { id: 'po1', title: '생일', platform: 'twitter', date: '2025-10-10',
+        media: [{ type: 'image', url: `${R2}/1.jpg` }] },
+      { id: 'po2', title: '생일', platform: 'weverse', date: '2025-10-10',
+        media: [{ type: 'image', url: `${R2}/2.jpg` }] },
+    ];
+    const items = normalizePosts(posts, R2);
+    expect(items).toHaveLength(2);
+    expect(items[0].groupKey).not.toBe(items[1].groupKey);
   });
 });
