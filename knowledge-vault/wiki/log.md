@@ -12,6 +12,22 @@ append-only. **새 항목은 최상단.**
 
 ---
 
+## 2026-09-18 — 에피소드에 X 봇 전용 이미지
+
+`episodes.tweet_images`(jsonb, R2 URL 배열) 추가. 어드민에서만 첨부하고 공개 페이지에는
+렌더링하지 않는다. [[daily-tweet-bot]]이 "그 해 오늘"에 걸린 에피소드에서 이 배열만 읽어
+에피소드 1개 = 트윗 1개로 올린다.
+
+- 마이그레이션 `supabase/sql/2026-09-18-add-episode-tweet-images.sql`
+- 새 컴포넌트 `src/components/AdminTweetImages.tsx` (DM/댓글/LP 3종 폼이 공유)
+- `normalizeEpisodes` 추가 — 트윗 미디어 순서는 **첨부 → 본문(DM) 이미지**, 중복 URL은 한 번만.
+  첨부가 비어 있으면 게시하지 않는다(과거 DM 본문 이미지의 무단 자동 게시 방지)
+
+**문서 정리** — [[daily-tweet-bot]]의 캡션 규칙(날짜만 남음), `groupKey`(제목→id),
+스케줄(Cloudflare Worker 주 경로 + schedule 5개 예비)이 코드와 어긋나 있어 함께 고쳤다.
+
+---
+
 ## 2026-07-24 — vault 최초 구축
 
 **입력** — `.raw/sources/project-docs-2026-07-24.md` (691줄, md5 `81994bb9...`). `CLAUDE.md` + `docs/{DOMAIN,STRUCTURE,STACK,API,AUTOMATION}.md`를 코드 대조로 다시 쓴 스냅샷.
