@@ -48,7 +48,7 @@ export default function AdminTweetImages({ urls, onChange, onError }: Props) {
       onChange([...urls, ...uploaded]);
     } catch (error) {
       console.error('Tweet image upload error:', error);
-      onError?.('트윗 이미지 업로드 중 오류가 발생했어요.');
+      onError?.('첨부 이미지 업로드 중 오류가 발생했어요.');
     } finally {
       setUploading(false);
       setProgress(0);
@@ -66,7 +66,7 @@ export default function AdminTweetImages({ urls, onChange, onError }: Props) {
 
   return (
     <div className="form-group">
-      <label>트윗 이미지 (선택)</label>
+      <label>첨부 이미지 (선택)</label>
       <span className="form-hint">
         사이트에는 안 보이고 &quot;그 해 오늘&quot; 자동 트윗에만 올라가요. 최대 {MAX_TWEET_IMAGES}장,
         왼쪽부터 순서대로 실려요. DM 본문에 넣은 사진은 이 뒤에 이어서 올라가고,
@@ -129,7 +129,7 @@ export default function AdminTweetImages({ urls, onChange, onError }: Props) {
           ? `업로드 중... ${progress}%`
           : remaining <= 0
             ? `이미지 ${MAX_TWEET_IMAGES}장 (가득 참)`
-            : `🐦 트윗 이미지 추가 (${urls.length}/${MAX_TWEET_IMAGES})`}
+            : `🐦 첨부 이미지 추가 (${urls.length}/${MAX_TWEET_IMAGES})`}
       </button>
       {uploading && (
         <div className="photo-progress-bar">
