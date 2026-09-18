@@ -979,6 +979,63 @@
   transition: width 0.3s ease;
 }
 
+/* Tweet-only Images (X 봇 전용, 공개 페이지 비노출) */
+.tweet-image-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tweet-image-list:empty {
+  display: none;
+}
+
+.tweet-image-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tweet-image-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.tweet-image-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.tweet-image-move,
+.tweet-image-remove {
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tweet-image-move:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.tweet-image-remove {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: transparent;
+  color: #ef4444;
+}
+
 /* Episode Type Tabs */
 .episode-type-tabs {
   display: flex;

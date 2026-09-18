@@ -3,7 +3,7 @@ type: tooling
 status: stable
 tags: [tooling, bot, automation]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-09-18
 ---
 
 # 그해오늘 X 봇
@@ -37,26 +37,33 @@ updated: 2026-07-24
 ## 게시 대상
 
 - **R2에 올라간 미디어만.** 외부 URL(YouTube, 트위터 임베드 등)은 X에 업로드할 수 없어 제외된다 → [[r2-media-pipeline]]
-- 대상: 사진([[photos]]), 순간([[videos-moments]]의 Moments), 포스트([[posts]])의 미디어
+- 대상: 사진([[photos]]), 순간([[videos-moments]]의 Moments), 포스트([[posts]])의 미디어,
+  에피소드([[episodes]])의 `tweet_images`
 - **영상(Videos)은 제외 대상**이다. dry-run에서는 "왜 안 올라갔는지" 확인용으로만 출력된다
 - 모먼트는 상위 영상이 있으면 **상위 영상 날짜**로 판정한다. 독립 모먼트는 자기 날짜 기준 → [[content-date-semantics]]
+- 에피소드는 **어드민에서 따로 첨부한 `tweet_images`만** 올린다. 본문(`messages`)의 image는 사이트용이라 쓰지 않는다
 
 ## 캡션 규칙 (`text.ts`)
 
-```
-사진    250724 제목            제목 끝의 -1, -2 접미사 제거
-포스트  250724 제목            제목 앞 연도 prefix 제거 ('2025 생일' → '생일')
-모먼트  250724 유튜브
-        슈일릿 EP.12           1줄=날짜+플랫폼, 2줄=제목(상위 영상 제목, 없으면 모먼트 제목)
-```
+본문은 **날짜(YYMMDD)뿐**이다 — 종류를 가리지 않고 `250724` 한 줄. 플랫폼·제목은 넣지 않는다.
+끝에 빈 줄 하나 뒤 `#그해오늘`이 붙는다.
 
-모든 트윗 끝에 빈 줄 하나 뒤 `#그해오늘`이 붙는다. 플랫폼 라벨은 한글(유튜브/위버스/인스타그램/트위터), '기타'면 `platform_name`.
+같은 `groupKey`끼리만 스레드로 이어지고, 다른 그룹은 독립 트윗으로 나간다. 그룹은 오래된 날짜부터.
 
-같은 `groupKey`(종류|제목|날짜)끼리만 스레드로 이어지고, 다른 그룹은 독립 트윗으로 나간다. 그룹은 오래된 날짜부터.
+`groupKey`는 **id 기준**이다 — `moment|상위영상id(없으면 solo:모먼트id)|날짜`, `post|포스트id|날짜`,
+`episode|에피소드id|날짜`. 제목으로 묶던 시절엔 제목만 같으면 다른 영상이 한 트윗에 합쳐졌다.
+사진만 예외로 `photo|제목(subfix 제거)|날짜` — '생일-1', '생일-2'를 한 트윗에 묶기 위해서다.
 
 ## 스케줄
 
-cron `50 12 * * *` (UTC) = **KST 21:50**. 자정 게시인데 2시간 이상 일찍 트리거하는 이유와 두 가지 가드는 → [[scheduled-job-drift-compensation]], 결정 경위는 → [[bot-early-trigger-midnight-wait]]
+주 경로는 **Cloudflare Worker**(`workers/daily-tweet-trigger`)다. 매일 15:00 UTC(KST 자정)에
+`repository_dispatch: daily-tweet`를 쏘면 워크플로가 즉시 돌아 자정 대기 없이 게시된다.
+
+GitHub `schedule`은 예비 경로다 — 디스패치 지연이 상시 60~90분, 2026-08-27~29에는 약 10시간이라
+정시 게시를 기대할 수 없다. 5개(`50 12` / `30 14` / `10 15` / `10 16` / `10 18` UTC)를 걸어 늦게라도
+그날 몫이 나가게만 하고, Worker가 이미 게시했으면 `tweet_bot_log`에 걸려 조용히 스킵된다.
+
+자정 대기 가드는 → [[scheduled-job-drift-compensation]], 결정 경위는 → [[bot-early-trigger-midnight-wait]]
 
 ## 실행
 

@@ -1,8 +1,14 @@
 import 'dotenv/config';
 import { filterOnThisDay } from '../../src/lib/dailyPick';
-import type { Moment, Photo, Post, Video } from '../../src/lib/database';
+import type { Episode, Moment, Photo, Post, Video } from '../../src/lib/database';
 import { getKstDateString, msUntilKstMidnight } from './date';
-import { normalizeMoments, normalizePhotos, normalizePosts, isR2Url } from './normalize';
+import {
+  normalizeMoments,
+  normalizePhotos,
+  normalizePosts,
+  normalizeEpisodes,
+  isR2Url,
+} from './normalize';
 import { planTweets } from './group';
 import { mimeFromUrl } from './mime';
 import { makeR2Client, urlToKey, downloadFromR2 } from './r2';
@@ -58,17 +64,19 @@ async function main() {
   }
 
   // 콘텐츠 조회 (Supabase 기본 1000행 제한 회피: 전체 페이지네이션)
-  const [moments, photos, posts, videos] = await Promise.all([
+  const [moments, photos, posts, videos, episodes] = await Promise.all([
     fetchAllRows<Moment>(sb, 'moments'),
     fetchAllRows<Photo>(sb, 'photos'),
     fetchAllRows<Post>(sb, 'posts'),
     fetchAllRows<Video>(sb, 'videos'),
+    fetchAllRows<Episode>(sb, 'episodes'),
   ]);
 
   // 그해 오늘 필터 (KST)
-  // 사진·포스트는 자체 날짜 기준, 모먼트는 상위 영상 날짜 기준(normalizeMoments 내부에서 처리)
+  // 사진·포스트·에피소드는 자체 날짜 기준, 모먼트는 상위 영상 날짜 기준(normalizeMoments 내부에서 처리)
   const fPhotos = filterOnThisDay(photos, runDate);
   const fPosts = filterOnThisDay(posts, runDate);
+  const fEpisodes = filterOnThisDay(episodes, runDate);
 
   const videosById = new Map(videos.map(v => [v.id, v]));
   const r2Public = process.env.VITE_R2_PUBLIC_URL!;
@@ -76,7 +84,8 @@ async function main() {
   const momentItems = normalizeMoments(moments, videosById, r2Public, runDate);
   const photoItems = normalizePhotos(fPhotos, r2Public);
   const postItems = normalizePosts(fPosts, r2Public);
-  const items = [...momentItems, ...photoItems, ...postItems];
+  const episodeItems = normalizeEpisodes(fEpisodes, r2Public);
+  const items = [...momentItems, ...photoItems, ...postItems, ...episodeItems];
   const tweets = planTweets(items);
 
   console.log(`[bot] 계획된 트윗 ${tweets.length}개:`);
@@ -98,6 +107,12 @@ async function main() {
       const media = p.media ?? [];
       const r2count = media.filter(mm => isR2Url(mm.url, r2Public)).length;
       console.log(`   - ${p.date} | ${p.title || '(제목없음)'} | 미디어 ${media.length}개(R2 ${r2count}개) | platform=${p.platform}`);
+    });
+    console.log(`[dry] episodes(에피소드, 트윗 이미지 첨부된 것만): ${fEpisodes.length}건`);
+    fEpisodes.forEach(ep => {
+      const imgs = ep.tweet_images ?? [];
+      const r2count = imgs.filter(u => isR2Url(u, r2Public)).length;
+      console.log(`   - ${ep.date} | ${ep.title || ep.comment_text || '(제목없음)'} | ${ep.episode_type} | 트윗 이미지 ${imgs.length}장(R2 ${r2count}장)`);
     });
     console.log(`[dry] videos(영상=봇 제외대상): ${fVideos.length}건`);
     fVideos.forEach(v =>

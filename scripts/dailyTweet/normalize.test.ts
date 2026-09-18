@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { isR2Url, normalizePhotos, normalizeMoments, normalizePosts } from './normalize';
-import type { Photo, Moment, Post, Video } from '../../src/lib/database';
+import { isR2Url, normalizePhotos, normalizeMoments, normalizePosts, normalizeEpisodes } from './normalize';
+import type { Photo, Moment, Post, Video, Episode } from '../../src/lib/database';
 
 const R2 = 'https://cdn.example.r2.dev';
 
@@ -115,6 +115,45 @@ describe('normalizePosts', () => {
     expect(items).toHaveLength(2);
     expect(items[0]).toMatchObject({ mediaType: 'image', text: '251010', groupKey: 'post|po1|2025-10-10' });
     expect(items[1]).toMatchObject({ mediaType: 'video', text: '251010' });
+  });
+});
+
+describe('normalizeEpisodes', () => {
+  it('tweet_images가 있는 에피소드만, 순서 그대로 펼침', () => {
+    const episodes: Episode[] = [
+      { id: 'e1', date: '2024-07-14', episode_type: 'dm',
+        tweet_images: [`${R2}/1.jpg`, `${R2}/2.jpg`] },
+      { id: 'e2', date: '2024-07-14', episode_type: 'dm' },
+      { id: 'e3', date: '2024-07-14', episode_type: 'comment', tweet_images: [] },
+    ];
+    const items = normalizeEpisodes(episodes, R2);
+    expect(items.map(i => i.url)).toEqual([`${R2}/1.jpg`, `${R2}/2.jpg`]);
+    expect(items[0]).toMatchObject({
+      contentType: 'episode', mediaType: 'image',
+      date: '2024-07-14', groupKey: 'episode|e1|2024-07-14', text: '240714',
+    });
+  });
+  it('외부 URL은 제외', () => {
+    const episodes: Episode[] = [
+      { id: 'e1', date: '2024-07-14', episode_type: 'dm',
+        tweet_images: ['https://weverse.io/a.jpg', `${R2}/ok.jpg`] },
+    ];
+    expect(normalizeEpisodes(episodes, R2).map(i => i.url)).toEqual([`${R2}/ok.jpg`]);
+  });
+  it('에피소드가 다르면 다른 그룹 (다른 트윗)', () => {
+    const episodes: Episode[] = [
+      { id: 'e1', date: '2024-07-14', episode_type: 'dm', tweet_images: [`${R2}/a.jpg`] },
+      { id: 'e2', date: '2024-07-14', episode_type: 'dm', tweet_images: [`${R2}/b.jpg`] },
+    ];
+    const items = normalizeEpisodes(episodes, R2);
+    expect(items[0].groupKey).not.toBe(items[1].groupKey);
+  });
+  it('본문 messages의 image는 트윗에 쓰지 않는다', () => {
+    const episodes: Episode[] = [
+      { id: 'e1', date: '2024-07-14', episode_type: 'dm',
+        messages: [{ type: 'image', content: `${R2}/in-body.jpg`, time: '12:00' }] },
+    ];
+    expect(normalizeEpisodes(episodes, R2)).toHaveLength(0);
   });
 });
 

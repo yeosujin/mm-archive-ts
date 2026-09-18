@@ -3,7 +3,7 @@ type: domain
 status: stable
 tags: [domain, episodes, activities]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-09-18
 ---
 
 # Episodes (에피소드)
@@ -26,6 +26,17 @@ updated: 2026-07-24
 - 메시지는 배열이고 각 항목이 `text` 또는 `image`
 - 다른 콘텐츠와 연결 가능 — `linked_content_type`(`video` | `moment` | `post`) + `linked_content_id`
 - URL 파라미터로 탭 유지 (`?tab=dm`)
+
+## 트윗 이미지 (`tweet_images`)
+
+어드민에서만 첨부하는 **X 봇 전용 이미지**(R2 URL 배열, 최대 4장). 컴포넌트는
+`src/components/AdminTweetImages.tsx`, 타입 3종이 같은 필드를 공유한다.
+
+- **공개 페이지에는 렌더링하지 않는다.** 에피소드 본문(`messages`의 `image`)과는 별개다 —
+  본문 이미지는 사이트에 보이고, 이건 안 보인다
+- [[daily-tweet-bot]]이 "그 해 오늘"에 걸린 에피소드에서 이 배열만 읽어 트윗에 올린다
+- 배열 순서 = 트윗 안 미디어 순서. 에피소드 1개 = 트윗 1개(`groupKey`가 에피소드 id)
+- 마이그레이션: `supabase/sql/2026-09-18-add-episode-tweet-images.sql`
 
 ## Activities
 

@@ -1,8 +1,8 @@
-import type { Photo, Moment, Post, Video } from '../../src/lib/database';
-import { photoText, postText, momentText, stripSubfix } from './text';
+import type { Photo, Moment, Post, Video, Episode } from '../../src/lib/database';
+import { photoText, postText, momentText, episodeText, stripSubfix } from './text';
 
 export type MediaItem = {
-  contentType: 'photo' | 'moment' | 'post';
+  contentType: 'photo' | 'moment' | 'post' | 'episode';
   mediaType: 'image' | 'video';
   url: string;
   date: string;
@@ -84,6 +84,33 @@ export function normalizeMoments(
         text: momentText(effDate),
       };
     });
+}
+
+/**
+ * 에피소드의 X 봇 전용 이미지(`tweet_images`)만 트윗 미디어로 만든다.
+ * 본문 메시지의 image는 사이트에 보이는 것이고 여기서는 쓰지 않는다 —
+ * 봇에 올릴 이미지는 어드민에서 따로 첨부한 것만이다.
+ */
+export function normalizeEpisodes(episodes: Episode[], r2PublicUrl: string): MediaItem[] {
+  const items: MediaItem[] = [];
+  for (const ep of episodes) {
+    const urls = ep.tweet_images;
+    if (!urls || urls.length === 0) continue;
+    const text = episodeText(ep.date);
+    for (const url of urls) {
+      if (!isR2Url(url, r2PublicUrl)) continue;
+      items.push({
+        contentType: 'episode',
+        mediaType: 'image',
+        url,
+        date: ep.date,
+        // 에피소드 하나 = 트윗 하나. 같은 날 다른 에피소드와 섞이지 않게 id로 묶는다
+        groupKey: `episode|${ep.id}|${ep.date}`,
+        text,
+      });
+    }
+  }
+  return items;
 }
 
 export function normalizePosts(posts: Post[], r2PublicUrl: string): MediaItem[] {

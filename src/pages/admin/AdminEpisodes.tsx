@@ -12,6 +12,7 @@ import Toast from '../../components/Toast';
 import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadPhotoToR2 } from '../../lib/r2Upload';
+import AdminTweetImages from '../../components/AdminTweetImages';
 
 interface MessageInput {
   id: string;
@@ -104,6 +105,9 @@ export default function AdminEpisodes() {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const ocrInputRef = useRef<HTMLInputElement>(null);
+
+  // X 봇 전용 이미지 (타입 3종이 공유한다. 공개 페이지에는 안 보인다)
+  const [tweetImages, setTweetImages] = useState<string[]>([]);
 
   // 사진 업로드 상태
   const [photoUploading, setPhotoUploading] = useState<number | null>(null); // 업로드 중인 메시지 index
@@ -410,25 +414,22 @@ export default function AdminEpisodes() {
       return;
     }
     
+    const episodeData = {
+      title: formData.title,
+      date: formData.date,
+      sender: formData.sender,
+      episode_type: 'dm' as const,
+      messages: validMessages,
+      tweet_images: tweetImages,
+    };
+
     try {
       if (editingId) {
-        await updateEpisode(editingId, {
-          title: formData.title,
-          date: formData.date,
-          sender: formData.sender,
-          episode_type: 'dm',
-          messages: validMessages,
-        });
+        await updateEpisode(editingId, episodeData);
         showToast('수정되었어요!', 'success');
         setEditingId(null);
       } else {
-        await createEpisode({
-          title: formData.title,
-          date: formData.date,
-          sender: formData.sender,
-          episode_type: 'dm',
-          messages: validMessages,
-        });
+        await createEpisode(episodeData);
         showToast('에피소드가 추가되었어요!', 'success');
       }
       
@@ -458,6 +459,7 @@ export default function AdminEpisodes() {
         episode_type: 'comment',
         comment_text: validComments[0].content,
         messages: validComments.map(m => ({ type: 'text' as const, content: m.content, time: m.time })),
+        tweet_images: tweetImages,
       };
 
       if (commentData.linked_content_id) {
@@ -486,6 +488,7 @@ export default function AdminEpisodes() {
   const resetDMForm = () => {
     setFormData({ title: '', date: getToday(), sender: 'member1' });
     setMessages([{ id: crypto.randomUUID(), type: 'text', content: '', time: getCurrentTime() }]);
+    setTweetImages([]);
   };
 
   // Listening Party 제출
@@ -510,6 +513,7 @@ export default function AdminEpisodes() {
           time: m.time,
           sender_name: m.sender_name,
         })),
+        tweet_images: tweetImages,
       };
 
       if (editingId) {
@@ -540,15 +544,18 @@ export default function AdminEpisodes() {
     setCommentMessages([{ id: crypto.randomUUID(), content: '', time: '' }]);
     setContentSearchQuery('');
     setIsContentDropdownOpen(false);
+    setTweetImages([]);
   };
 
   const resetLPForm = () => {
     setLpData({ title: '', date: getToday(), platform: 'melon' });
     setLpMessages([{ id: crypto.randomUUID(), sender_name: '', content: '', time: '' }]);
+    setTweetImages([]);
   };
 
   const handleEdit = (episode: Episode) => {
     setEditingId(episode.id);
+    setTweetImages(episode.tweet_images || []);
 
     if (episode.episode_type === 'comment') {
       setEpisodeType('comment');
@@ -1007,7 +1014,13 @@ export default function AdminEpisodes() {
                 + 메시지 추가
               </button>
             </div>
-            
+
+            <AdminTweetImages
+              urls={tweetImages}
+              onChange={setTweetImages}
+              onError={msg => showToast(msg, 'error')}
+            />
+
             <div className="form-buttons">
               <button type="submit" className="admin-submit-btn">
                 {editingId ? '수정하기' : '추가하기'}
@@ -1172,7 +1185,13 @@ export default function AdminEpisodes() {
                 </button>
               </div>
             </div>
-            
+
+            <AdminTweetImages
+              urls={tweetImages}
+              onChange={setTweetImages}
+              onError={msg => showToast(msg, 'error')}
+            />
+
             <div className="form-buttons">
               <button type="submit" className="admin-submit-btn">
                 {editingId ? '수정하기' : '추가하기'}
@@ -1293,6 +1312,12 @@ export default function AdminEpisodes() {
               </div>
             </div>
 
+            <AdminTweetImages
+              urls={tweetImages}
+              onChange={setTweetImages}
+              onError={msg => showToast(msg, 'error')}
+            />
+
             <div className="form-buttons">
               <button type="submit" className="admin-submit-btn">
                 {editingId ? '수정하기' : '추가하기'}
@@ -1343,6 +1368,9 @@ export default function AdminEpisodes() {
                           : '')
                       : ` · ${episode.messages?.length || 0}개 메시지`
                     }
+                    {episode.tweet_images && episode.tweet_images.length > 0
+                      ? ` · 🐦 트윗 이미지 ${episode.tweet_images.length}장`
+                      : ''}
                   </p>
                   {isComment && (
                     <p className="episode-preview">"{episode.comment_text}"</p>

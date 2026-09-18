@@ -54,6 +54,11 @@ export interface Episode {
   linked_content_type?: 'video' | 'moment' | 'post';
   linked_content_id?: string;
   comment_text?: string;
+  /**
+   * X 봇 전용 이미지(R2 URL). 공개 페이지에는 노출하지 않고
+   * scripts/dailyTweet 봇의 "그 해 오늘" 게시에만 쓴다.
+   */
+  tweet_images?: string[];
 }
 
 export interface MemberSettings {

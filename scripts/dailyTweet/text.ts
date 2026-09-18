@@ -28,6 +28,10 @@ export function momentText(date: string): string {
   return toYYMMDD(date);
 }
 
+export function episodeText(date: string): string {
+  return toYYMMDD(date);
+}
+
 // 모든 트윗 하단에 붙는 해시태그
 export const HASHTAGS = '#그해오늘';
 
