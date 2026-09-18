@@ -148,7 +148,29 @@ describe('normalizeEpisodes', () => {
     const items = normalizeEpisodes(episodes, R2);
     expect(items[0].groupKey).not.toBe(items[1].groupKey);
   });
-  it('본문 messages의 image는 트윗에 쓰지 않는다', () => {
+  it('첨부 이미지 다음에 DM 본문 이미지가 이어진다', () => {
+    const episodes: Episode[] = [
+      { id: 'e1', date: '2024-07-14', episode_type: 'dm',
+        tweet_images: [`${R2}/attached.jpg`],
+        messages: [
+          { type: 'text', content: '안녕', time: '12:00' },
+          { type: 'image', content: `${R2}/body1.jpg`, time: '12:01' },
+          { type: 'image', content: `${R2}/body2.jpg`, time: '12:02' },
+        ] },
+    ];
+    expect(normalizeEpisodes(episodes, R2).map(i => i.url)).toEqual([
+      `${R2}/attached.jpg`, `${R2}/body1.jpg`, `${R2}/body2.jpg`,
+    ]);
+  });
+  it('첨부와 본문에 같은 이미지가 있으면 한 번만', () => {
+    const episodes: Episode[] = [
+      { id: 'e1', date: '2024-07-14', episode_type: 'dm',
+        tweet_images: [`${R2}/same.jpg`],
+        messages: [{ type: 'image', content: `${R2}/same.jpg`, time: '12:00' }] },
+    ];
+    expect(normalizeEpisodes(episodes, R2).map(i => i.url)).toEqual([`${R2}/same.jpg`]);
+  });
+  it('첨부가 없으면 본문 이미지가 있어도 게시하지 않는다', () => {
     const episodes: Episode[] = [
       { id: 'e1', date: '2024-07-14', episode_type: 'dm',
         messages: [{ type: 'image', content: `${R2}/in-body.jpg`, time: '12:00' }] },

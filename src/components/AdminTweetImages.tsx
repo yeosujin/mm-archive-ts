@@ -69,7 +69,8 @@ export default function AdminTweetImages({ urls, onChange, onError }: Props) {
       <label>트윗 이미지 (선택)</label>
       <span className="form-hint">
         사이트에는 안 보이고 &quot;그 해 오늘&quot; 자동 트윗에만 올라가요. 최대 {MAX_TWEET_IMAGES}장,
-        왼쪽부터 트윗에 실리는 순서예요.
+        왼쪽부터 순서대로 실려요. DM 본문에 넣은 사진은 이 뒤에 이어서 올라가고,
+        여기가 비어 있으면 그 에피소드는 트윗하지 않아요.
       </span>
 
       <div className="tweet-image-list">

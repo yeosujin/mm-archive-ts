@@ -20,7 +20,8 @@ append-only. **새 항목은 최상단.**
 
 - 마이그레이션 `supabase/sql/2026-09-18-add-episode-tweet-images.sql`
 - 새 컴포넌트 `src/components/AdminTweetImages.tsx` (DM/댓글/LP 3종 폼이 공유)
-- `normalizeEpisodes` 추가 — 본문 `messages`의 image는 사이트용이라 트윗에 쓰지 않는다
+- `normalizeEpisodes` 추가 — 트윗 미디어 순서는 **첨부 → 본문(DM) 이미지**, 중복 URL은 한 번만.
+  첨부가 비어 있으면 게시하지 않는다(과거 DM 본문 이미지의 무단 자동 게시 방지)
 
 **문서 정리** — [[daily-tweet-bot]]의 캡션 규칙(날짜만 남음), `groupKey`(제목→id),
 스케줄(Cloudflare Worker 주 경로 + schedule 5개 예비)이 코드와 어긋나 있어 함께 고쳤다.

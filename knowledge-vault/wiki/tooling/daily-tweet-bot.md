@@ -41,7 +41,8 @@ updated: 2026-09-18
   에피소드([[episodes]])의 `tweet_images`
 - **영상(Videos)은 제외 대상**이다. dry-run에서는 "왜 안 올라갔는지" 확인용으로만 출력된다
 - 모먼트는 상위 영상이 있으면 **상위 영상 날짜**로 판정한다. 독립 모먼트는 자기 날짜 기준 → [[content-date-semantics]]
-- 에피소드는 **어드민에서 따로 첨부한 `tweet_images`만** 올린다. 본문(`messages`)의 image는 사이트용이라 쓰지 않는다
+- 에피소드는 **첨부(`tweet_images`) → 본문(`messages`의 image)** 순으로 올린다.
+  첨부가 비어 있으면 그 에피소드는 게시하지 않는다 → [[episodes]]
 
 ## 캡션 규칙 (`text.ts`)
 

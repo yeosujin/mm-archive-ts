@@ -87,15 +87,25 @@ export function normalizeMoments(
 }
 
 /**
- * 에피소드의 X 봇 전용 이미지(`tweet_images`)만 트윗 미디어로 만든다.
- * 본문 메시지의 image는 사이트에 보이는 것이고 여기서는 쓰지 않는다 —
- * 봇에 올릴 이미지는 어드민에서 따로 첨부한 것만이다.
+ * 에피소드를 트윗 미디어로 만든다. 미디어 순서는 **첨부 이미지 → 본문(DM) 이미지**.
+ *
+ * 두 이미지는 저장도 쓰임도 별개다. 첨부(`tweet_images`)는 어드민에서 봇 전용으로 붙이고
+ * 사이트에는 안 보이며, 본문 이미지(`messages`의 image)는 사이트에 보이는 대화 내용이다.
+ * 트윗에는 둘 다 실리되 첨부가 먼저 온다.
+ *
+ * 첨부가 하나도 없으면 게시하지 않는다 — 첨부는 "이 에피소드를 트윗에 올린다"는 표시이기도 해서,
+ * 이게 없으면 본문 이미지가 있는 과거 DM이 전부 자동 게시돼버린다.
  */
 export function normalizeEpisodes(episodes: Episode[], r2PublicUrl: string): MediaItem[] {
   const items: MediaItem[] = [];
   for (const ep of episodes) {
-    const urls = ep.tweet_images;
-    if (!urls || urls.length === 0) continue;
+    const attached = ep.tweet_images ?? [];
+    if (attached.length === 0) continue;
+    const bodyImages = (ep.messages ?? [])
+      .filter(m => m.type === 'image')
+      .map(m => m.content);
+    // 같은 이미지를 첨부에도 올렸으면 트윗에 두 번 실리지 않게 한 번만
+    const urls = [...new Set([...attached, ...bodyImages])];
     const text = episodeText(ep.date);
     for (const url of urls) {
       if (!isR2Url(url, r2PublicUrl)) continue;

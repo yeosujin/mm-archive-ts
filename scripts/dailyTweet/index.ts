@@ -108,11 +108,13 @@ async function main() {
       const r2count = media.filter(mm => isR2Url(mm.url, r2Public)).length;
       console.log(`   - ${p.date} | ${p.title || '(제목없음)'} | 미디어 ${media.length}개(R2 ${r2count}개) | platform=${p.platform}`);
     });
-    console.log(`[dry] episodes(에피소드, 트윗 이미지 첨부된 것만): ${fEpisodes.length}건`);
+    console.log(`[dry] episodes(에피소드, 첨부 이미지가 있는 것만 게시): ${fEpisodes.length}건`);
     fEpisodes.forEach(ep => {
-      const imgs = ep.tweet_images ?? [];
-      const r2count = imgs.filter(u => isR2Url(u, r2Public)).length;
-      console.log(`   - ${ep.date} | ${ep.title || ep.comment_text || '(제목없음)'} | ${ep.episode_type} | 트윗 이미지 ${imgs.length}장(R2 ${r2count}장)`);
+      const attached = ep.tweet_images ?? [];
+      const body = (ep.messages ?? []).filter(m => m.type === 'image');
+      const r2count = [...attached, ...body.map(m => m.content)]
+        .filter(u => isR2Url(u, r2Public)).length;
+      console.log(`   - ${ep.date} | ${ep.title || ep.comment_text || '(제목없음)'} | ${ep.episode_type} | 첨부 ${attached.length}장 + 본문 ${body.length}장 (R2 ${r2count}장)${attached.length === 0 ? ' → 첨부 없어 게시 안 함' : ''}`);
     });
     console.log(`[dry] videos(영상=봇 제외대상): ${fVideos.length}건`);
     fVideos.forEach(v =>
