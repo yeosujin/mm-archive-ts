@@ -194,7 +194,6 @@ async function main() {
     if (stats.failed >= MAX_FAILURES) { console.log(`⛔ 실패 ${MAX_FAILURES}건 — 중단`); break; }
     try {
       const c = await convert(tmp, m.tweet_url, !m.thumbnail_url);
-      console.log(`   ✅ moment ${m.id} ${c.note}${c.thumbnailUrl ? ' +thumb' : ''}`);
       if (!DRY_RUN) {
         const { data, error } = await sb.from('moments')
           .update({
@@ -212,6 +211,8 @@ async function main() {
           continue;
         }
       }
+      // DB까지 반영된 뒤에만 성공으로 찍는다
+      console.log(`   ✅ moment ${m.id} ${c.note}${c.thumbnailUrl ? ' +thumb' : ''}`);
       budget--;
       stats.done++;
     } catch (err) {
