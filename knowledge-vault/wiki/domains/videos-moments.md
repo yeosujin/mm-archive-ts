@@ -3,7 +3,7 @@ type: domain
 status: stable
 tags: [domain, videos, moments]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 ---
 
 # Videos & Moments
@@ -76,6 +76,12 @@ updated: 2026-07-24
 
 - **제목이 바뀌면 YouTube 카테고리 분류가 깨진다.** 패턴 매칭이라 원본 영상 제목이 수정되면 다른 카테고리로 가거나 어디에도 안 잡힌다
 - `moments`는 네비에 없어 URL 직접 접근으로만 도달한다. 존재를 잊기 쉽다
+
+## 표지 이미지 (1.22.0~)
+
+`getVideoCover(video, moments)` (`src/lib/videoCover.ts`): `thumbnail_url` → 유튜브 `i.ytimg.com/vi/{id}/hqdefault.jpg` → 첫 모먼트 썸네일 → null.
+
+위버스 공식 썸네일은 서버가 수집하지 않는다(일반 요청에는 og:image가 없고, 봇 흉내는 하지 않기로 함). 어드민 `/admin/covers`의 북마클릿을 PC 크롬에서 위버스 라이브 화면 위에 누르면, 화면의 썸네일 주소를 읽어 `/api/r2`의 `import`(허용 호스트 `pstatic.net`·`wevpstatic.net`)로 R2 `covers/`에 복사하고 `thumbnail_url`을 채운다.
 
 ## 관련
 - [[r2-media-pipeline]] · [[on-this-day]] · [[data-model]] · [[daily-tweet-bot]]
