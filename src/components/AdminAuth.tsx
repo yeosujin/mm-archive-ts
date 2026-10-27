@@ -10,7 +10,7 @@ export default function AdminAuth({ children }: Props) {
   // 비밀번호는 서버(api/r2.ts)에서만 검증한다. 저장된 값이 틀리면 업로드·삭제 요청이 401로 거절된다.
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return !!sessionStorage.getItem(ADMIN_PASSWORD_STORAGE_KEY);
+    return !!localStorage.getItem(ADMIN_PASSWORD_STORAGE_KEY);
   });
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -25,7 +25,7 @@ export default function AdminAuth({ children }: Props) {
 
     if (ok) {
       setIsAuthenticated(true);
-      sessionStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, password);
+      localStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, password);
       setError('');
     } else {
       setError('비밀번호가 틀렸습니다');
@@ -35,7 +35,7 @@ export default function AdminAuth({ children }: Props) {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    sessionStorage.removeItem(ADMIN_PASSWORD_STORAGE_KEY);
+    localStorage.removeItem(ADMIN_PASSWORD_STORAGE_KEY);
   };
 
 

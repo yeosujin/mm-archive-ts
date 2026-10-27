@@ -1,6 +1,7 @@
 import { stripVideoMetadata } from './stripMetadata';
 
 // R2 자격증명은 서버(api/r2.ts)에만 있다. 브라우저는 어드민 비밀번호로 presigned URL을 받아 직접 PUT한다.
+// 비밀번호는 localStorage에 둔다 — 북마클릿이 여는 새 탭에서도 로그인이 유지되도록. 로그아웃 시 지운다
 export const ADMIN_PASSWORD_STORAGE_KEY = 'adminPassword';
 
 async function callR2Api<T>(body: Record<string, unknown>, password?: string): Promise<T> {
@@ -8,7 +9,7 @@ async function callR2Api<T>(body: Record<string, unknown>, password?: string): P
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-admin-password': password ?? sessionStorage.getItem(ADMIN_PASSWORD_STORAGE_KEY) ?? '',
+      'x-admin-password': password ?? localStorage.getItem(ADMIN_PASSWORD_STORAGE_KEY) ?? '',
     },
     body: JSON.stringify(body),
   });
