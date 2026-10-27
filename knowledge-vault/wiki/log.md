@@ -12,6 +12,14 @@ append-only. **새 항목은 최상단.**
 
 ---
 
+## 2026-10-27 — 영상 트랜스코딩 + r2.dev 주소 정리 (1.21.3)
+
+모먼트·포스트 영상을 H.264 mp4로 변환해 `videos/t/`에 두고 `original_url`에 원래 주소를 남긴다.
+r2.dev 주소는 cdn 도메인으로 치환했다(캐시를 타도록). 매시간 Actions가 새 업로드를 처리한다
+→ [[r2-media-pipeline]] · [[cloudflare-r2]]
+
+---
+
 ## 2026-10-27 — R2 자격증명·어드민 비밀번호를 서버로 이동 (1.21.2)
 
 `VITE_R2_SECRET_ACCESS_KEY`와 `VITE_ADMIN_PASSWORD`가 클라이언트 번들에 들어가 있었다.

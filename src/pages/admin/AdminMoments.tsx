@@ -253,8 +253,12 @@ export default function AdminMoments() {
     try {
       if (editingId) {
         const originalMoment = moments.find(m => m.id === editingId);
-        if (originalMoment && originalMoment.tweet_url !== formData.tweet_url) {
+        const videoChanged = !!originalMoment && originalMoment.tweet_url !== formData.tweet_url;
+        if (originalMoment && videoChanged) {
           deleteFileFromR2(originalMoment.tweet_url).catch(err => console.error('Cleanup failed:', err));
+          if (originalMoment.original_url) {
+            deleteFileFromR2(originalMoment.original_url).catch(err => console.error('Original cleanup failed:', err));
+          }
           if (originalMoment.thumbnail_url) {
             deleteFileFromR2(originalMoment.thumbnail_url).catch(err => console.error('Thumb cleanup failed:', err));
           }
@@ -262,11 +266,12 @@ export default function AdminMoments() {
 
         await updateMoment(editingId, {
           title: formData.title,
-          tweet_url: formData.tweet_url,
           date: formData.date,
           video_id: formData.video_id || undefined,
           position: Number(formData.position) || 0,
           thumbnail_url: formData.thumbnail_url || undefined,
+          // 영상이 바뀐 경우에만 주소를 쓴다 — 그 사이 변환 스크립트가 바꾼 tweet_url을 낡은 값으로 덮지 않도록
+          ...(videoChanged ? { tweet_url: formData.tweet_url, original_url: null } : {}),
         });
         showToast('수정되었어요!', 'success');
       } else {
@@ -334,6 +339,9 @@ export default function AdminMoments() {
       const moment = moments.find(m => m.id === id);
       if (moment?.tweet_url) {
         await deleteFileFromR2(moment.tweet_url);
+      }
+      if (moment?.original_url) {
+        deleteFileFromR2(moment.original_url).catch(err => console.error('Original delete failed:', err));
       }
       if (moment?.thumbnail_url) {
         deleteFileFromR2(moment.thumbnail_url).catch(err => console.error('Thumb delete failed:', err));

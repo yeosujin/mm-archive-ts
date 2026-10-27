@@ -52,6 +52,16 @@ database.createVideo / createPhoto 로 메타 저장
 
 서버 측(`api/`)에서는 `sharp`로 추가 리사이즈를 한다.
 
+## 트랜스코딩 (1.21.3~)
+
+업로드 원본(대부분 iPhone .mov, 8~12Mbps, 60~120fps)은 첫 재생이 느리다. `scripts/transcode-r2-videos.ts`가 H.264 mp4(긴 변 1280, 30fps, 약 2.5Mbps, AAC 128k, faststart)로 바꿔 **새 키** `videos/t/{basename}.mp4`에 올린다.
+
+- `moments.original_url` / `posts.media[].original_url` = 원래 주소. 채워져 있으면 처리 완료
+- 원본 객체는 지우지 않는다. 롤백은 `tweet_url ← original_url`
+- 썸네일이 비어 있으면 0.5초 프레임 jpg(`…_thumb.jpg`)도 채운다
+- `.github/workflows/transcode.yml`이 매시간 새 업로드를 처리한다(libx264). 대량 처리는 로컬 맥(videotoolbox)
+- 어드민에서 영상을 교체하면 `original_url`을 비워 다시 변환 대상이 되게 하고, 삭제 시 원본도 지운다
+
 ## 주의
 
 - 기존 레코드에 `thumb_hash`가 없으면 `npm run backfill:thumb-hash`로 채운다 → [[backfill-scripts]]
