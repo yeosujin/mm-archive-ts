@@ -16,7 +16,7 @@
 
 - 영상 332개: YouTube 263(모먼트 있음 242), Weverse 58(전부 모먼트 있음), 기타 11(7). `videos.thumbnail_url`은 전부 비어 있다
 - 위버스 라이브 URL 예: `https://weverse.io/illit/live/4-217834450?hl=ko`
-- 위버스 썸네일 이미지 예: `https://phinf.wevpstatic.net/…/thumb.jpg?type=w1414` (일반 요청으로 200)
+- 위버스 라이브 표지: 광고가 끝난 뒤 플레이어 배경 이미지 `https://video-phinf.pstatic.net/…_JPEG/…jpg` (Task 1)
 - `extractYouTubeId`가 `src/pages/admin/AdminVideos.tsx:23`에 지역 함수로 있다 → 공용으로 옮긴다
 - `vitest.config.ts`는 `scripts/**/*.test.ts`만 포함 → `src/**/*.test.ts` 추가
 - 어드민 비밀번호는 `src/lib/r2Upload.ts`의 `ADMIN_PASSWORD_STORAGE_KEY`로 `sessionStorage`에 있다(`AdminAuth.tsx`도 사용)
@@ -42,9 +42,9 @@
 
 ---
 
-### Task 1: (관문) 위버스 화면에 썸네일 주소가 있는지 확인
+### Task 1: (관문) 위버스 화면에 썸네일 주소가 있는지 확인 — 2026-10-28 완료
 
-북마클릿 방식 전체가 이 결과에 달려 있다. **코드 작업 전에** 컨트롤러가 사용자와 함께 한다.
+결과: og 메타·video poster(빈 `data:` svg)·`<img>`에는 라이브 표지가 없다(`<img>`의 `phinf.wevpstatic.net` 670×374는 추천 목록). **광고가 끝난 뒤** 플레이어 요소의 CSS 배경 이미지로 `https://video-phinf.pstatic.net/…_JPEG/…jpg`가 뜬다 → 이것을 쓴다. 아래 단계는 기록용.
 
 - [ ] **Step 1: 사용자에게 PC 크롬에서 실행 요청**
 
@@ -226,9 +226,9 @@ describe('buildCoverBookmarklet', () => {
   it('javascript: 링크이고 어드민 주소로 연다', () => {
     const b = buildCoverBookmarklet('https://mmemory.cloud');
     expect(b.startsWith('javascript:')).toBe(true);
-    expect(b).toContain('https://mmemory.cloud/admin/covers?url=');
-    expect(b).toContain('og:image');
-    expect(b).toContain('wevpstatic');
+    expect(decodeURIComponent(b)).toContain('"https://mmemory.cloud"+\'/admin/covers?url=\'');
+    expect(decodeURIComponent(b)).toContain('og:image');
+    expect(decodeURIComponent(b)).toContain('video-phinf');
   });
 });
 ```
@@ -240,7 +240,7 @@ Expected: FAIL — 모듈 없음
 
 - [ ] **Step 3: 구현**
 
-`src/lib/weverseCover.ts` (Task 1 결과에 따라 탐색 순서를 조정한다 — 배경 이미지에만 있었다면 `bg` 탐색을 추가):
+`src/lib/weverseCover.ts` (탐색 순서는 Task 1 결과: 플레이어 배경 `video-phinf.pstatic.net` → og:image → `data:`가 아닌 poster. 추천 목록 `<img>`는 보지 않는다):
 
 ```ts
 /** 위버스 라이브 주소 → 비교용 키 `{아티스트}/live/{id}`. 라이브가 아니면 null */
@@ -261,19 +261,17 @@ export function weverseLiveKey(url: string): string | null {
  */
 export function buildCoverBookmarklet(adminOrigin: string): string {
   const code = `(()=>{
+    const bg=[...document.querySelectorAll('*')].map(e=>getComputedStyle(e).backgroundImage)
+      .map(b=>(b.match(/url\\("?(https:\\/\\/video-phinf\\.pstatic\\.net\\/[^")]+)"?\\)/)||[])[1]).find(Boolean);
     const og=document.querySelector('meta[property="og:image"]')?.content;
-    const poster=document.querySelector('video[poster]')?.poster;
-    const img=[...document.images].filter(i=>/wevpstatic\\.net/.test(i.currentSrc||i.src))
-      .sort((a,b)=>b.naturalWidth*b.naturalHeight-a.naturalWidth*a.naturalHeight)[0];
-    const src=og||poster||(img&&(img.currentSrc||img.src));
-    if(!src){alert('이 화면에서 썸네일을 찾지 못했어요');return;}
+    const poster=[...document.querySelectorAll('video[poster]')].map(v=>v.poster).find(p=>p&&!p.startsWith('data:'));
+    const src=bg||og||poster;
+    if(!src){alert('썸네일을 찾지 못했어요. 광고가 끝나고 영상 화면이 뜬 뒤 다시 눌러 주세요');return;}
     window.open(${JSON.stringify(adminOrigin)}+'/admin/covers?url='+encodeURIComponent(location.href)+'&image='+encodeURIComponent(src),'_blank');
   })()`;
   return 'javascript:' + encodeURIComponent(code.replace(/\n\s*/g, ''));
 }
 ```
-
-주의: `encodeURIComponent`로 감싸므로 테스트의 `toContain('https://mmemory.cloud/admin/covers?url=')`가 실패하면, 테스트를 `decodeURIComponent(b)`에 대해 검사하도록 바꾼다(구현이 아니라 테스트 쪽 수정).
 
 - [ ] **Step 4: 통과 확인**
 
@@ -308,7 +306,7 @@ git commit -m "feat(covers): 위버스 라이브 주소 정규화와 표지 북�
 
 ```ts
 // 서버가 대신 받아 올 수 있는 이미지 호스트. 임의 주소를 받으면 SSRF가 된다
-const IMPORT_HOSTS = /(^|\.)wevpstatic\.net$/;
+const IMPORT_HOSTS = /(^|\.)(wevpstatic|pstatic)\.net$/;
 const IMPORT_MAX_BYTES = 10 * 1024 * 1024;
 ```
 
@@ -366,8 +364,8 @@ export R2_ACCOUNT_ID=$VITE_R2_ACCOUNT_ID R2_ACCESS_KEY_ID=$VITE_R2_ACCESS_KEY_ID
 
 스크래치 디렉터리에 `.mts`를 만들어 `api/r2.ts`의 default export를 가짜 req/res로 호출해 확인:
 - `sourceUrl: 'https://example.com/a.jpg'` → 400 `Host not allowed`
-- `sourceUrl: 'http://phinf.wevpstatic.net/x.jpg'` → 400
-- Task 1에서 찾은 실제 썸네일 주소, `key: 'covers/_test-<시각>.jpg'` → 200, 이어서 `${VITE_R2_PUBLIC_URL}/covers/_test-….jpg` GET 200 `image/*`, 그다음 `action: 'delete'`로 정리 → 다시 GET 404
+- `sourceUrl: 'http://video-phinf.pstatic.net/x.jpg'` → 400 (https만)
+- 실제 썸네일 `https://video-phinf.pstatic.net/20260107_17/1767788774828VFpLE_JPEG/3mGwyL5WmU_03.jpg`, `key: 'covers/_test-<시각>.jpg'` → 200, 이어서 `${VITE_R2_PUBLIC_URL}/covers/_test-….jpg` GET 200 `image/*`, 그다음 `action: 'delete'`로 정리 → 다시 GET 404
 
 필요하면 `NODE_OPTIONS=--use-system-ca`.
 
@@ -530,7 +528,7 @@ export default function AdminCovers() {
             이 버튼을 북마크바로 끌어다 놓아요:{' '}
             <a ref={bookmarkletRef} className="admin-header-link" onClick={e => e.preventDefault()}>위버스 표지 가져오기</a>
           </li>
-          <li>아래 목록에서 라이브를 열고, 화면이 뜨면 북마크바의 버튼을 눌러요</li>
+          <li>아래 목록에서 라이브를 열고, <b>광고가 끝나 영상 화면이 뜨면</b> 북마크바의 버튼을 눌러요</li>
           <li>새 탭에 "저장됨"이 뜨면 끝이에요</li>
         </ol>
       </div>
@@ -626,7 +624,7 @@ git commit -m "feat(admin): 위버스 표지 채우기 화면과 북마클릿"
 
 `getVideoCover(video, moments)` (`src/lib/videoCover.ts`): `thumbnail_url` → 유튜브 `i.ytimg.com/vi/{id}/hqdefault.jpg` → 첫 모먼트 썸네일 → null.
 
-위버스 공식 썸네일은 서버가 수집하지 않는다(일반 요청에는 og:image가 없고, 봇 흉내는 하지 않기로 함). 어드민 `/admin/covers`의 북마클릿을 PC 크롬에서 위버스 라이브 화면 위에 누르면, 화면의 썸네일 주소를 읽어 `/api/r2`의 `import`(허용 호스트 `wevpstatic.net`)로 R2 `covers/`에 복사하고 `thumbnail_url`을 채운다.
+위버스 공식 썸네일은 서버가 수집하지 않는다(일반 요청에는 og:image가 없고, 봇 흉내는 하지 않기로 함). 어드민 `/admin/covers`의 북마클릿을 PC 크롬에서 위버스 라이브 화면 위에 누르면, 화면의 썸네일 주소를 읽어 `/api/r2`의 `import`(허용 호스트 `pstatic.net`·`wevpstatic.net`)로 R2 `covers/`에 복사하고 `thumbnail_url`을 채운다.
 ```
 
 - [ ] **Step 2: log.md 최상단 항목**
