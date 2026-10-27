@@ -16,7 +16,8 @@ const r2 = new S3Client({
 });
 
 // 서버가 대신 받아 올 수 있는 이미지 호스트. 임의 주소를 받으면 SSRF가 된다
-const IMPORT_HOSTS = /(^|\.)(wevpstatic|pstatic)\.net$/;
+const IMPORT_HOSTS = /^(video-phinf\.pstatic\.net|phinf\.wevpstatic\.net)$/;
+const IMPORT_TYPES = /^image\/(jpeg|png|webp)$/;
 const IMPORT_MAX_BYTES = 10 * 1024 * 1024;
 
 function isAdmin(req: VercelRequest): boolean {
@@ -70,9 +71,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Host not allowed' });
       }
       // 허용 호스트에서 다른 주소로 리다이렉트되면 따라가지 않는다 (SSRF 방지)
-      const img = await fetch(src, { redirect: 'error' });
-      const type = img.headers.get('content-type') ?? '';
-      if (!img.ok || !type.startsWith('image/')) return res.status(502).json({ error: `Fetch failed (${img.status})` });
+      let img: Response;
+      try {
+        img = await fetch(src, { redirect: 'error', signal: AbortSignal.timeout(10000) });
+      } catch (err) {
+        const timedOut = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
+        return res.status(502).json({
+          error: timedOut ? 'Upstream timeout' : 'Upstream redirect or network error',
+        });
+      }
+      if (!img.ok) return res.status(502).json({ error: `Upstream ${img.status}` });
+      const type = (img.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+      if (!IMPORT_TYPES.test(type)) return res.status(415).json({ error: `Unsupported type ${type}` });
+      const declared = Number(img.headers.get('content-length'));
+      if (declared > IMPORT_MAX_BYTES) return res.status(413).json({ error: 'Too large' });
       const body = Buffer.from(await img.arrayBuffer());
       if (body.length > IMPORT_MAX_BYTES) return res.status(413).json({ error: 'Too large' });
       await r2.send(new PutObjectCommand({

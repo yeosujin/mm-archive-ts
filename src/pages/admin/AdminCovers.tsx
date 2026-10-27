@@ -25,7 +25,6 @@ export default function AdminCovers() {
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState<ImportState>({ kind: 'idle' });
   const bookmarkletRef = useRef<HTMLAnchorElement>(null);
-  const handled = useRef(false);
 
   useEffect(() => {
     Promise.all([getVideos(), getMoments()])
@@ -43,31 +42,35 @@ export default function AdminCovers() {
     [videos]
   );
 
-  useEffect(() => {
-    const url = params.get('url');
-    const image = params.get('image');
-    if (loading || !url || !image || handled.current) return;
-    handled.current = true;
-
-    const key = weverseLiveKey(url);
+  // ?url=&image= 로 열렸을 때의 저장 후보. 자동 저장하지 않고 확인을 거친다
+  const candidateUrl = params.get('url');
+  const candidateImage = params.get('image');
+  const candidate = useMemo(() => {
+    if (!candidateUrl || !candidateImage) return null;
+    const key = weverseLiveKey(candidateUrl);
     const video = key ? videos.find(v => weverseLiveKey(v.url) === key) : undefined;
-    (async () => {
-      if (!video) {
-        setState({ kind: 'error', message: `등록된 위버스 영상에서 이 라이브를 찾지 못했어요: ${url}` });
-        return;
-      }
-      setState({ kind: 'saving' });
-      try {
-        const cover = await importImageToR2(image, `covers/${video.id}-${Date.now()}.jpg`);
-        await updateVideo(video.id, { thumbnail_url: cover });
-        setVideos(prev => prev.map(v => (v.id === video.id ? { ...v, thumbnail_url: cover } : v)));
-        setState({ kind: 'saved', video, cover });
-        setParams({}, { replace: true });
-      } catch (err) {
-        setState({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
-      }
-    })();
-  }, [loading, params, videos, setParams]);
+    return { url: candidateUrl, image: candidateImage, video };
+  }, [candidateUrl, candidateImage, videos]);
+
+  const saveCandidate = async () => {
+    if (!candidate?.video) return;
+    const { video, image } = candidate;
+    setState({ kind: 'saving' });
+    try {
+      const cover = await importImageToR2(image, `covers/${video.id}-${Date.now()}.jpg`);
+      await updateVideo(video.id, { thumbnail_url: cover });
+      setVideos(prev => prev.map(v => (v.id === video.id ? { ...v, thumbnail_url: cover } : v)));
+      setState({ kind: 'saved', video, cover });
+      setParams({}, { replace: true });
+    } catch (err) {
+      setState({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
+    }
+  };
+
+  const cancelCandidate = () => {
+    setState({ kind: 'idle' });
+    setParams({}, { replace: true });
+  };
 
   const momentsOf = (videoId: string) => moments.filter(m => m.video_id === videoId);
 
@@ -83,8 +86,32 @@ export default function AdminCovers() {
     <div className="admin-page">
       <h1>위버스 표지</h1>
 
-      {state.kind === 'saving' && <p>표지 저장 중...</p>}
-      {state.kind === 'error' && <p className="login-error">{state.message}</p>}
+      {candidate && !candidate.video && (
+        <div className="admin-section">
+          <p className="login-error">등록된 위버스 영상에서 이 라이브를 찾지 못했어요: {candidate.url}</p>
+          <button type="button" onClick={cancelCandidate}>닫기</button>
+        </div>
+      )}
+      {candidate?.video && (
+        <div className="admin-section">
+          <h2>이 이미지를 표지로 저장할까요?</h2>
+          <p>{candidate.video.title} · {candidate.video.date}</p>
+          {candidate.video.thumbnail_url && (
+            <>
+              <p>이미 표지가 있어요 — 바꿀까요?</p>
+              <img src={candidate.video.thumbnail_url} alt="현재 표지" style={{ width: 240, borderRadius: 8 }} />
+            </>
+          )}
+          <p>새 표지 후보</p>
+          <img src={candidate.image} alt="새 표지 후보" style={{ width: 240, borderRadius: 8 }} />
+          {state.kind === 'saving' && <p>표지 저장 중...</p>}
+          {state.kind === 'error' && <p className="login-error">{state.message}</p>}
+          <p>
+            <button type="button" onClick={saveCandidate} disabled={state.kind === 'saving'}>표지로 저장</button>{' '}
+            <button type="button" onClick={cancelCandidate} disabled={state.kind === 'saving'}>취소</button>
+          </p>
+        </div>
+      )}
       {state.kind === 'saved' && (
         <div className="admin-section">
           <p>✅ 저장됨 — {state.video.title}</p>
