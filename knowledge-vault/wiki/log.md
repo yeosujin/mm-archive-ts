@@ -12,6 +12,15 @@ append-only. **새 항목은 최상단.**
 
 ---
 
+## 2026-10-27 — R2 자격증명·어드민 비밀번호를 서버로 이동 (1.21.2)
+
+`VITE_R2_SECRET_ACCESS_KEY`와 `VITE_ADMIN_PASSWORD`가 클라이언트 번들에 들어가 있었다.
+새 Vercel Function `api/r2.ts`가 비밀번호 검증(`verify`)·presigned PUT 발급(`presign`)·삭제(`delete`)를 맡는다.
+`src/lib/r2Upload.ts`는 S3 클라이언트 대신 이 API를 부르고, `AdminAuth.tsx`는 서버로 비밀번호를 확인한다.
+Vercel에 `R2_*`·`ADMIN_PASSWORD`를 넣고 기존 R2 키는 회전해야 한다 → [[env-vars]] · [[cloudflare-r2]] · [[r2-media-pipeline]]
+
+---
+
 ## 2026-09-18 — 에피소드에 X 봇 전용 이미지
 
 `episodes.tweet_images`(jsonb, R2 URL 배열) 추가. 어드민에서만 첨부하고 공개 페이지에는

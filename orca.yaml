@@ -1,0 +1,8 @@
+scripts:
+  setup: |
+    # 메인 체크아웃의 env 파일을 새 worktree로 복사 (git에 없는 파일이라 worktree에 안 따라온다)
+    for f in .env .env.local; do
+      if [ -f "$ORCA_ROOT_PATH/$f" ] && [ ! -f "$f" ]; then
+        cp "$ORCA_ROOT_PATH/$f" "$f"
+      fi
+    done

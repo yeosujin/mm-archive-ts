@@ -1,48 +1,31 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ADMIN_PASSWORD_STORAGE_KEY, verifyAdminPassword } from '../lib/r2Upload';
 
 interface Props {
   readonly children: React.ReactNode;
 }
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
-const AUTH_SECRET = import.meta.env.VITE_AUTH_SECRET || 'mm-archive-2026';
-
-// 간단한 해시 함수 (세션 토큰 생성용)
-function generateToken(password: string): string {
-  const data = password + AUTH_SECRET + new Date().toDateString();
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return `mm_${Math.abs(hash).toString(36)}_${AUTH_SECRET.slice(0, 4)}`;
-}
-
-// 토큰 검증
-function validateToken(token: string | null): boolean {
-  if (!token) return false;
-  const expectedToken = generateToken(ADMIN_PASSWORD);
-  return token === expectedToken;
-}
-
 export default function AdminAuth({ children }: Props) {
+  // 비밀번호는 서버(api/r2.ts)에서만 검증한다. 저장된 값이 틀리면 업로드·삭제 요청이 401로 거절된다.
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     if (typeof window === 'undefined') return false;
-    const token = sessionStorage.getItem('adminAuth');
-    return validateToken(token);
+    return !!sessionStorage.getItem(ADMIN_PASSWORD_STORAGE_KEY);
   });
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [checking, setChecking] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (password === ADMIN_PASSWORD) {
-      const token = generateToken(password);
+    setChecking(true);
+    const ok = await verifyAdminPassword(password);
+    setChecking(false);
+
+    if (ok) {
       setIsAuthenticated(true);
-      sessionStorage.setItem('adminAuth', token);
+      sessionStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, password);
       setError('');
     } else {
       setError('비밀번호가 틀렸습니다');
@@ -52,7 +35,7 @@ export default function AdminAuth({ children }: Props) {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    sessionStorage.removeItem('adminAuth');
+    sessionStorage.removeItem(ADMIN_PASSWORD_STORAGE_KEY);
   };
 
 
@@ -73,8 +56,8 @@ export default function AdminAuth({ children }: Props) {
               className="login-input"
             />
             {error && <p className="login-error">{error}</p>}
-            <button type="submit" className="login-btn">
-              확인
+            <button type="submit" className="login-btn" disabled={checking}>
+              {checking ? '확인 중…' : '확인'}
             </button>
           </form>
         </div>

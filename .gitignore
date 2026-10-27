@@ -31,3 +31,5 @@ dist-ssr
 # Cloudflare Worker
 workers/*/node_modules
 workers/*/.wrangler
+
+.superpowers/
