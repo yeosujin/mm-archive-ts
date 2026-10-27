@@ -1,16 +1,47 @@
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { Upload } from '@aws-sdk/lib-storage';
 import { stripVideoMetadata } from './stripMetadata';
 
-// Cloudflare R2 설정 (S3 호환)
-const r2Client = new S3Client({
-  region: 'auto',
-  endpoint: `https://${import.meta.env.VITE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: import.meta.env.VITE_R2_ACCESS_KEY_ID,
-    secretAccessKey: import.meta.env.VITE_R2_SECRET_ACCESS_KEY,
-  },
-});
+// R2 자격증명은 서버(api/r2.ts)에만 있다. 브라우저는 어드민 비밀번호로 presigned URL을 받아 직접 PUT한다.
+export const ADMIN_PASSWORD_STORAGE_KEY = 'adminPassword';
+
+async function callR2Api<T>(body: Record<string, unknown>, password?: string): Promise<T> {
+  const res = await fetch('/api/r2', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-password': password ?? sessionStorage.getItem(ADMIN_PASSWORD_STORAGE_KEY) ?? '',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`[R2] /api/r2 ${String(body.action)} 실패 (${res.status})`);
+  return res.json() as Promise<T>;
+}
+
+/** 어드민 비밀번호가 맞는지 서버에 확인 */
+export async function verifyAdminPassword(password: string): Promise<boolean> {
+  try {
+    await callR2Api({ action: 'verify' }, password);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** presigned URL로 R2에 PUT 업로드 (진행률 추적을 위해 XHR 사용) */
+async function putToR2(key: string, body: Blob, onProgress?: (progress: number) => void): Promise<void> {
+  const { url } = await callR2Api<{ url: string }>({ action: 'presign', key, contentType: body.type });
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url);
+    if (body.type) xhr.setRequestHeader('Content-Type', body.type);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`[R2] PUT 실패 (${xhr.status})`)));
+    xhr.onerror = () => reject(new Error('[R2] PUT 네트워크 오류'));
+    xhr.send(body);
+  });
+}
 
 /**
  * 비디오 파일을 Cloudflare R2에 업로드 (진행률 추적 지원)
@@ -44,51 +75,13 @@ const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
 const fileName = `videos/${timestamp}-${randomId}-${sanitizedFileName}`;
 
   try {
-    const parallelUploads3 = new Upload({
-      client: r2Client,
-      params: {
-        Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
-        Key: fileName,
-        Body: file,
-        ContentType: file.type,
-        StorageClass: 'STANDARD',
-      },
-      // 대용량 파일의 경우 파트 크기 조절 (기본 5MB)
-      partSize: 1024 * 1024 * 5,
-      leavePartsOnError: false,
-    });
-
-    parallelUploads3.on('httpUploadProgress', (progress) => {
-      if (progress.loaded && progress.total) {
-        const percent = Math.round((progress.loaded / progress.total) * 100);
-        console.log(`[R2] Upload progress: ${percent}%`);
-        onProgress?.(percent);
-      }
-    });
-
-    await parallelUploads3.done();
+    await putToR2(fileName, file, onProgress);
     console.log('[R2] Managed upload successful!');
 
     const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
     return publicUrl;
   } catch (error) {
-    console.error('[R2] Managed upload failed ❌');
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      
-      // AWS specific metadata check
-      const awsError = error as Error & { $metadata?: unknown };
-      if (awsError.$metadata) {
-        console.error('AWS Metadata:', awsError.$metadata);
-      }
-      
-      if (error.stack) {
-        console.error('Stack trace:', error.stack);
-      }
-    } else {
-      console.error('Unknown error:', error);
-    }
+    console.error('[R2] Managed upload failed ❌', error);
     throw error;
   }
 }
@@ -109,26 +102,7 @@ const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
 const fileName = `videos/${timestamp}-${randomId}-${sanitizedFileName}`;
 
   try {
-    const parallelUploads3 = new Upload({
-      client: r2Client,
-      params: {
-        Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
-        Key: fileName,
-        Body: file,
-        ContentType: file.type,
-        StorageClass: 'STANDARD',
-      },
-      leavePartsOnError: false,
-    });
-
-    parallelUploads3.on('httpUploadProgress', (progress) => {
-      if (progress.loaded && progress.total) {
-        const percent = Math.round((progress.loaded / progress.total) * 100);
-        onProgress?.(percent);
-      }
-    });
-
-    await parallelUploads3.done();
+    await putToR2(fileName, file, onProgress);
 
     const publicUrl = `${import.meta.env.VITE_R2_PUBLIC_URL}/${fileName}`;
     return publicUrl;
@@ -187,15 +161,8 @@ export async function deleteFileFromR2(url: string): Promise<void> {
   }
 
   try {
-    const bucketName = import.meta.env.VITE_R2_BUCKET_NAME;
-    console.log(`[R2] Attempting delete - Bucket: ${bucketName}, Key: ${key}`);
-    
-    const command = new DeleteObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-    });
-    
-    await r2Client.send(command);
+    console.log(`[R2] Attempting delete - Key: ${key}`);
+    await callR2Api({ action: 'delete', key });
     console.log('[R2] Delete successful ✅ Key:', key);
   } catch (error) {
     console.error('[R2] Delete operation failed ❌', error);
@@ -212,18 +179,7 @@ export async function uploadThumbnailFromVideo(file: File, videoKey: string): Pr
   const thumbnailBlob = await extractFirstFrame(file);
   const thumbnailKey = videoKey.replace(/\.[^.]+$/, `_thumb.${thumbnailExt(thumbnailBlob)}`);
 
-  const upload = new Upload({
-    client: r2Client,
-    params: {
-      Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
-      Key: thumbnailKey,
-      Body: thumbnailBlob,
-      ContentType: thumbnailBlob.type,
-      StorageClass: 'STANDARD',
-    },
-  });
-
-  await upload.done();
+  await putToR2(thumbnailKey, thumbnailBlob);
   return `${import.meta.env.VITE_R2_PUBLIC_URL}/${thumbnailKey}`;
 }
 
@@ -306,18 +262,7 @@ export async function generateThumbnailFromUrl(videoUrl: string): Promise<string
   const blob = await extractFirstFrameFromUrl(videoUrl);
   const thumbnailKey = videoKey.replace(/\.[^.]+$/, `_thumb.${thumbnailExt(blob)}`);
 
-  const upload = new Upload({
-    client: r2Client,
-    params: {
-      Bucket: import.meta.env.VITE_R2_BUCKET_NAME,
-      Key: thumbnailKey,
-      Body: blob,
-      ContentType: blob.type,
-      StorageClass: 'STANDARD',
-    },
-  });
-
-  await upload.done();
+  await putToR2(thumbnailKey, blob);
   return `${r2PublicUrl}/${thumbnailKey}`;
 }
 
