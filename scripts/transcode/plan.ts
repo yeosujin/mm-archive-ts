@@ -33,8 +33,9 @@ export function buildTranscodeArgs(input: string, output: string, encoder: Encod
   ];
 }
 
-export function buildThumbArgs(input: string, output: string): string[] {
-  return ['-y', '-ss', '0.5', '-i', input, '-frames:v', '1', '-vf', "scale=w='min(640,iw)':h=-2", '-q:v', '3', output];
+/** seek 기본 0.5초. 0.5초보다 짧은 클립은 '0'으로 다시 시도한다 */
+export function buildThumbArgs(input: string, output: string, seek = '0.5'): string[] {
+  return ['-y', '-ss', seek, '-i', input, '-frames:v', '1', '-vf', "scale=w='min(640,iw)':h=-2", '-q:v', '3', output];
 }
 
 /** mov는 컨테이너 통일을 위해 항상 변환본. mp4는 변환본이 더 작을 때만 */

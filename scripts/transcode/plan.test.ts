@@ -54,6 +54,9 @@ describe('buildThumbArgs', () => {
       '-vf', "scale=w='min(640,iw)':h=-2", '-q:v', '3', 'out.jpg',
     ]);
   });
+  it('seek를 지정하면 그 지점을 쓴다 (짧은 클립 폴백)', () => {
+    expect(buildThumbArgs('i', 'o', '0').slice(0, 3)).toEqual(['-y', '-ss', '0']);
+  });
 });
 
 describe('decideResult', () => {

@@ -57,7 +57,13 @@ if (!VITE_R2_ACCOUNT_ID || !VITE_R2_ACCESS_KEY_ID || !VITE_R2_SECRET_ACCESS_KEY 
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
 const limitIdx = args.indexOf('--limit');
-const LIMIT = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : Infinity;
+const LIMIT = limitIdx >= 0 ? Number(args[limitIdx + 1]) : Infinity;
+if (!(LIMIT === Infinity || (Number.isInteger(LIMIT) && LIMIT > 0))) {
+  console.error('❌ --limit 값은 양의 정수여야 합니다');
+  process.exit(1);
+}
+// 한 번 실행에서 실패가 이만큼 쌓이면 멈춘다 (영구 실패 파일이 시간을 다 쓰지 않도록)
+const MAX_FAILURES = 10;
 const encIdx = args.indexOf('--encoder');
 const ENCODER: Encoder = encIdx >= 0
   ? (args[encIdx + 1] as Encoder)
@@ -117,8 +123,18 @@ async function convert(tmp: string, url: string, needThumb: boolean): Promise<Co
 
     let thumbnailUrl: string | undefined;
     if (needThumb) {
-      await execFileAsync('ffmpeg', buildThumbArgs(outPath, thumbPath));
-      thumbnailUrl = `${PUBLIC}/${thumbKey(newKey)}`;
+      // 0.5초보다 짧은 클립은 프레임이 없어 실패하므로 0초로 한 번 더 시도한다. 썸네일 실패는 변환 실패가 아니다
+      for (const seek of ['0.5', '0']) {
+        try {
+          await execFileAsync('ffmpeg', buildThumbArgs(outPath, thumbPath, seek));
+          await stat(thumbPath);
+          thumbnailUrl = `${PUBLIC}/${thumbKey(newKey)}`;
+          break;
+        } catch {
+          await rm(thumbPath, { force: true });
+        }
+      }
+      if (!thumbnailUrl) console.warn(`   ⚠️ 썸네일 생성 실패 — 건너뜀: ${url}`);
     }
 
     if (!DRY_RUN) {
@@ -140,6 +156,7 @@ async function pendingMoments(): Promise<MomentRow[]> {
       .select('id,tweet_url,thumbnail_url')
       .is('original_url', null)
       .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
       .range(from, from + 999);
     if (error) throw error;
     rows.push(...data.filter(r => isR2Url(r.tweet_url, PUBLIC)));
@@ -151,26 +168,35 @@ interface MediaRow { type: 'image' | 'video'; url: string; thumbnail?: string; o
 interface PostRow { id: string; media: MediaRow[] | null }
 
 async function pendingPosts(): Promise<PostRow[]> {
-  const { data, error } = await sb.from('posts').select('id,media').not('media', 'is', null);
-  if (error) throw error;
-  return (data as PostRow[]).filter(p => pendingPostVideoIndexes(p.media, PUBLIC).length > 0);
+  const rows: PostRow[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from('posts')
+      .select('id,media')
+      .not('media', 'is', null)
+      .order('id', { ascending: true })
+      .range(from, from + 999);
+    if (error) throw error;
+    rows.push(...(data as PostRow[]).filter(p => pendingPostVideoIndexes(p.media, PUBLIC).length > 0));
+    if (data.length < 1000) return rows;
+  }
 }
 
 async function main() {
   console.log(`🎬 트랜스코딩 (encoder=${ENCODER}${DRY_RUN ? ', DRY RUN' : ''}${LIMIT !== Infinity ? `, LIMIT ${LIMIT}` : ''})`);
   const tmp = await mkdtemp(join(tmpdir(), 'r2-transcode-'));
   const stats = { done: 0, failed: 0 };
-  let budget = LIMIT;
+  let budget = LIMIT; // 성공한 변환만 차감한다
 
   const moments = await pendingMoments();
   console.log(`📦 대기 모먼트 ${moments.length}개`);
   for (const m of moments) {
-    if (budget-- <= 0) break;
+    if (budget <= 0) break;
+    if (stats.failed >= MAX_FAILURES) { console.log(`⛔ 실패 ${MAX_FAILURES}건 — 중단`); break; }
     try {
       const c = await convert(tmp, m.tweet_url, !m.thumbnail_url);
       console.log(`   ✅ moment ${m.id} ${c.note}${c.thumbnailUrl ? ' +thumb' : ''}`);
       if (!DRY_RUN) {
-        const { error } = await sb.from('moments')
+        const { data, error } = await sb.from('moments')
           .update({
             tweet_url: c.url,
             original_url: m.tweet_url,
@@ -178,9 +204,15 @@ async function main() {
           })
           .eq('id', m.id)
           .eq('tweet_url', m.tweet_url)
-          .is('original_url', null);
+          .is('original_url', null)
+          .select('id');
         if (error) throw error;
+        if (!data || data.length === 0) {
+          console.warn(`   ⚠️ moment ${m.id} 그 사이 변경됨 — 건너뜀`);
+          continue;
+        }
       }
+      budget--;
       stats.done++;
     } catch (err) {
       stats.failed++;
@@ -192,25 +224,49 @@ async function main() {
   console.log(`📦 대기 포스트 ${posts.length}개`);
   for (const p of posts) {
     if (budget <= 0) break;
-    const media = [...(p.media ?? [])];
-    let changed = false;
+    if (stats.failed >= MAX_FAILURES) { console.log(`⛔ 실패 ${MAX_FAILURES}건 — 중단`); break; }
+    const media = p.media ?? [];
+    const converted = new Map<number, { item: MediaRow; c: Converted }>();
     for (const i of pendingPostVideoIndexes(media, PUBLIC)) {
-      if (budget-- <= 0) break;
+      if (budget <= 0) break;
+      if (stats.failed >= MAX_FAILURES) break;
       try {
         const item = media[i];
         const c = await convert(tmp, item.url, !item.thumbnail);
         console.log(`   ✅ post ${p.id}[${i}] ${c.note}${c.thumbnailUrl ? ' +thumb' : ''}`);
-        media[i] = { ...item, url: c.url, original_url: item.url, ...(c.thumbnailUrl ? { thumbnail: c.thumbnailUrl } : {}) };
-        changed = true;
+        converted.set(i, { item, c });
+        budget--;
         stats.done++;
       } catch (err) {
         stats.failed++;
         console.error(`   ❌ post ${p.id}[${i}]: ${err instanceof Error ? err.message : err}`);
       }
     }
-    if (changed && !DRY_RUN) {
-      const { error } = await sb.from('posts').update({ media }).eq('id', p.id);
-      if (error) console.error(`   ❌ post ${p.id} DB 갱신 실패: ${error.message}`);
+    if (converted.size > 0 && !DRY_RUN) {
+      // 변환하는 동안 어드민이 수정했을 수 있으니 최신 media를 다시 읽어 url이 같은 항목만 반영한다
+      const { data: fresh, error: readErr } = await sb.from('posts').select('media').eq('id', p.id).single();
+      if (readErr) {
+        stats.failed++;
+        console.error(`   ❌ post ${p.id} 재조회 실패: ${readErr.message}`);
+        continue;
+      }
+      const current = [...((fresh?.media as MediaRow[] | null) ?? [])];
+      let changed = false;
+      for (const [i, { item, c }] of converted) {
+        if (current[i]?.url !== item.url) {
+          console.warn(`   ⚠️ post ${p.id}[${i}] 그 사이 변경됨 — 건너뜀`);
+          continue;
+        }
+        current[i] = { ...current[i], url: c.url, original_url: item.url, ...(c.thumbnailUrl ? { thumbnail: c.thumbnailUrl } : {}) };
+        changed = true;
+      }
+      if (changed) {
+        const { error } = await sb.from('posts').update({ media: current }).eq('id', p.id);
+        if (error) {
+          stats.failed++;
+          console.error(`   ❌ post ${p.id} DB 갱신 실패: ${error.message}`);
+        }
+      }
     }
   }
 
