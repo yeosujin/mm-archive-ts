@@ -15,6 +15,10 @@ const r2 = new S3Client({
   },
 });
 
+// 서버가 대신 받아 올 수 있는 이미지 호스트. 임의 주소를 받으면 SSRF가 된다
+const IMPORT_HOSTS = /(^|\.)(wevpstatic|pstatic)\.net$/;
+const IMPORT_MAX_BYTES = 10 * 1024 * 1024;
+
 function isAdmin(req: VercelRequest): boolean {
   const given = req.headers['x-admin-password'];
   if (!ADMIN_PASSWORD || typeof given !== 'string') return false;
@@ -32,12 +36,13 @@ function isValidKey(key: unknown): key is string {
  * - { action: 'verify' }                     → 비밀번호 확인만
  * - { action: 'presign', key, contentType }  → 업로드용 presigned PUT URL (10분)
  * - { action: 'delete', key }                → 객체 삭제
+ * - { action: 'import', key, sourceUrl }     → 허용 호스트 이미지를 받아 R2에 저장
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!isAdmin(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { action, key, contentType } = (req.body ?? {}) as Record<string, unknown>;
+  const { action, key, contentType, sourceUrl } = (req.body ?? {}) as Record<string, unknown>;
 
   try {
     if (action === 'verify') return res.status(200).json({ ok: true });
@@ -52,6 +57,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
       const url = await getSignedUrl(r2, command, { expiresIn: 600 });
       return res.status(200).json({ url });
+    }
+
+    if (action === 'import') {
+      let src: URL;
+      try {
+        src = new URL(String(sourceUrl));
+      } catch {
+        return res.status(400).json({ error: 'Invalid sourceUrl' });
+      }
+      if (src.protocol !== 'https:' || !IMPORT_HOSTS.test(src.hostname)) {
+        return res.status(400).json({ error: 'Host not allowed' });
+      }
+      const img = await fetch(src);
+      const type = img.headers.get('content-type') ?? '';
+      if (!img.ok || !type.startsWith('image/')) return res.status(502).json({ error: `Fetch failed (${img.status})` });
+      const body = Buffer.from(await img.arrayBuffer());
+      if (body.length > IMPORT_MAX_BYTES) return res.status(413).json({ error: 'Too large' });
+      await r2.send(new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: key,
+        Body: body,
+        ContentType: type,
+        CacheControl: 'public, max-age=31536000, immutable',
+      }));
+      return res.status(200).json({ ok: true });
     }
 
     if (action === 'delete') {

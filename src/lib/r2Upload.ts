@@ -26,6 +26,12 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
   }
 }
 
+/** 허용된 외부 이미지(위버스 썸네일)를 서버가 받아 R2에 저장. 공개 URL 반환 */
+export async function importImageToR2(sourceUrl: string, key: string): Promise<string> {
+  await callR2Api({ action: 'import', key, sourceUrl });
+  return `${import.meta.env.VITE_R2_PUBLIC_URL}/${key}`;
+}
+
 /** presigned URL로 R2에 PUT 업로드 (진행률 추적을 위해 XHR 사용) */
 async function putToR2(key: string, body: Blob, onProgress?: (progress: number) => void): Promise<void> {
   const { url } = await callR2Api<{ url: string }>({ action: 'presign', key, contentType: body.type });
