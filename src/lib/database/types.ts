@@ -18,6 +18,8 @@ export interface Moment {
   video_id?: string;
   position?: number;
   thumbnail_url?: string;
+  /** 트랜스코딩 전 원본 URL. 채워져 있으면 변환 완료 */
+  original_url?: string | null;
 }
 
 export interface PostMedia {
@@ -25,6 +27,8 @@ export interface PostMedia {
   url: string;
   thumbnail?: string;
   thumb_hash?: string;
+  /** 트랜스코딩 전 원본 URL (영상만). 채워져 있으면 변환 완료 */
+  original_url?: string;
 }
 
 export interface Post {
