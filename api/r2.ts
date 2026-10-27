@@ -69,7 +69,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (src.protocol !== 'https:' || !IMPORT_HOSTS.test(src.hostname)) {
         return res.status(400).json({ error: 'Host not allowed' });
       }
-      const img = await fetch(src);
+      // 허용 호스트에서 다른 주소로 리다이렉트되면 따라가지 않는다 (SSRF 방지)
+      const img = await fetch(src, { redirect: 'error' });
       const type = img.headers.get('content-type') ?? '';
       if (!img.ok || !type.startsWith('image/')) return res.status(502).json({ error: `Fetch failed (${img.status})` });
       const body = Buffer.from(await img.arrayBuffer());
