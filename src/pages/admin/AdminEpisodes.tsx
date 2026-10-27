@@ -1369,7 +1369,7 @@ export default function AdminEpisodes() {
                       : ` · ${episode.messages?.length || 0}개 메시지`
                     }
                     {episode.tweet_images && episode.tweet_images.length > 0
-                      ? ` · 🐦 트윗 이미지 ${episode.tweet_images.length}장`
+                      ? ` · 🐦 첨부 이미지 ${episode.tweet_images.length}장`
                       : ''}
                   </p>
                   {isComment && (
