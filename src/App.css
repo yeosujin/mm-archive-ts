@@ -17,11 +17,12 @@
   --radius-md: 14px;
   --radius-lg: 18px;
 
-  /* Calendar Dot Colors: 빨주노초보 */
+  /* Calendar Dot Colors: 빨주노초파보 */
   --color-video: #ff4b4b; /* Red */
   --color-moment: #f97316; /* Orange */
   --color-post: #ca8a04; /* Yellow/Dark Gold */
   --color-episode: #10b981; /* Green */
+  --color-photo: #3b82f6; /* Blue */
   --color-article: #8b5cf6; /* Purple */
 
   /* Spacing */
@@ -2700,6 +2701,7 @@
 .day-dot.moment { background-color: var(--color-moment); }
 .day-dot.post { background-color: var(--color-post); }
 .day-dot.episode { background-color: var(--color-episode); }
+.day-dot.photo { background-color: var(--color-photo); }
 .day-dot.article { background-color: var(--color-article); }
 
 .day-more {
