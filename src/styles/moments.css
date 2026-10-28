@@ -245,7 +245,7 @@
 .vcover-twitter { background: linear-gradient(135deg, #15161a, #33363d); }
 .vcover-other { background: linear-gradient(135deg, #1f2233, #3a3f5c); }
 
-/* ===== 영상 상세 (/videos/:id) ===== */
+/* ===== 영상 상세 (/videos/:id 페이지 · 표지 위 모달 공용) ===== */
 
 .vd {
   max-width: 760px;
@@ -281,6 +281,44 @@
 
 .vd-back svg {
   transform: scaleX(-1);
+}
+
+/* 모달에서는 같은 자리 대신 오른쪽 위 ✕ */
+.vd-close {
+  left: auto;
+  right: 0.625rem;
+}
+
+.vd-close svg {
+  transform: none;
+}
+
+/* ===== 영상 상세 모달 (표지 위, ?v=) ===== */
+
+.vdm {
+  position: fixed;
+  inset: 0;
+  z-index: 900; /* 헤더(100) 위, 모먼트 뷰어(1000) 아래 */
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: calc(env(safe-area-inset-top) + 0.75rem) 1rem calc(env(safe-area-inset-bottom) + 1.5rem);
+  background: var(--bg-primary);
+  outline: none;
+  transition: transform 0.2s ease;
+  animation: vdm-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes vdm-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vdm {
+    transition: none;
+    animation: none;
+  }
 }
 
 .vd-info {

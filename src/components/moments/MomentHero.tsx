@@ -3,7 +3,7 @@ import type { Moment, Video } from '../../lib/database/types';
 import { CATEGORY_LABEL, classifyVideo, formatDotDate } from '../../lib/videoCatalog';
 import { isSaveData, prefersReducedMotion } from '../../lib/networkPrefs';
 import VideoCover from './VideoCover';
-import { PlayIcon } from '../Icons';
+import { ArrowRightIcon } from '../Icons';
 
 const PREVIEW_DELAY_MS = 1000;
 const PREVIEW_SECONDS = 8;
@@ -12,13 +12,14 @@ interface Props {
   video: Video;
   /** 이 영상의 모먼트(정렬됨). 비어 있지 않다 */
   moments: Moment[];
-  /** 뷰어가 열려 있으면 미리보기 정지 */
+  /** 상세 모달·뷰어가 위에 떠 있으면 미리보기 정지 */
   paused: boolean;
+  /** 영상 상세를 연다 */
   onOpen: () => void;
 }
 
 /**
- * 표지 히어로. 표지를 먼저 보이고 1초 뒤 첫 모먼트를 음소거로 앞 8초만 재생한 뒤 표지로 페이드백.
+ * 표지 히어로. 누르면 영상 상세. 표지를 먼저 보이고 1초 뒤 첫 모먼트를 음소거로 앞 8초만 재생한 뒤 표지로 페이드백.
  * 다른 영상으로 다시 뽑히면 부모가 key로 새로 마운트한다.
  */
 export default function MomentHero({ video, moments, paused, onOpen }: Props) {
@@ -73,7 +74,7 @@ export default function MomentHero({ video, moments, paused, onOpen }: Props) {
       type="button"
       className="mc-hero"
       onClick={onOpen}
-      aria-label={`${video.title} 모먼트 넘겨보기`}
+      aria-label={`${video.title} 자세히 보기`}
     >
       <VideoCover video={video} moments={moments} className="mc-hero-cover" eager />
       {canPreview && (
@@ -96,7 +97,7 @@ export default function MomentHero({ video, moments, paused, onOpen }: Props) {
         <span className="mc-hero-body">
           <span className="mc-hero-title">{video.title}</span>
           <span className="mc-hero-meta">모먼트 {moments.length}</span>
-          <span className="mc-hero-play"><PlayIcon size={13} /> 넘겨보기</span>
+          <span className="mc-hero-play">자세히 보기 <ArrowRightIcon size={13} /></span>
         </span>
       </span>
     </button>

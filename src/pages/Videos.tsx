@@ -14,6 +14,7 @@ import {
 } from '../lib/videoCatalog';
 import MomentHero from '../components/moments/MomentHero';
 import VideoCard from '../components/moments/VideoCard';
+import VideoDetailModal from '../components/moments/VideoDetailModal';
 import ChipMenu from '../components/moments/ChipMenu';
 import MomentViewer from '../components/MomentViewer';
 import Skeleton from '../components/Skeleton';
@@ -36,7 +37,7 @@ const MEMBERS = [
 
 const NO_MOMENTS: Moment[] = [];
 
-/** 옛 링크 `/videos?highlight=<videoId>[&moment=<momentId>]` → 영상 상세 */
+/** 옛 링크 `/videos?highlight=<videoId>[&moment=<momentId>]` → 영상 상세 페이지 */
 export default function Videos() {
   const [searchParams] = useSearchParams();
   const highlight = searchParams.get('highlight');
@@ -52,6 +53,8 @@ function VideoCatalog() {
   const { videos, moments, fetchVideos, fetchMoments } = useData();
   const [searchParams, setSearchParams] = useSearchParams();
   const { value: momentId, open, close } = useViewerParam();
+  // 영상 상세 모달은 `?v=` — 뒤로가기로 닫히고, 같은 pathname이라 표지 스크롤·필터가 그대로 남는다
+  const { value: detailId, open: openDetail, close: closeDetail } = useViewerParam('v');
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -100,6 +103,11 @@ function VideoCatalog() {
     const startIndex = list?.findIndex(m => m.id === momentId) ?? -1;
     return list && startIndex >= 0 ? { list, startIndex } : null;
   }, [momentId, moments, momentMap]);
+
+  const detail = useMemo(() => {
+    const video = detailId ? videos?.find(v => v.id === detailId) : undefined;
+    return video ? { video, list: momentMap.get(video.id) ?? NO_MOMENTS } : null;
+  }, [detailId, videos, momentMap]);
 
   if ((!videos || !moments) && !failed) {
     return <Skeleton variant="list" count={6} />;
@@ -165,8 +173,8 @@ function VideoCatalog() {
           key={hero.id}
           video={hero}
           moments={heroMoments}
-          paused={viewer !== null}
-          onOpen={() => open(heroMoments[0].id)}
+          paused={viewer !== null || detail !== null}
+          onOpen={() => openDetail(hero.id)}
         />
       )}
 
@@ -177,7 +185,7 @@ function VideoCatalog() {
           </h2>
           <div className="mc-rail">
             {list.map(v => (
-              <VideoCard key={v.id} video={v} moments={momentMap.get(v.id) ?? NO_MOMENTS} />
+              <VideoCard key={v.id} video={v} moments={momentMap.get(v.id) ?? NO_MOMENTS} onOpen={openDetail} />
             ))}
           </div>
         </section>
@@ -185,8 +193,20 @@ function VideoCatalog() {
 
       {months.length === 0 && <p className="mc-empty">이 조건의 영상이 없어요</p>}
 
+      {/* 뷰어(1000)는 모달(900) 위. 모달 본문의 미리 받기 정리가 뷰어 effect 뒤에 돌도록 모달보다 앞에 둔다 */}
       {viewer && (
         <MomentViewer key={momentId} moments={viewer.list} startIndex={viewer.startIndex} onClose={close} />
+      )}
+
+      {detail && (
+        <VideoDetailModal
+          key={detail.video.id}
+          video={detail.video}
+          moments={detail.list}
+          viewerOpen={!!momentId}
+          onOpenMoment={open}
+          onClose={closeDetail}
+        />
       )}
     </div>
   );
