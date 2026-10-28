@@ -3,6 +3,7 @@ import type { Moment } from '../lib/database/types';
 import { CloseIcon, VolumeOnIcon, VolumeOffIcon, ShareIcon, PlayIcon } from './Icons';
 import { requestPlay, release } from '../lib/videoPlaybackCoordinator';
 import { shareOrDownloadVideo } from '../lib/shareVideo';
+import { getSessionSoundOn, setSessionSoundOn } from '../lib/viewerSound';
 
 interface Props {
   /** 넘길 순서 그대로 */
@@ -12,9 +13,6 @@ interface Props {
 }
 
 const HINT_KEY = 'mmemory.viewerHintSeen';
-
-// 소리 상태는 뷰어를 닫았다 열어도 페이지 세션 동안 유지한다
-let sessionSoundOn = true;
 
 function isSaveData(): boolean {
   const conn = (navigator as { connection?: { saveData?: boolean } }).connection;
@@ -70,7 +68,7 @@ export default function MomentViewer({ moments, startIndex, onClose }: Props) {
   // 시작 위치는 마운트 시점 값으로 고정
   const [initialIndex] = useState(() => Math.min(Math.max(0, startIndex), Math.max(0, moments.length - 1)));
   const [active, setActive] = useState(initialIndex);
-  const [soundOn, setSoundOn] = useState(sessionSoundOn);
+  const [soundOn, setSoundOn] = useState(getSessionSoundOn);
   const [pausedIndex, setPausedIndex] = useState<number | null>(null);
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -101,7 +99,7 @@ export default function MomentViewer({ moments, startIndex, onClose }: Props) {
 
   // muted를 먼저 속성으로 지정한 뒤 재생. 소리 재생이 막히면 음소거로 다시 시도
   const playWithFallback = useCallback((video: HTMLVideoElement, index: number) => {
-    video.muted = !sessionSoundOn;
+    video.muted = !getSessionSoundOn();
     // 코디네이터: 다른 VideoPlayer가 재생 중이면 멈춘다 (내부 play() 실패는 무시됨)
     requestPlay(video);
     video.play().catch((err: unknown) => {
@@ -110,7 +108,7 @@ export default function MomentViewer({ moments, startIndex, onClose }: Props) {
       if (!(err instanceof Error) || err.name !== 'NotAllowedError') return;
       if (!video.muted) {
         video.muted = true;
-        sessionSoundOn = false;
+        setSessionSoundOn(false);
         setSoundOn(false);
         video.play().catch(() => setPausedIndex(index));
       } else {
@@ -258,7 +256,7 @@ export default function MomentViewer({ moments, startIndex, onClose }: Props) {
 
   const toggleSound = () => {
     const next = !soundOn;
-    sessionSoundOn = next;
+    setSessionSoundOn(next);
     setSoundOn(next);
     const video = videosRef.current[activeRef.current];
     if (video) video.muted = !next;
