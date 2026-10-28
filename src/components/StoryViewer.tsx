@@ -53,7 +53,7 @@ interface Pos {
 const FAILED_VIDEO_MS = 5000;
 
 // 카드에서 커지기: 자동 열기는 '카드가 열린다'가 보이게 천천히(가속→감속), 카드를 누르면 빠르게
-const AUTO_ZOOM_MS = 520;
+const AUTO_ZOOM_MS = 420;
 const TAP_ZOOM_MS = 400;
 const AUTO_EASE = 'cubic-bezier(0.65, 0, 0.35, 1)';
 // 누른 카드에서 커지기·카드로 줄어들기: 첫 순간에 확 튀지 않게 부드럽게 출발해 감속
@@ -63,7 +63,7 @@ const SETTLE_MS = 220;
 // 다 커진 뒤 위 막대·캡션이 떠오르기 시작하는 때와 그 길이. 재생·진행은 다 커진 뒤 PLAY_AFTER_MS에 시작
 const CHROME_DELAY_MS = 100;
 const CHROME_MS = 220;
-const PLAY_AFTER_MS = 250;
+const PLAY_AFTER_MS = 150;
 // 카드로 줄어들기
 const SHRINK_MS = 350;
 // 카드 위치를 모를 때 가운데서 커지기/작아지기, 동작 줄이기 설정이면 페이드
