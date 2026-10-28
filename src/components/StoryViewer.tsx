@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { StoryFrame, StoryYear } from '../lib/onThisDayStory';
-import { frameDurationMs, frameMedia } from '../lib/onThisDayStory';
+import { contentKey, frameDurationMs, frameMedia } from '../lib/onThisDayStory';
 import { CloseIcon, VolumeOnIcon, VolumeOffIcon, ShareIcon, PlayIcon } from './Icons';
 import { requestPlay, release } from '../lib/videoPlaybackCoordinator';
 import { shareOrDownloadVideo } from '../lib/shareVideo';
@@ -11,8 +11,10 @@ import StoryFrameView from './story/StoryFrameView';
 
 interface Props {
   years: StoryYear[];
-  /** 이 해 첫 프레임부터 */
+  /** 이 해부터 */
   startYear: number;
+  /** 그 해의 몇 번째 프레임부터 (범위 밖이면 맞춘다) */
+  startFrame?: number;
   /** 자동으로 열렸으면 음소거로 시작 (사용자 제스처가 없어 소리 재생이 막힌다) */
   autoStarted: boolean;
   /** 로딩 화면을 바로 이어받을 때: 올라오는 애니메이션 없이 */
@@ -30,17 +32,6 @@ interface Pos {
 // 영상이 안 열리면 사진처럼 이 시간만큼 보여주고 넘긴다
 const FAILED_VIDEO_MS = 5000;
 
-/** 진행 막대 묶음 기준: 같은 영상의 모먼트, 같은 묶음 사진, 같은 포스트의 미디어는 한 콘텐츠 */
-function contentKey(f: StoryFrame): string {
-  switch (f.kind) {
-    case 'moment': return f.moment.video_id ? `video:${f.moment.video_id}` : `moment:${f.moment.id}`;
-    case 'video': return `video:${f.video.id}`;
-    case 'photo': return `photo:${f.photo.date}|${f.title}`;
-    case 'post': return `post:${f.post.id}`;
-    case 'episode': return `episode:${f.episode.id}`;
-  }
-}
-
 function isSaveData(): boolean {
   const conn = (navigator as { connection?: { saveData?: boolean } }).connection;
   return conn?.saveData === true;
@@ -57,9 +48,13 @@ function hasMedia(f: StoryFrame | undefined): boolean {
   return f.kind === 'moment' || f.kind === 'photo' || (f.kind === 'post' && !!f.media);
 }
 
-export default function StoryViewer({ years, startYear, autoStarted, instant = false, onClose }: Props) {
+export default function StoryViewer({ years, startYear, startFrame = 0, autoStarted, instant = false, onClose }: Props) {
   const { memberSettings } = useData();
-  const [pos, setPos] = useState<Pos>(() => ({ yi: Math.max(0, years.findIndex(y => y.year === startYear)), fi: 0, seq: 0 }));
+  const [pos, setPos] = useState<Pos>(() => {
+    const yi = Math.max(0, years.findIndex(y => y.year === startYear));
+    const last = Math.max(0, (years[yi]?.frames.length ?? 1) - 1);
+    return { yi, fi: Math.min(Math.max(0, Math.floor(startFrame)), last), seq: 0 };
+  });
   const [soundOn, setSoundOn] = useState(() => !autoStarted && getSessionSoundOn());
   const [held, setHeld] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
@@ -67,7 +62,7 @@ export default function StoryViewer({ years, startYear, autoStarted, instant = f
   const [hidden, setHidden] = useState(() => document.hidden);
   // 음소거로도 재생이 막힌 경우(저전력 모드 등) 가운데 재생 버튼
   const [blocked, setBlocked] = useState(false);
-  const [loading, setLoading] = useState(() => hasMedia(years[pos.yi]?.frames[0]));
+  const [loading, setLoading] = useState(() => hasMedia(years[pos.yi]?.frames[pos.fi]));
   const [downloading, setDownloading] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);

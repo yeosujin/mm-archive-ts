@@ -4,7 +4,7 @@ import { CloseIcon, SearchIcon } from '../components/Icons';
 import { useData } from '../hooks/useData';
 import { useViewerParam } from '../hooks/useViewerParam';
 import { getTodayString } from '../lib/dailyPick';
-import { buildStoryYears, fallbackDay, frameMedia, latestMoments, shouldAutoOpen, storyDays } from '../lib/onThisDayStory';
+import { buildStoryYears, fallbackDay, frameMedia, latestMoments, parseStoryParam, shouldAutoOpen, storyDays } from '../lib/onThisDayStory';
 import type { StoryData, StoryFrame, StoryYear } from '../lib/onThisDayStory';
 import { isSaveData, prefersReducedMotion } from '../lib/networkPrefs';
 import OnThisDayCards from '../components/home/OnThisDayCards';
@@ -84,7 +84,9 @@ export default function Home() {
   }, [videos, moments, posts, episodes, photos, today]);
 
   const storyOpens = !!story && story.years.length > 0 && !story.isFallback;
-  const storyYear = storyParam !== null ? Number(storyParam) : null;
+  // `?s=YEAR` 또는 `?s=YEAR.FRAMEINDEX`
+  const storyStart = parseStoryParam(storyParam);
+  const storyYear = storyStart?.year ?? null;
   // 열린 뷰어의 해 목록은 열 때 고정한다. 뒤에 새 데이터가 와도 카드만 바뀌고 뷰어는 그대로
   // (StoryViewer는 years가 바뀌는 것을 다루지 않는다)
   if (storyYear === null) {
@@ -197,9 +199,10 @@ export default function Home() {
     }
   };
 
-  const handleOpenYear = (year: number) => {
+  const handleOpenContent = (year: number, frameIndex: number) => {
     setAutoYear(null);
-    openStory(String(year));
+    preloadFrame(story?.years.find(y => y.year === year)?.frames[frameIndex]);
+    openStory(frameIndex > 0 ? `${year}.${frameIndex}` : String(year));
   };
 
   const momentIndex = latest && momentParam ? latest.findIndex(m => m.id === momentParam) : -1;
@@ -210,7 +213,7 @@ export default function Home() {
         years={story ? story.years : null}
         label={cardLabel(story)}
         paused={storyParam !== null || momentParam !== null}
-        onOpen={handleOpenYear}
+        onOpen={handleOpenContent}
       />
 
       <div className="home-search-row">
@@ -296,6 +299,7 @@ export default function Home() {
           key={storyParam}
           years={viewerYears}
           startYear={storyYear}
+          startFrame={storyStart?.frame ?? 0}
           autoStarted={autoYear === storyYear}
           instant={autoInstant && autoYear === storyYear}
           onClose={closeStory}

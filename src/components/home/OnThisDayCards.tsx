@@ -1,5 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import type { StoryFrame, StoryYear } from '../../lib/onThisDayStory';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { StoryContent, StoryFrame, StoryYear } from '../../lib/onThisDayStory';
+import { groupStoryContents } from '../../lib/onThisDayStory';
+import type { Episode, Post } from '../../lib/database/types';
+import { detectPlatformName, getPlatformName } from '../../lib/platformUtils';
 import { isSaveData, prefersReducedMotion } from '../../lib/networkPrefs';
 import VideoCover from '../moments/VideoCover';
 import { ChatIcon, PlayIcon, PostIcon } from '../Icons';
@@ -11,7 +14,37 @@ interface Props {
   label: string;
   /** 뷰어가 열려 있으면 미리보기 정지 */
   paused: boolean;
-  onOpen: (year: number) => void;
+  /** 그 해 frameIndex번째 프레임부터 연다 */
+  onOpen: (year: number, frameIndex: number) => void;
+}
+
+const EPISODE_LABEL: Record<Episode['episode_type'], string> = {
+  dm: 'DM',
+  comment: '댓글',
+  listening_party: '리스닝 파티',
+};
+
+function platformOf(post: Post): string {
+  return (post.platform === 'other' ? detectPlatformName(post.url) : getPlatformName(post.platform)) || '포스트';
+}
+
+/** 카드 글: 제목(두 줄까지) + 짧은 설명 */
+function cardText(group: StoryContent): { title: string; meta: string } {
+  const f = group.frames[0];
+  const n = group.frames.length;
+  switch (f.kind) {
+    case 'moment': return { title: f.video?.title || f.moment.title, meta: `모먼트 ${n}` };
+    case 'video': return { title: f.video.title, meta: '보러가기' };
+    case 'photo': return { title: f.title, meta: `사진 ${n}장` };
+    case 'post': {
+      const title = f.post.title?.trim() || f.post.content?.trim().split('\n')[0] || '';
+      return { title, meta: platformOf(f.post) };
+    }
+    case 'episode': {
+      const label = EPISODE_LABEL[f.episode.episode_type] ?? '에피소드';
+      return f.episode.title ? { title: f.episode.title, meta: label } : { title: label, meta: '' };
+    }
+  }
 }
 
 /** 첫 프레임이 영상이면 미리보기 주소 */
@@ -76,13 +109,22 @@ function CardPreview({ src }: { src: string }) {
   );
 }
 
-/** 연도별 그 해 오늘 카드 캐러셀 */
+/** 그 해 오늘 콘텐츠 카드. 해마다 머리말 + 카드 줄, 전체가 한 줄로 가로 스크롤 */
 export default function OnThisDayCards({ years, label, paused, onOpen }: Props) {
   const railRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [inView, setInView] = useState(false);
   const [canPreview] = useState(() => !prefersReducedMotion() && !isSaveData());
   const hasCards = !!years?.length;
+
+  // 해마다 콘텐츠 묶음. index는 전체 카드 순번 (미리보기 대상 고르기용)
+  const groups = useMemo(() => {
+    let index = 0;
+    return (years ?? []).map(y => ({
+      year: y,
+      contents: groupStoryContents(y).map(content => ({ content, index: index++ })),
+    }));
+  }, [years]);
 
   useEffect(() => {
     const el = railRef.current;
@@ -92,16 +134,17 @@ export default function OnThisDayCards({ years, label, paused, onOpen }: Props) 
     return () => io.disconnect();
   }, [canPreview, hasCards]);
 
-  // 가운데에 가장 가까운 카드
+  // 스크롤 영역 가운데에 가장 가까운 카드 (카드 순서 = 전체 순번)
   const handleScroll = () => {
     const rail = railRef.current;
     if (!rail) return;
-    const center = rail.scrollLeft + rail.clientWidth / 2;
+    const box = rail.getBoundingClientRect();
+    const center = box.left + box.width / 2;
     let best = 0;
     let bestDist = Infinity;
-    Array.from(rail.children).forEach((child, i) => {
-      const el = child as HTMLElement;
-      const dist = Math.abs(el.offsetLeft + el.offsetWidth / 2 - center);
+    rail.querySelectorAll<HTMLElement>('.hm-card').forEach((el, i) => {
+      const r = el.getBoundingClientRect();
+      const dist = Math.abs(r.left + r.width / 2 - center);
       if (dist < bestDist) {
         bestDist = dist;
         best = i;
@@ -113,10 +156,15 @@ export default function OnThisDayCards({ years, label, paused, onOpen }: Props) 
   if (!years) {
     return (
       <section className="hm-otd" aria-busy="true" aria-label="로딩 중">
+        <p className="hm-otd-label">&nbsp;</p>
         <div className="hm-cards">
-          <div className="hm-card skeleton-shimmer" />
+          <div className="hm-otd-year">
+            <span className="hm-otd-yh">&nbsp;</span>
+            <div className="hm-otd-row">
+              {[0, 1, 2].map(i => <div key={i} className="hm-card skeleton-shimmer" />)}
+            </div>
+          </div>
         </div>
-        <div className="hm-dots" />
       </section>
     );
   }
@@ -125,38 +173,41 @@ export default function OnThisDayCards({ years, label, paused, onOpen }: Props) 
 
   return (
     <section className="hm-otd" aria-label="그 해 오늘">
+      <p className="hm-otd-label">{label}</p>
       <div ref={railRef} className="hm-cards" onScroll={handleScroll}>
-        {years.map((y, i) => {
-          const first = y.frames[0];
-          const preview = previewUrlOf(first);
-          return (
-            <button
-              key={y.year}
-              type="button"
-              className="hm-card"
-              onClick={() => onOpen(y.year)}
-              aria-label={`${y.year}년 오늘 넘겨보기`}
-            >
-              <FrameImage frame={first} eager={i === 0} />
-              {preview && canPreview && inView && !paused && i === active && (
-                <CardPreview key={preview} src={preview} />
-              )}
-              <span className="hm-card-ov">
-                <span className="hm-card-kick">{i === 0 ? label : ''}</span>
-                <span className="hm-card-body">
-                  <span className="hm-card-year">{y.year}년 오늘</span>
-                  <span className="hm-card-meta">
-                    {y.yearsAgo > 0 ? `${y.yearsAgo}년 전` : '올해'} · {y.frames.length}개
-                  </span>
-                  <span className="hm-card-play"><PlayIcon size={13} /> 넘겨보기</span>
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      <div className="hm-dots" aria-hidden>
-        {years.length > 1 && years.map((y, i) => <i key={y.year} className={i === active ? 'on' : ''} />)}
+        {groups.map(({ year: y, contents }) => (
+          <div key={y.year} className="hm-otd-year" role="group" aria-label={`${y.year}년`}>
+            <span className="hm-otd-yh">{y.year}년 · {y.yearsAgo > 0 ? `${y.yearsAgo}년 전` : '올해'}</span>
+            <div className="hm-otd-row">
+              {contents.map(({ content: c, index: i }) => {
+                const first = c.frames[0];
+                const preview = previewUrlOf(first);
+                const { title, meta } = cardText(c);
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    className="hm-card"
+                    onClick={() => onOpen(y.year, c.startIndex)}
+                    aria-label={`${y.year}년 ${title || meta} 넘겨보기`}
+                  >
+                    <FrameImage frame={first} eager={i < 3} />
+                    {preview && canPreview && inView && !paused && i === active && (
+                      <CardPreview key={preview} src={preview} />
+                    )}
+                    <span className="hm-card-ov">
+                      <span className="hm-card-play" aria-hidden><PlayIcon size={10} /></span>
+                      <span className="hm-card-body">
+                        {title && <span className="hm-card-title">{title}</span>}
+                        {meta && <span className="hm-card-meta">{meta}</span>}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );

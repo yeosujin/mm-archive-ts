@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildStoryYears, frameDurationMs, frameMedia, storyDays, fallbackDay, shouldAutoOpen, latestMoments,
+  contentKey, groupStoryContents, parseStoryParam,
   type StoryData, type StoryFrame,
 } from './onThisDayStory';
 import type { Video, Moment, Photo, Post, Episode } from './database/types';
@@ -164,5 +165,63 @@ describe('frameMedia', () => {
     expect(frameMedia({ kind: 'post', key: 'k', post: post('x', '2024-10-28') })).toEqual({});
     expect(frameMedia({ kind: 'episode', key: 'k', episode: episode('e', '2024-10-28') })).toEqual({});
     expect(frameMedia(undefined)).toEqual({});
+  });
+});
+
+describe('contentKey', () => {
+  it('같은 영상의 모먼트와 모먼트 없는 영상은 영상 기준, 독립 모먼트는 자기 기준', () => {
+    const v = video('v1', '2024-10-28');
+    expect(contentKey({ kind: 'moment', key: 'k', moment: moment('m1', '2024-10-28', 'v1'), video: v })).toBe('video:v1');
+    expect(contentKey({ kind: 'moment', key: 'k', moment: moment('m2', '2024-10-28') })).toBe('moment:m2');
+    expect(contentKey({ kind: 'video', key: 'k', video: v })).toBe('video:v1');
+  });
+
+  it('사진은 날짜+묶음 제목, 포스트는 포스트 id, 에피소드는 id', () => {
+    expect(contentKey({ kind: 'photo', key: 'k', photo: photo('p1', '앨범-1', '2024-10-28'), title: '앨범' })).toBe('photo:2024-10-28|앨범');
+    expect(contentKey({ kind: 'post', key: 'k', post: post('a', '2024-10-28'), media: { type: 'image', url: 'x' } })).toBe('post:a');
+    expect(contentKey({ kind: 'episode', key: 'k', episode: episode('e1', '2024-10-28') })).toBe('episode:e1');
+  });
+});
+
+describe('groupStoryContents', () => {
+  it('붙어 있는 같은 콘텐츠 프레임을 한 묶음으로, 시작 위치와 함께', () => {
+    const data: StoryData = {
+      ...empty,
+      videos: [video('v1', '2024-10-28')],
+      moments: [moment('m1', '2024-10-28', 'v1', 1), moment('m2', '2024-10-28', 'v1', 2), moment('solo', '2024-10-28')],
+      photos: [photo('p1', '앨범-1', '2024-10-28'), photo('p2', '앨범-2', '2024-10-28')],
+      posts: [post('post1', '2024-10-28', [{ type: 'image', url: 'a' }, { type: 'image', url: 'b' }]), post('post2', '2024-10-28')],
+      episodes: [episode('e1', '2024-10-28')],
+    };
+    const [year] = buildStoryYears(data, '2026-10-28');
+    const groups = groupStoryContents(year);
+    expect(groups.map(g => [g.key, g.startIndex, g.frames.length])).toEqual([
+      ['video:v1', 0, 2],
+      ['moment:solo', 2, 1],
+      ['photo:2024-10-28|앨범', 3, 2],
+      ['post:post1', 5, 2],
+      ['post:post2', 7, 1],
+      ['episode:e1', 8, 1],
+    ]);
+    expect(groups.flatMap(g => g.frames)).toEqual(year.frames);
+  });
+
+  it('프레임이 없으면 빈 목록', () => {
+    expect(groupStoryContents({ year: 2024, yearsAgo: 2, frames: [] })).toEqual([]);
+  });
+});
+
+describe('parseStoryParam', () => {
+  it('YEAR는 첫 프레임, YEAR.N은 N번째 프레임', () => {
+    expect(parseStoryParam('2025')).toEqual({ year: 2025, frame: 0 });
+    expect(parseStoryParam('2025.3')).toEqual({ year: 2025, frame: 3 });
+  });
+
+  it('없거나 형식이 틀리면 null', () => {
+    expect(parseStoryParam(null)).toBeNull();
+    expect(parseStoryParam('')).toBeNull();
+    expect(parseStoryParam('abc')).toBeNull();
+    expect(parseStoryParam('2025.')).toBeNull();
+    expect(parseStoryParam('2025.-1')).toBeNull();
   });
 });

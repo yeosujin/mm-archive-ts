@@ -64,6 +64,38 @@ export function buildStoryYears(data: StoryData, today: string): StoryYear[] {
     .map(([year, list]) => ({ year, yearsAgo: todayYear - year, frames: list }));
 }
 
+/** 한 콘텐츠 기준: 같은 영상의 모먼트, 같은 묶음 사진, 같은 포스트의 미디어는 한 콘텐츠 */
+export function contentKey(f: StoryFrame): string {
+  switch (f.kind) {
+    case 'moment': return f.moment.video_id ? `video:${f.moment.video_id}` : `moment:${f.moment.id}`;
+    case 'video': return `video:${f.video.id}`;
+    case 'photo': return `photo:${f.photo.date}|${f.title}`;
+    case 'post': return `post:${f.post.id}`;
+    case 'episode': return `episode:${f.episode.id}`;
+  }
+}
+
+export interface StoryContent { key: string; startIndex: number; frames: StoryFrame[] }
+
+/** 한 해의 프레임을 콘텐츠별로 묶는다. 같은 콘텐츠 프레임은 붙어 있다 */
+export function groupStoryContents(year: StoryYear): StoryContent[] {
+  const groups: StoryContent[] = [];
+  year.frames.forEach((f, i) => {
+    const key = contentKey(f);
+    const last = groups[groups.length - 1];
+    if (last?.key === key) last.frames.push(f);
+    else groups.push({ key, startIndex: i, frames: [f] });
+  });
+  return groups;
+}
+
+/** 스토리 쿼리 `YEAR` 또는 `YEAR.FRAMEINDEX`. 형식이 틀리면 null */
+export function parseStoryParam(param: string | null): { year: number; frame: number } | null {
+  const m = param?.match(/^(\d{4})(?:\.(\d+))?$/);
+  if (!m) return null;
+  return { year: Number(m[1]), frame: m[2] ? Number(m[2]) : 0 };
+}
+
 /** 프레임이 보여줄 미디어 주소 (영상·이미지). 미리 받기에 쓴다 */
 export function frameMedia(f: StoryFrame | undefined): { video?: string; image?: string } {
   if (!f) return {};

@@ -6,11 +6,18 @@
   padding-bottom: 2rem;
 }
 
-/* 연도별 그 해 오늘 카드 — 화면 끝까지 넘기게 좌우 여백만큼 밖으로 */
+/* 그 해 오늘 — 맨 위 문구 */
+.hm-otd-label {
+  margin: 0 0 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* 콘텐츠 카드 — 모든 해가 한 줄. 화면 끝까지 넘기게 좌우 여백만큼 밖으로 */
 .hm-cards {
-  position: relative; /* 카드 offsetLeft 기준 */
   display: flex;
-  gap: 10px;
+  gap: 20px; /* 해 사이 */
   margin: 0 calc(-1 * var(--container-padding));
   padding: 0 var(--container-padding);
   overflow-x: auto;
@@ -24,10 +31,32 @@
   display: none;
 }
 
+/* 한 해: 머리말 + 카드 줄 */
+.hm-otd-year {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hm-otd-yh {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.hm-otd-row {
+  display: flex;
+  gap: 8px; /* 카드 사이 */
+}
+
+/* 375px 폭에서 약 2.3장 보이게 */
 .hm-card {
   position: relative;
   flex: none;
-  width: calc(100% - 36px); /* 옆 카드가 살짝 보이게 */
+  width: 40vw;
+  max-width: 180px;
   aspect-ratio: 3 / 4;
   padding: 0;
   border: none;
@@ -36,7 +65,7 @@
   color: #fff;
   font: inherit;
   text-align: left;
-  scroll-snap-align: center;
+  scroll-snap-align: start;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -44,11 +73,6 @@
 /* 스켈레톤(div)은 shimmer 배경을 쓴다 */
 button.hm-card {
   background: #222;
-}
-
-/* 한 장뿐이면 가운데 (크기는 그대로 — 스켈레톤과 같은 높이) */
-.hm-card:only-child {
-  margin: 0 auto;
 }
 
 .hm-card-img,
@@ -86,68 +110,52 @@ button.hm-card {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 1rem;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 26%, transparent 50%, rgba(0, 0, 0, 0.88));
+  align-items: flex-start;
+  padding: 0.625rem;
+  background: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, 0.82));
   pointer-events: none;
 }
 
-.hm-card-kick {
-  font-size: 0.75rem;
-  opacity: 0.9;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+/* 은은한 ▶ 표시 */
+.hm-card-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .hm-card-body {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
 }
 
-.hm-card-year {
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+.hm-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .hm-card-meta {
-  margin: 0.25rem 0 0.75rem;
-  font-size: 0.75rem;
+  margin-top: 0.125rem;
+  overflow: hidden;
+  font-size: 0.6875rem;
   opacity: 0.85;
-}
-
-.hm-card-play {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3125rem;
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
-  background: #fff;
-  color: #000;
-  font-size: 0.8125rem;
-  font-weight: 700;
-}
-
-/* 점 — 한 해면 비어 있지만 높이는 유지(레이아웃 밀림 방지) */
-.hm-dots {
-  display: flex;
-  justify-content: center;
-  gap: 5px;
-  height: 6px;
-  margin-top: 10px;
-}
-
-.hm-dots i {
-  width: 6px;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--border);
-  transition: width 0.2s, background 0.2s;
-}
-
-.hm-dots i.on {
-  width: 16px;
-  background: var(--text-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* 검색 — 기존 홈 검색창을 전체 폭으로 */
@@ -234,11 +242,7 @@ button.hm-cell {
   }
 
   .hm-card {
-    width: 300px;
-    scroll-snap-align: start;
-  }
-
-  .hm-card:only-child {
-    margin: 0;
+    width: 190px;
+    max-width: none;
   }
 }
