@@ -10,9 +10,9 @@ import { useSyncExternalStore } from 'react';
 export type SplashPhase = 'on' | 'leaving' | 'off';
 
 const SEEN_KEY = 'mmemory.splashSeen';
-const MIN_MS = 900;
+const MIN_MS = 600;
 const MAX_MS = 2500;
-const OUT_MS = 300; // splash.css 퇴장 애니메이션과 같게
+const OUT_MS = 220; // splash.css 퇴장 애니메이션과 같게
 
 const listeners = new Set<() => void>();
 let phase: SplashPhase = decide();
