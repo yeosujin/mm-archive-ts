@@ -3,7 +3,7 @@ type: architecture
 status: stable
 tags: [architecture, routing]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 ---
 
 # 라우팅
@@ -13,15 +13,15 @@ updated: 2026-07-24
 ```
 RootLayout  (errorElement: ErrorFallback)
 ├── / ................ Layout
-│   ├── index ........ Home
-│   ├── videos ....... Videos        (메뉴: 모먼트)
+│   ├── index ........ Home          (?s= 스토리 · ?m= · ?v=)
+│   ├── videos ....... Videos        (탭: 모먼트, ?v= 상세 모달 · ?m= 모먼트 뷰어)
+│   ├── videos/:id ... VideoDetail
 │   ├── moments ...... Moments       (네비 숨김)
 │   ├── posts ........ Posts
 │   ├── photos ....... Photos
-│   ├── search ....... Search
+│   ├── search ....... Search        (헤더 아이콘)
 │   ├── episodes ..... Episodes
-│   ├── articles ..... Articles      (메뉴: 도서관)
-│   ├── calendar ..... Calendar
+│   ├── calendar ..... Calendar      (헤더 아이콘)
 │   ├── ask .......... Ask           (네비 숨김)
 │   └── ask/:id ...... AskDetail     (네비 숨김)
 │
@@ -31,14 +31,16 @@ RootLayout  (errorElement: ErrorFallback)
 │   ├── moments ...... AdminMoments
 │   ├── posts ........ AdminPosts
 │   ├── episodes ..... AdminEpisodes
-│   ├── articles ..... AdminArticles
 │   ├── photos ....... AdminPhotos
-│   └── asks ......... AdminAsks
+│   ├── asks ......... AdminAsks
+│   └── covers ....... AdminCovers
 │
 └── * ................ Navigate to "/"
 ```
 
-공개 11 + 어드민 8.
+공개 11 + 어드민 8. 도서관(`/articles`, `/admin/articles`)은 2.0.0에서 제거.
+
+탭은 `Layout.tsx`의 홈 · 모먼트 · 포스트 · 사진 · 에피소드. 뷰어·모달은 별도 라우트가 아니라 쿼리(`?s=` `?m=` `?v=`)로 열고, 휴대폰 뒤로가기로 닫힌다.
 
 ## 404
 

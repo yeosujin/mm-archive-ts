@@ -1,0 +1,518 @@
+/* ===== 그 해 오늘 스토리 뷰어 (StoryViewer) ===== */
+
+.st {
+  position: fixed;
+  inset: 0;
+  z-index: 1000; /* 상단 헤더(100) 위 */
+  height: 100dvh;
+  background: #000;
+  color: #fff;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  /* 카드에서 커지고 카드로 줄어드는 변환(StoryViewer fitToCard)의 기준점 */
+  transform-origin: 0 0;
+}
+
+/* 닫히는 동안엔 눌러도 반응하지 않는다 */
+.st.is-closing {
+  pointer-events: none;
+}
+
+/* 뷰어 뒤 어두운 막. 열고 닫을 때 뷰어와 함께 짙어지고 옅어진다 */
+.st-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* 커지고 줄어드는 동안 창을 덮는 카드 그림 (평소엔 투명). 그림이 없으면 카드 기본 배경 */
+.st-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 20;
+  opacity: 0;
+  background: linear-gradient(135deg, #1f2233, #3a3f5c);
+  pointer-events: none;
+}
+
+.st-ghost img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 제스처 층: 프레임 전체. 브라우저 스크롤·확대를 막고 직접 판정 */
+.st-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/*
+ * 프레임 층. 지금 프레임 위, 아래에 넘기기 전 프레임(새 프레임이 뜰 때까지 남겨 둔다),
+ * 맨 아래 숨긴 다음 프레임(미리 받아 첫 장면까지 준비)
+ */
+.st-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.st-frame.is-cur,
+.st-frame.is-wait {
+  z-index: 2;
+}
+
+.st-frame.is-under {
+  z-index: 1;
+  pointer-events: none;
+}
+
+.st-frame.is-next,
+.st-frame.is-wait {
+  opacity: 0;
+}
+
+.st-frame.is-next {
+  pointer-events: none;
+}
+
+/* 흐린 썸네일 배경. 원본·영상이 뜨기 전에 먼저 보인다 */
+.st-bg {
+  position: absolute;
+  top: -30px;
+  left: -30px;
+  width: calc(100% + 60px);
+  height: calc(100% + 60px);
+  object-fit: cover;
+  filter: blur(22px) brightness(0.4);
+  pointer-events: none;
+}
+
+.st-media {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* 원본 사진: 다 받은 뒤 흐린 배경 위로 페이드인 */
+.st-fade {
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+
+.st-fade.is-on {
+  opacity: 1;
+}
+
+/* 상단: 진행 막대 · 라벨 · 소리/닫기 */
+.st-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: calc(env(safe-area-inset-top) + 8px) 10px 24px;
+  background: linear-gradient(rgba(0, 0, 0, 0.55), transparent);
+  pointer-events: none;
+}
+
+.st-bars {
+  display: flex;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.st-bars-year {
+  flex-shrink: 1;
+  flex-basis: 0;
+  min-width: 0;
+  display: flex;
+  gap: 2px;
+}
+
+/* 콘텐츠가 바뀌는 곳은 프레임 사이(2px)보다 넓게, 해 사이(10px)보다 좁게 */
+.st-bars i.is-new {
+  margin-left: 4px;
+}
+
+.st-bars i {
+  flex: 1;
+  min-width: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+}
+
+.st-bars b {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: #fff;
+}
+
+.st-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.st-label {
+  padding-left: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.st-actions {
+  display: flex;
+  pointer-events: auto;
+}
+
+/* 버튼: 배경 없이 아이콘 + 그림자 (모먼트 뷰어와 같은 모양) */
+.st-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
+}
+
+.st-btn:active {
+  opacity: 0.6;
+}
+
+.st-btn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.st-btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: st-spin 0.6s linear infinite;
+}
+
+/* 모먼트: 오른쪽 아래 저장 */
+.st-side {
+  position: absolute;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 40px);
+  z-index: 5;
+}
+
+.st-paused,
+.st-play {
+  position: absolute;
+  z-index: 3; /* 프레임 층 위 */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  padding: 16px;
+  border: none;
+  background: none;
+  color: #fff;
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.6));
+}
+
+.st-paused {
+  pointer-events: none;
+}
+
+.st-play {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 0.3초 넘게 기다릴 때만 보이게 */
+.st-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  z-index: 3; /* 프레임 층 위 */
+  margin: -16px 0 0 -16px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  opacity: 0;
+  animation: st-spin 0.7s linear infinite, st-show 0s linear 0.3s forwards;
+  pointer-events: none;
+}
+
+/* 하단 캡션 (모든 프레임): 제목 + 날짜. 미디어 있는 포스트는 원문 칩·본문·더보기까지 한 덩어리 */
+.st-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  padding: 48px 16px calc(env(safe-area-inset-bottom) + 22px);
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  font-size: 13px;
+  line-height: 1.55;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* 모먼트: 오른쪽 아래 저장 버튼(.st-side) 자리를 비운다 */
+.st-cap.has-side {
+  padding-right: 68px;
+}
+
+.st-cap-title {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.st-cap-date {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.st-cap .st-clamp {
+  margin-top: 6px;
+}
+
+/* 미디어 없는 포스트: 본문을 가운데 크게 */
+.st-text {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  padding: 0 28px;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.st-src {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 4px 11px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.st-clamp {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.st-text .st-clamp {
+  -webkit-line-clamp: 10;
+}
+
+.st-more {
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: #aaa;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 모먼트 없는 영상: 표지 + 제목 + 보러가기 */
+.st-vcard {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 40px;
+}
+
+.st-vcard-cover {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #222;
+}
+
+.st-go {
+  padding: 10px 20px;
+  border-radius: 22px;
+  background: #fff;
+  color: #000;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 에피소드: 채팅 화면 (진행에 맞춰 뷰어가 아래로 내린다) */
+.st-chat {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  /* 아래는 제목·날짜 캡션에 가리지 않게 */
+  padding: calc(env(safe-area-inset-top) + 76px) 16px calc(env(safe-area-inset-bottom) + 110px);
+  overflow-y: hidden;
+  background: linear-gradient(180deg, #1b1630, #0d0d10);
+}
+
+.st-chat-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.st-chat-who b {
+  display: block;
+}
+
+.st-chat-av {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #b565a7;
+}
+
+.st-chat-meta {
+  display: block;
+  font-size: 11px;
+  color: #888;
+}
+
+.st-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.st-msg-name {
+  padding-left: 4px;
+  font-size: 11px;
+  color: #aaa;
+}
+
+.st-bub {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 16px 16px 16px 4px;
+  background: #2c2c36;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.st-msg-img {
+  max-width: 70%;
+  border-radius: 12px;
+}
+
+/* 더보기 바텀시트 */
+.st-dim {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s;
+}
+
+.st-dim.is-on {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.st-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9;
+  max-height: 70%;
+  padding: 10px 18px calc(env(safe-area-inset-bottom) + 26px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 18px 18px 0 0;
+  background: #18181d;
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+  transform: translateY(100%);
+  transition: transform 0.28s;
+}
+
+.st-sheet.is-on {
+  transform: none;
+}
+
+.st-grab {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 14px;
+  border-radius: 2px;
+  background: #555;
+}
+
+@keyframes st-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes st-show {
+  to { opacity: 1; }
+}

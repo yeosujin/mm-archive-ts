@@ -6,6 +6,7 @@ import { useData } from '../hooks/useData';
 import LazyImage from '../components/LazyImage';
 import Skeleton from '../components/Skeleton';
 import PostDetailContent from '../components/PostDetailContent';
+import { SearchField, SortChip } from '../components/FilterChips';
 
 export default function Posts() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -99,13 +100,17 @@ export default function Posts() {
     return firstMedia.url;
   };
 
+  const filterRow = (
+    <div className="mc-filter">
+      <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="검색... (제목, 날짜, 글쓴이)" />
+      <SortChip value={sortOrder} onChange={setSortOrder} />
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="page posts-page posts-grid-view">
-        <div className="page-header">
-          <h1>포스트</h1>
-          <p className="page-desc">X, 인스타, 위버스</p>
-        </div>
+        {filterRow}
         <Skeleton variant="grid" count={9} />
       </div>
     );
@@ -113,31 +118,7 @@ export default function Posts() {
 
   return (
     <div className="page posts-page posts-grid-view">
-      <div className="page-header">
-        <h1>포스트</h1>
-        <p className="page-desc">X, 인스타, 위버스</p>
-        <div className="page-controls">
-          <div className="search-box">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="검색... (제목, 날짜, 글쓴이)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="sort-toggle-wrapper">
-            <button
-              type="button"
-              className="sort-toggle"
-              onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
-            >
-              <span className="sort-icon">{sortOrder === 'newest' ? '▼' : '▲'}</span>
-              {sortOrder === 'newest' ? '최신순' : '오래된순'}
-            </button>
-          </div>
-        </div>
-      </div>
+      {filterRow}
 
       {filteredPosts.length === 0 ? (
         <div className="empty-state">

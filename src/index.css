@@ -8,6 +8,9 @@
 }
 
 html {
+  /* iOS Safari가 넓은 가로 스크롤 영역의 글자를 임의로 키우지 않게 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   font-size: 16px;
   scroll-behavior: smooth;
 }

@@ -2,13 +2,43 @@
 type: meta
 title: "Log"
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 tags: [meta, log]
 ---
 
 # Log
 
 append-only. **새 항목은 최상단.**
+
+---
+
+## 2026-10-28 — 2.0.0 문서 정리 (v2 UI 3~5단계 반영)
+
+- 홈: 콘텐츠별 그 해 오늘 카드, 스토리 뷰어(`?s=`), 입장 로고, 자동 열기 규칙(진짜 그 해 오늘인 날만, 대체 날은 `?date=`로도 안 엶), 새로 올라온 영상, AI 검색 기본 → [[home-calendar]] · [[on-this-day]]
+- 모먼트 탭: 필터 한 줄, 분류 `Weverse / YouTube / 외부 출연`(제목 패턴 분류 폐기), 히어로·월별 레일, `?v=` 상세 모달, `?m=` 뷰어 → [[videos-moments]]
+- 제거: 도서관(articles), 홈 메인 걸기(featured), `PostEmbed`. DB 테이블·edge function은 남김 → [[articles]](superseded) · [[settings]] · [[data-model]] · [[database-layer]] · [[routing]]
+- PC 폭: 모든 탭이 헤더와 같은 1200px, 포스트·사진 격자 열 수 자동 → [[mobile-first-ui]]
+
+---
+
+## 2026-10-28 — 입장 로고 화면 + 스토리 팝업 등장
+
+세션에서 처음 홈(`/`)으로 들어오면 테마 배경 위에 "mmemory" 로고 애니메이션(`EntrySplash`, `lib/entrySplash.ts`)을 띄운다. 최소 0.9초, 홈이 자동 열기를 정하면 내리고, 늦어도 2.5초면 내린다.
+자동으로 여는 스토리는 로고가 사라질 때 팝업처럼 커지며 나타난다(`StoryViewer enter="pop"`). 칸을 눌러 열면 그대로 아래에서 올라온다. 검은 로딩 화면(스피너 + ✕)은 없앴다.
+
+---
+
+## 2026-10-28 — 그 해 오늘 스토리 빠르게 열기
+
+목록 데이터를 기기에 남겨(stale-while-revalidate) 다음 방문엔 스토리를 바로 연다. `getMoments`는 1000행 장들을 동시에 받는다.
+그날 첫 방문에 데이터가 없으면 검은 로딩 화면(스피너 + ✕)을 띄우고 스토리로 이어받는다 → [[directory-structure]]
+
+---
+
+## 2026-10-28 — 전역 네비 통일 + 캘린더 사진 (3단계, 2.0.0 대기)
+
+데스크톱 네비·모바일 ☰ 메뉴 2벌을 헤더 + 상단 글자 탭 한 벌로 합쳤다. 홈의 메뉴 칩 줄 삭제. 도서관은 탭에서 빠지고 라우트만 남았다.
+캘린더에 사진 추가(같은 날·같은 제목 묶음, 파란 점). 배포하지 않음 — `yeosujin/v2-ui` 브랜치, 3~5단계는 2.0.0에서 함께 나간다 → [[_index|domains]] · [[settings]] · [[home-calendar]]
 
 ---
 

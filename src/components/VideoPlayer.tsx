@@ -1,6 +1,7 @@
 import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { ShareIcon, VolumeOnIcon, VolumeOffIcon, PlayIcon } from './Icons';
 import { requestPlay, release } from '../lib/videoPlaybackCoordinator';
+import { shareOrDownloadVideo } from '../lib/shareVideo';
 
 interface Props {
   videoUrl: string;
@@ -139,24 +140,7 @@ const VideoPlayer = memo(({
     if (downloading) return;
     try {
       setDownloading(true);
-      const res = await fetch(videoUrl);
-      const blob = await res.blob();
-      const fileName = videoUrl.split('/').pop()?.split('?')[0] || 'video.mp4';
-      const file = new File([blob], fileName, { type: blob.type });
-
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file] });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-      window.open(videoUrl, '_blank');
+      await shareOrDownloadVideo(videoUrl);
     } finally {
       setDownloading(false);
     }

@@ -1,11 +1,20 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, MenuIcon, CloseIcon, VideoIcon, PhotoIcon, PostIcon, ChatIcon, BookIcon, ArrowUpIcon } from './Icons';
+import { useState, useEffect, useRef } from 'react';
+import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, CloseIcon, ArrowUpIcon } from './Icons';
 import { useData } from '../hooks/useData';
+import EntrySplash from './EntrySplash';
+
+// 상단 글자 탭
+const TABS = [
+  { to: '/', label: '홈', end: true, preload: undefined },
+  { to: '/videos', label: '모먼트', end: false, preload: () => import('../pages/Videos') },
+  { to: '/posts', label: '포스트', end: false, preload: () => import('../pages/Posts') },
+  { to: '/photos', label: '사진', end: false, preload: () => import('../pages/Photos') },
+  { to: '/episodes', label: '에피소드', end: false, preload: () => import('../pages/Episodes') },
+];
 
 export default function Layout() {
-  const { memberSettings, fetchMemberSettings } = useData();
-  const articlesVisible = memberSettings?.articles_visible ?? false;
+  const { fetchMemberSettings } = useData();
 
   useEffect(() => {
     fetchMemberSettings();
@@ -21,25 +30,39 @@ export default function Layout() {
   }, [isDarkMode]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // 스크롤 한 곳에서: 맨 위로 버튼 + 아래로 내리면 헤더 숨김, 조금이라도 올리면 다시 보임
   useEffect(() => {
+    let lastY = window.scrollY;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const y = window.scrollY;
+      setShowBackToTop(y > 300);
+      if (y <= 0) {
+        setHeaderHidden(false);
+        lastY = y;
+        return;
+      }
+      const delta = y - lastY;
+      if (Math.abs(delta) < 6) return; // 잔떨림 무시 — 작은 움직임은 쌓아서 본다
+      setHeaderHidden(delta > 0 && y > (headerRef.current?.offsetHeight ?? 0));
+      lastY = y;
+    };
     const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 300);
+      if (!frame) frame = requestAnimationFrame(update);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      cancelAnimationFrame(frame);
+    };
   }, []);
 
-  // 모바일 메뉴 오버레이가 열려 있을 때 배경(body) 스크롤 잠금
-  useEffect(() => {
-    if (!showMobileMenu) return;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [showMobileMenu]);
   const navigate = useNavigate();
   const location = useLocation();
   const isAskPage = location.pathname === '/ask' || location.pathname.startsWith('/ask/');
@@ -49,69 +72,16 @@ export default function Layout() {
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setShowSearch(false);
-      setShowMobileMenu(false);
     }
-  };
-
-  const handleNavClick = () => {
-    setShowMobileMenu(false);
   };
 
   return (
     <div className={`app ${isDarkMode ? 'dark' : 'light'}`}>
-      <header className="header">
+      <header ref={headerRef} className={`header${headerHidden && !showSearch ? ' header--hidden' : ''}`}>
         <div className="header-content">
-          <NavLink to="/" className="logo" onClick={handleNavClick}>
+          <NavLink to="/" className="logo">
             mmemory
           </NavLink>
-          
-          {/* Desktop Navigation */}
-          <nav className="nav desktop-nav">
-            <NavLink
-              to="/videos"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onMouseEnter={() => import('../pages/Videos')}
-            >
-              모먼트
-            </NavLink>
-            <NavLink
-              to="/photos"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onMouseEnter={() => import('../pages/Photos')}
-            >
-              사진
-            </NavLink>
-            <NavLink
-              to="/posts"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onMouseEnter={() => import('../pages/Posts')}
-            >
-              포스트
-            </NavLink>
-            <NavLink
-              to="/episodes" 
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onMouseEnter={() => import('../pages/Episodes')}
-            >
-              에피소드
-            </NavLink>
-            {articlesVisible && (
-            <NavLink
-              to="/articles"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onMouseEnter={() => import('../pages/Articles')}
-            >
-              도서관
-            </NavLink>
-            )}
-            <NavLink
-              to="/calendar"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onMouseEnter={() => import('../pages/Calendar')}
-            >
-              <CalendarIcon size={16} />
-            </NavLink>
-          </nav>
 
           <div className="header-actions">
             {!isAskPage && (
@@ -124,24 +94,24 @@ export default function Layout() {
               </button>
             )}
 
-          <button
-            className="theme-toggle"
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            aria-label="테마 변경"
-          >
-            {isDarkMode ? <SunIcon size={18} /> : <MoonIcon size={18} />}
-          </button>
-
-            {/* Mobile Menu Toggle */}
             {!isAskPage && (
-              <button
-                className="mobile-menu-toggle"
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                aria-label="메뉴"
+              <NavLink
+                to="/calendar"
+                className={({ isActive }) => `search-toggle calendar-link ${isActive ? 'active' : ''}`}
+                aria-label="캘린더"
+                onMouseEnter={() => import('../pages/Calendar')}
               >
-                {showMobileMenu ? <CloseIcon size={20} /> : <MenuIcon size={20} />}
-              </button>
+                <CalendarIcon size={18} />
+              </NavLink>
             )}
+
+            <button
+              className="theme-toggle"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              aria-label="테마 변경"
+            >
+              {isDarkMode ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+            </button>
 
             {showSearch && (
               <form onSubmit={handleSearch} className="header-search">
@@ -161,57 +131,20 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        {showMobileMenu && (
-          <>
-            <div className="mobile-nav-overlay" onClick={() => setShowMobileMenu(false)} />
-            <nav className="mobile-nav">
-            <NavLink
-              to="/videos"
-              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
-              onClick={handleNavClick}
-            >
-              <VideoIcon size={18} /> 모먼트
-            </NavLink>
-            <NavLink
-              to="/photos"
-              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
-              onClick={handleNavClick}
-            >
-              <PhotoIcon size={18} /> 사진
-            </NavLink>
-            <NavLink
-              to="/posts"
-              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
-              onClick={handleNavClick}
-            >
-              <PostIcon size={18} /> 포스트
-            </NavLink>
-            <NavLink
-              to="/episodes"
-              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
-              onClick={handleNavClick}
-            >
-              <ChatIcon size={18} /> 에피소드
-            </NavLink>
-            {articlesVisible && (
-            <NavLink
-              to="/articles"
-              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
-              onClick={handleNavClick}
-            >
-              <BookIcon size={18} /> 도서관
-            </NavLink>
-            )}
-            <NavLink
-              to="/calendar"
-              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
-              onClick={handleNavClick}
-            >
-              <CalendarIcon size={18} /> 캘린더
-            </NavLink>
+        {!isAskPage && (
+          <nav className="top-tabs" aria-label="메뉴">
+            {TABS.map(tab => (
+              <NavLink
+                key={tab.to}
+                to={tab.to}
+                end={tab.end}
+                className={({ isActive }) => `top-tab ${isActive ? 'active' : ''}`}
+                onMouseEnter={tab.preload}
+              >
+                {tab.label}
+              </NavLink>
+            ))}
           </nav>
-          </>
         )}
       </header>
 
@@ -230,6 +163,8 @@ export default function Layout() {
       >
         <ArrowUpIcon size={18} />
       </button>
+
+      <EntrySplash />
     </div>
   );
 }
