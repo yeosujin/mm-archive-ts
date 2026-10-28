@@ -3,7 +3,7 @@ type: domain
 status: stable
 tags: [domain, posts]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 ---
 
 # Posts (포스트)
@@ -31,7 +31,7 @@ SNS 게시물 아카이브. 트위터/X, 인스타그램, 위버스 등의 글�
 ## 함정
 
 - 영상 미디어는 `<source>` 태그로 MIME을 **명시해야 한다**. iOS Safari가 확장자만으로는 재생하지 않는 경우가 있어서다
-- 임베드는 외부 스크립트에 의존한다 — 트윗은 `react-tweet`, 인스타는 `components/PostEmbed.tsx`. 원본이 삭제되면 임베드가 빈 칸이 된다
+- 트윗 임베드는 외부 스크립트(`react-tweet`, `components/TweetEmbed.tsx`)에 의존한다. 원본이 삭제되면 임베드가 빈 칸이 된다. 인스타 전용 `PostEmbed`는 2.0.0에서 제거했다
 
 ## 관련
 - [[data-model]] · [[r2-media-pipeline]] · [[daily-tweet-bot]]

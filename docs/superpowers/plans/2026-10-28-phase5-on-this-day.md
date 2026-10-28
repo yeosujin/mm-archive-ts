@@ -152,5 +152,7 @@ interface Props {
 
 ### Task 6: 문서
 
-- [ ] vault `concepts/on-this-day.md`(홈 표현 방식, 대체 날, 자동 표시), `domains/home-calendar.md`(홈 구성 변경, PICK 렌더 제거 — 어드민 Featured 설정은 남아 있지만 홈에서 안 씀), `log.md`
-- [ ] 커밋 `docs: 그 해 오늘 스토리·새 홈 반영`
+- [x] vault `concepts/on-this-day.md`(홈 표현 방식, 대체 날, 자동 표시), `domains/home-calendar.md`(홈 구성 변경, PICK 렌더 제거 — 어드민 Featured 설정은 남아 있지만 홈에서 안 씀), `log.md`
+- [x] 커밋 `docs: 그 해 오늘 스토리·새 홈 반영`
+
+> 완료 메모 (2026-10-28, 2.0.0): 계획과 달리 홈 메인 걸기(Featured)는 어드민 설정까지 코드에서 지웠다(DB 테이블은 남김). 그래서 `home-calendar.md`에는 "PICK·Featured 제거"로 적었다. 도서관 제거, 모먼트 탭 분류 변경, PC 폭 통일도 같은 커밋에서 vault에 반영했다. 홈 그리드는 계획의 `새로 올라온 모먼트`가 아니라 `새로 올라온 영상`(영상 상세 모달)으로 바뀌었다.

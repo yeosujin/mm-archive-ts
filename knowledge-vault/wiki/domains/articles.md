@@ -1,12 +1,16 @@
 ---
 type: domain
-status: stable
+status: superseded
 tags: [domain, articles]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 ---
 
 # Articles (도서관)
+
+> [!warning] 2.0.0에서 제거됨
+> 공개 `/articles`, 어드민 `/admin/articles`, `ArticleList`, `src/lib/database/articles.ts`를 모두 지웠다. 앱 어디에도 도서관 진입점이 없다.
+> DB의 `articles` 테이블과 `settings.articles_visible` 컬럼, 관련 Supabase edge function·임베딩은 **일부러 그대로 뒀다**(데이터 보존). 아래 본문은 제거 전 기록이다.
 
 ## 한 줄 정의
 

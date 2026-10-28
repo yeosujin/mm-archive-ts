@@ -16,13 +16,13 @@ tags: [meta, index]
 | [[posts]] | `/posts` | 포스트 |
 | [[photos]] | `/photos` | 사진 |
 | [[episodes]] | `/episodes` | 에피소드 |
-| [[articles]] | `/articles` | **도서관** |
+| [[articles]] | ~~`/articles`~~ | *2.0.0에서 제거* |
 | [[search]] | `/search` | 아이콘 |
 | [[ask]] | `/ask`, `/ask/:id` | *숨김* |
-| [[home-calendar]] | `/`, `/calendar` | 로고 / 캘린더 |
+| [[home-calendar]] | `/`, `/calendar` | 홈 / 캘린더 |
 | [[settings]] | *어드민 전용* | — |
 
 > [!key-insight]
-> 네비 표시명과 내부 도메인명이 두 군데서 어긋난다. **모먼트 = `videos`**, **도서관 = `articles`**. 특히 `moments`가 별도로 존재하므로 "모먼트"라는 말이 나오면 어느 쪽인지 먼저 확인한다.
+> 네비 표시명과 내부 도메인명이 어긋난다. **모먼트 = `videos`**. 특히 `moments`가 별도로 존재하므로 "모먼트"라는 말이 나오면 어느 쪽인지 먼저 확인한다.
 
-네비는 `src/components/Layout.tsx`의 헤더 + 상단 글자 탭 한 벌(모든 화면 크기 공통, v2 브랜치~)이다. 탭: 홈 · 모먼트 · 포스트 · 사진 · 에피소드. 검색과 캘린더는 헤더 오른쪽 아이콘. 도서관(`/articles`), `moments`, `ask`는 탭에 없고 URL로만 들어간다.
+네비는 `src/components/Layout.tsx`의 헤더 + 상단 글자 탭 한 벌(모든 화면 크기 공통, 2.0.0~). 아래로 스크롤하면 헤더가 숨고 위로 올리면 다시 나온다이다. 탭: 홈 · 모먼트 · 포스트 · 사진 · 에피소드. 검색과 캘린더는 헤더 오른쪽 아이콘. `moments`, `ask`는 탭에 없고 URL로만 들어간다.

@@ -2,13 +2,22 @@
 type: meta
 title: "Log"
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 tags: [meta, log]
 ---
 
 # Log
 
 append-only. **새 항목은 최상단.**
+
+---
+
+## 2026-10-28 — 2.0.0 문서 정리 (v2 UI 3~5단계 반영)
+
+- 홈: 콘텐츠별 그 해 오늘 카드, 스토리 뷰어(`?s=`), 입장 로고, 자동 열기 규칙(진짜 그 해 오늘인 날만, 대체 날은 `?date=`로도 안 엶), 새로 올라온 영상, AI 검색 기본 → [[home-calendar]] · [[on-this-day]]
+- 모먼트 탭: 필터 한 줄, 분류 `Weverse / YouTube / 외부 출연`(제목 패턴 분류 폐기), 히어로·월별 레일, `?v=` 상세 모달, `?m=` 뷰어 → [[videos-moments]]
+- 제거: 도서관(articles), 홈 메인 걸기(featured), `PostEmbed`. DB 테이블·edge function은 남김 → [[articles]](superseded) · [[settings]] · [[data-model]] · [[database-layer]] · [[routing]]
+- PC 폭: 모든 탭이 헤더와 같은 1200px, 포스트·사진 격자 열 수 자동 → [[mobile-first-ui]]
 
 ---
 

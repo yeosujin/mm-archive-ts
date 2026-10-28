@@ -4,7 +4,7 @@ status: stable
 enforcement: must
 tags: [convention, ui, mobile]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 ---
 
 # 모바일 우선 UI
@@ -23,6 +23,12 @@ updated: 2026-07-24
 - 탭 대상은 손가락으로 누를 수 있는 크기다
 - 고정 픽셀 폭 대신 상대 단위·flex·grid를 쓴다
 - 이미지는 `max-width: 100%`
+
+## 넓은 화면 (2.0.0~)
+
+- 헤더 한 벌 + 글자 탭(`Layout.tsx`)을 모든 화면 크기에서 같이 쓴다. 하단 탭바·사이드바를 따로 두지 않는다
+- 모든 탭은 헤더와 같은 폭을 쓴다(`.main` `max-width: 1200px`, `src/App.css`). 탭마다 따로 좁게 묶지 않는다(홈·모먼트의 760px 제한은 없앰)
+- 포스트·사진 격자는 열 수를 고정하지 않고 `repeat(auto-fill, minmax(...))`로 폭에 맞춘다
 
 ## 따라오는 것
 
