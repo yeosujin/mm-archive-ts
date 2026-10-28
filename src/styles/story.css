@@ -10,14 +10,14 @@
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
-  animation: st-in 0.28s ease-out;
+  animation: st-in 0.38s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* 자동 열기: 팝업처럼 살짝 작게·투명하게 시작해 커진다.
    바깥 그림자가 화면을 덮는 어두운 막이 되어 뷰어와 함께 짙어진다 */
 .st.is-pop {
   box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.6);
-  animation: st-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: st-pop 0.55s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -437,8 +437,9 @@
 @keyframes st-pop {
   from {
     opacity: 0;
-    transform: scale(0.92);
-    border-radius: 20px;
+    transform: scale(0.94);
+    border-radius: 28px;
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0);
   }
 }
 

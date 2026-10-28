@@ -6,7 +6,7 @@ export default function EntrySplash() {
   if (phase === 'off') return null;
   return (
     <div className={phase === 'leaving' ? 'splash is-out' : 'splash'} aria-hidden>
-      <span className="splash-mark" data-text="mmemory">mmemory</span>
+      <span className="splash-mark">mmemory</span>
     </div>
   );
 }
