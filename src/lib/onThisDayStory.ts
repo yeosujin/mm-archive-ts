@@ -193,8 +193,3 @@ export function fallbackLabel(date: string, today: string): string {
 export function shouldAutoOpen(lastShown: string | null, today: string, hasStory: boolean, isFallback: boolean): boolean {
   return hasStory && !isFallback && lastShown !== today;
 }
-
-/** `created_at` 최신순 n개 */
-export function latestMoments(moments: Moment[], n = 9): Moment[] {
-  return [...moments].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '')).slice(0, n);
-}

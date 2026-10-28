@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildStoryYears, frameDurationMs, frameMedia, buildStoryForDate, pickFallbackDate, fallbackLabel, shouldAutoOpen, latestMoments,
+  buildStoryYears, frameDurationMs, frameMedia, buildStoryForDate, pickFallbackDate, fallbackLabel, shouldAutoOpen,
   contentKey, groupStoryContents, parseStoryParam, frameCaption, postBody,
   type StoryData, type StoryFrame,
 } from './onThisDayStory';
@@ -167,16 +167,6 @@ describe('shouldAutoOpen', () => {
     expect(shouldAutoOpen('2026-10-28', '2026-10-28', true, false)).toBe(false);
     expect(shouldAutoOpen('2026-10-27', '2026-10-28', false, false)).toBe(false);
     expect(shouldAutoOpen('2026-10-27', '2026-10-28', true, true)).toBe(false);
-  });
-});
-
-describe('latestMoments', () => {
-  it('created_at 내림차순 n개, 원본 불변', () => {
-    const list = Array.from({ length: 12 }, (_, i) => moment(`m${i}`, '2024-01-01', undefined, 0, `2025-01-${String(i + 1).padStart(2, '0')}T00:00:00Z`));
-    const before = list.map(m => m.id);
-    expect(latestMoments(list).map(m => m.id)).toEqual(['m11', 'm10', 'm9', 'm8', 'm7', 'm6', 'm5', 'm4', 'm3']);
-    expect(latestMoments(list, 2).map(m => m.id)).toEqual(['m11', 'm10']);
-    expect(list.map(m => m.id)).toEqual(before);
   });
 });
 

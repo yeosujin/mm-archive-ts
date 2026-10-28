@@ -57,6 +57,11 @@ export function momentsByVideo(moments: Moment[]): Map<string, Moment[]> {
   return map;
 }
 
+/** 새로 올라온 순(`created_at` 내림차순) n개 */
+export function latestVideos<T extends Pick<Video, 'created_at'>>(videos: T[], n = 9): T[] {
+  return [...videos].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '')).slice(0, n);
+}
+
 export function pickHero<T extends Pick<Video, 'id'>>(videos: T[], moments: Map<string, Moment[]>, random = Math.random): T | null {
   const candidates = videos.filter(v => (moments.get(v.id)?.length ?? 0) > 0);
   return candidates.length ? candidates[Math.floor(random() * candidates.length)] : null;

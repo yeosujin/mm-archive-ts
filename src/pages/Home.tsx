@@ -5,7 +5,7 @@ import { useData } from '../hooks/useData';
 import { useViewerParam } from '../hooks/useViewerParam';
 import { getTodayString } from '../lib/dailyPick';
 import {
-  buildStoryForDate, buildStoryYears, fallbackLabel, frameMedia, groupStoryContents, latestMoments, parseStoryParam, pickFallbackDate,
+  buildStoryForDate, buildStoryYears, fallbackLabel, frameMedia, groupStoryContents, parseStoryParam, pickFallbackDate,
   shouldAutoOpen,
 } from '../lib/onThisDayStory';
 import type { StoryData, StoryFrame, StoryYear } from '../lib/onThisDayStory';
@@ -15,9 +15,15 @@ import OnThisDayCards from '../components/home/OnThisDayCards';
 import StoryViewer from '../components/StoryViewer';
 import type { StoryOrigin } from '../components/StoryViewer';
 import MomentViewer from '../components/MomentViewer';
+import VideoCard from '../components/moments/VideoCard';
+import VideoDetailModal from '../components/moments/VideoDetailModal';
+import { latestVideos, momentsByVideo } from '../lib/videoCatalog';
+import type { Moment } from '../lib/database/types';
 
 // AI 모드 placeholder 예시 (정확한 단어 없이도, 한국어/영어 모두 찾을 수 있음을 보여주기 위한 유도 문구)
 const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
+
+const NO_MOMENTS: Moment[] = [];
 
 const AUTO_SHOWN_KEY = 'mmemory.storyAutoShownDate';
 // ?date=YYYY-MM-DD로 날짜를 바꿔 볼 때(확인용)는 '하루 한 번'·'대체 날 제외' 규칙 없이 항상 자동으로 연다
@@ -105,6 +111,8 @@ export default function Home() {
   const [today] = useState(getTodayString);
   const { value: storyParam, open: openStory, close: closeStory } = useViewerParam('s');
   const { value: momentParam, open: openMoment, close: closeMoment } = useViewerParam('m');
+  // 새로 올라온 영상 상세 모달 (모먼트 탭 표지와 같은 `?v=`)
+  const { value: detailParam, open: openDetail, close: closeDetail } = useViewerParam('v');
   // 자동으로 연 해. 스토리 뷰어는 마운트 때만 읽는다
   const [autoYear, setAutoYear] = useState<number | null>(null);
   const autoTriedRef = useRef(false);
@@ -116,7 +124,7 @@ export default function Home() {
   const autoTimerRef = useRef(0);
   // 그날 첫 방문이면 자동 열기를 정할 때까지 입장 로고 화면을 붙잡아 둔다
   const [autoCandidate] = useState(() => {
-    if (storyParam !== null || momentParam !== null) return false;
+    if (storyParam !== null || momentParam !== null || detailParam !== null) return false;
     if (DATE_OVERRIDDEN) return true;
     try { return localStorage.getItem(AUTO_SHOWN_KEY) !== today; } catch { return false; }
   });
@@ -152,7 +160,8 @@ export default function Home() {
   }
   const showStory = !!viewer && !viewer.closing;
 
-  const latest = useMemo(() => (moments ? latestMoments(moments) : null), [moments]);
+  const latest = useMemo(() => (videos ? latestVideos(videos) : null), [videos]);
+  const momentMap = useMemo(() => momentsByVideo(moments ?? []), [moments]);
 
   const preload = (url: string) => {
     if (isSaveData()) return;
@@ -168,7 +177,7 @@ export default function Home() {
   };
 
   // 그 사이 사용자가 직접 뭔가 열었으면 자동 열기는 그만둔다
-  const userOpenedSomething = useEffectEvent(() => storyParam !== null || momentParam !== null);
+  const userOpenedSomething = useEffectEvent(() => storyParam !== null || momentParam !== null || detailParam !== null);
 
   // 홈을 잠깐 보여 준 뒤 첫 카드를 살짝 짚고, 그 카드에서 연다
   const scheduleAutoOpen = useEffectEvent((year: number) => {
@@ -196,7 +205,7 @@ export default function Home() {
     if (!opens && !final) return;
     autoTriedRef.current = true;
     releaseEntrySplash();
-    if (!s || momentParam !== null) return;
+    if (!s || momentParam !== null || detailParam !== null) return;
     let lastShown: string | null = null;
     try { lastShown = localStorage.getItem(AUTO_SHOWN_KEY); } catch { /* 저장소 막힘 */ }
     if (!DATE_OVERRIDDEN && !shouldAutoOpen(lastShown, today, s.years.length > 0, s.isFallback)) return;
@@ -297,14 +306,26 @@ export default function Home() {
     openStory(frameIndex > 0 ? `${year}.${frameIndex}` : String(year));
   };
 
-  const momentIndex = latest && momentParam ? latest.findIndex(m => m.id === momentParam) : -1;
+  const detail = useMemo(() => {
+    const video = detailParam ? videos?.find(v => v.id === detailParam) : undefined;
+    return video ? { video, list: momentMap.get(video.id) ?? NO_MOMENTS } : null;
+  }, [detailParam, videos, momentMap]);
+
+  // 모먼트 뷰어: `?m=`의 모먼트가 속한 영상의 모먼트 목록 (모먼트 탭과 같게)
+  const momentViewer = useMemo(() => {
+    if (!momentParam || !moments) return null;
+    const videoId = moments.find(m => m.id === momentParam)?.video_id;
+    const list = videoId ? momentMap.get(videoId) : undefined;
+    const startIndex = list?.findIndex(m => m.id === momentParam) ?? -1;
+    return list && startIndex >= 0 ? { list, startIndex } : null;
+  }, [momentParam, moments, momentMap]);
 
   return (
     <div className="hm">
       <OnThisDayCards
         years={story ? story.years : null}
         label={story?.label ?? ''}
-        paused={storyParam !== null || momentParam !== null}
+        paused={storyParam !== null || momentParam !== null || detailParam !== null}
         hintCard={hintCard}
         onOpen={handleOpenContent}
       />
@@ -339,24 +360,15 @@ export default function Home() {
 
       <section className="hm-latest">
         <div className="hm-sec">
-          <h2 className="hm-sec-title">새로 올라온 모먼트</h2>
+          <h2 className="hm-sec-title">새로 올라온 영상</h2>
           <Link to="/videos" className="hm-sec-more">모먼트 탭 ›</Link>
         </div>
-        <div className="hm-grid" aria-busy={latest ? undefined : true}>
+        <div className="mc-rail" aria-busy={latest ? undefined : true}>
           {latest
-            ? latest.map(m => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className="hm-cell"
-                  onPointerDown={() => preload(m.tweet_url)}
-                  onClick={() => openMoment(m.id)}
-                  aria-label={m.title || '모먼트'}
-                >
-                  {m.thumbnail_url && <img src={m.thumbnail_url} alt="" loading="lazy" decoding="async" />}
-                </button>
+            ? latest.map(v => (
+                <VideoCard key={v.id} video={v} moments={momentMap.get(v.id) ?? NO_MOMENTS} onOpen={openDetail} />
               ))
-            : Array.from({ length: 9 }, (_, i) => <div key={i} className="hm-cell skeleton-shimmer" />)}
+            : Array.from({ length: 3 }, (_, i) => <div key={i} className="mc-card hm-latest-skel skeleton-shimmer" />)}
         </div>
       </section>
 
@@ -376,8 +388,20 @@ export default function Home() {
         />
       )}
 
-      {latest && momentIndex >= 0 && (
-        <MomentViewer key={momentParam} moments={latest} startIndex={momentIndex} onClose={closeMoment} />
+      {/* 뷰어(1000)는 모달(900) 위. 모달 본문의 미리 받기 정리가 뷰어 effect 뒤에 돌도록 모달보다 앞에 둔다 */}
+      {momentViewer && (
+        <MomentViewer key={momentParam} moments={momentViewer.list} startIndex={momentViewer.startIndex} onClose={closeMoment} />
+      )}
+
+      {detail && (
+        <VideoDetailModal
+          key={detail.video.id}
+          video={detail.video}
+          moments={detail.list}
+          viewerOpen={!!momentParam}
+          onOpenMoment={openMoment}
+          onClose={closeDetail}
+        />
       )}
     </div>
   );

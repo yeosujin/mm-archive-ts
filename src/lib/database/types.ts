@@ -8,6 +8,7 @@ export interface Video {
   thumbnail_url?: string;
   channel_name?: string;
   platform_name?: string;
+  created_at?: string;
 }
 
 export interface Moment {

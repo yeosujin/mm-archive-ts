@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifyVideo, videoYears, filterVideos, groupByMonth, momentsByVideo, pickHero } from './videoCatalog';
+import { classifyVideo, videoYears, filterVideos, groupByMonth, momentsByVideo, pickHero, latestVideos } from './videoCatalog';
 import type { Video, Moment } from './database/types';
 
 const v = (id: string, url: string, date: string, extra: Partial<Video> = {}): Video => ({ id, title: id, url, date, ...extra });
@@ -68,5 +68,15 @@ describe('pickHero', () => {
   });
   it('후보가 없으면 null', () => {
     expect(pickHero([live], new Map(), () => 0)).toBeNull();
+  });
+});
+
+describe('latestVideos', () => {
+  it('created_at 내림차순 n개, 원본 불변', () => {
+    const list = Array.from({ length: 12 }, (_, i) => v(`v${i}`, 'https://youtu.be/x', '2024-01-01', { created_at: `2025-01-${String(i + 1).padStart(2, '0')}T00:00:00Z` }));
+    const before = list.map(x => x.id);
+    expect(latestVideos(list).map(x => x.id)).toEqual(['v11', 'v10', 'v9', 'v8', 'v7', 'v6', 'v5', 'v4', 'v3']);
+    expect(latestVideos(list, 2).map(x => x.id)).toEqual(['v11', 'v10']);
+    expect(list.map(x => x.id)).toEqual(before);
   });
 });
