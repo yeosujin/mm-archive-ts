@@ -113,16 +113,17 @@ export default function VideoDetailModal({ video, moments, viewerOpen, onOpenMom
 
   return (
     <div ref={sheetRef} className="vdm" role="dialog" aria-modal="true" aria-label={video.title} tabIndex={-1}>
+      {/* 위쪽 여백 겸 닫기 줄. 스크롤해도 따라와서 언제든 닫을 수 있다 */}
+      <div className="vdm-top">
+        <button type="button" className="vdm-close" onClick={close} aria-label="닫기">
+          <CloseIcon size={24} />
+        </button>
+      </div>
       <VideoDetailBody
         video={video}
         moments={moments}
         viewerOpen={viewerOpen}
         onOpenMoment={onOpenMoment}
-        coverAction={(
-          <button type="button" className="vd-back vd-close" onClick={close} aria-label="닫기">
-            <CloseIcon size={24} />
-          </button>
-        )}
       />
     </div>
   );

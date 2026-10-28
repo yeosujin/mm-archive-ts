@@ -284,16 +284,39 @@
 }
 
 /* 모달에서는 같은 자리 대신 오른쪽 위 ✕ */
-.vd-close {
-  left: auto;
-  right: 0.625rem;
-}
-
-.vd-close svg {
-  transform: none;
-}
-
 /* ===== 영상 상세 모달 (표지 위, ?v=) ===== */
+
+.vdm-top {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 48px;
+  margin: 0 -1rem;
+  padding: 0 0.5rem;
+  background: var(--bg-primary);
+}
+
+/* 배경 없는 아이콘 버튼. 페이지 배경 위라 글자색을 쓴다 */
+.vdm-close {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vdm-close:active {
+  opacity: 0.6;
+}
 
 .vdm {
   position: fixed;
@@ -302,7 +325,7 @@
   height: 100dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: calc(env(safe-area-inset-top) + 0.75rem) 1rem calc(env(safe-area-inset-bottom) + 1.5rem);
+  padding: env(safe-area-inset-top) 1rem calc(env(safe-area-inset-bottom) + 1.5rem);
   background: var(--bg-primary);
   outline: none;
   transition: transform 0.2s ease;
@@ -607,7 +630,7 @@
   display: flex;
   align-items: baseline;
   gap: 0.375rem;
-  margin: 1.5rem 0 0.625rem;
+  margin: 1rem 0 0.5rem;
   font-size: 0.9375rem;
   font-weight: 700;
   color: var(--text-primary);
