@@ -349,24 +349,6 @@
   border-radius: 12px;
 }
 
-/* 첫 사용 안내 */
-.st-hint {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(env(safe-area-inset-bottom) + 70px);
-  z-index: 7;
-  text-align: center;
-  pointer-events: none;
-}
-
-.st-hint span {
-  padding: 6px 14px;
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.6);
-  font-size: 13px;
-}
-
 /* 더보기 바텀시트 */
 .st-dim {
   position: absolute;

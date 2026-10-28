@@ -25,7 +25,6 @@ interface Pos {
   seq: number;
 }
 
-const HINT_KEY = 'mmemory.storyHintSeen';
 // 영상이 안 열리면 사진처럼 이 시간만큼 보여주고 넘긴다
 const FAILED_VIDEO_MS = 5000;
 
@@ -34,9 +33,6 @@ function isSaveData(): boolean {
   return conn?.saveData === true;
 }
 
-function readHintSeen(): boolean {
-  try { return localStorage.getItem(HINT_KEY) !== null; } catch { return true; }
-}
 
 function isVideoFrame(f: StoryFrame | undefined): boolean {
   return f?.kind === 'moment' || (f?.kind === 'post' && f.media?.type === 'video');
@@ -65,7 +61,6 @@ export default function StoryViewer({ years, startYear, autoStarted, onClose }: 
   const [blocked, setBlocked] = useState(false);
   const [loading, setLoading] = useState(() => isVideoFrame(years[pos.yi]?.frames[0]));
   const [downloading, setDownloading] = useState(false);
-  const [hintVisible, setHintVisible] = useState(() => !readHintSeen());
 
   const rootRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLElement>(null);
@@ -90,11 +85,6 @@ export default function StoryViewer({ years, startYear, autoStarted, onClose }: 
     onClose();
   }, [onClose]);
 
-  const hideHint = () => {
-    if (!hintVisible) return;
-    setHintVisible(false);
-    try { localStorage.setItem(HINT_KEY, '1'); } catch { /* noop */ }
-  };
 
   const go = (yi: number, fi: number) => {
     const next = { yi, fi, seq: posRef.current.seq + 1 };
@@ -131,10 +121,10 @@ export default function StoryViewer({ years, startYear, autoStarted, onClose }: 
   const prevYear = () => go(Math.max(0, posRef.current.yi - 1), 0);
 
   const gestures = useStoryGestures(rootRef, {
-    onTapPrev: () => { hideHint(); prev(); },
-    onTapNext: () => { hideHint(); next(); },
-    onSwipePrev: () => { hideHint(); prevYear(); },
-    onSwipeNext: () => { hideHint(); nextYear(); },
+    onTapPrev: () => { prev(); },
+    onTapNext: () => { next(); },
+    onSwipePrev: () => { prevYear(); },
+    onSwipeNext: () => { nextYear(); },
     onHoldStart: () => setHeld(true),
     onHoldEnd: () => setHeld(false),
     onDismiss: close,
@@ -251,10 +241,10 @@ export default function StoryViewer({ years, startYear, autoStarted, onClose }: 
       return;
     }
     if (sheetOpen) return;
-    if (e.key === 'ArrowRight') { e.preventDefault(); hideHint(); next(); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); hideHint(); prev(); }
-    else if (e.key === 'ArrowDown') { e.preventDefault(); hideHint(); nextYear(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); hideHint(); prevYear(); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); nextYear(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); prevYear(); }
     else if (e.key === ' ') { e.preventDefault(); setUserPaused(p => !p); }
   });
 
@@ -349,9 +339,6 @@ export default function StoryViewer({ years, startYear, autoStarted, onClose }: 
         </div>
       )}
 
-      {hintVisible && (
-        <div className="st-hint" aria-hidden><span>탭하면 다음 · 옆으로 넘기면 다른 해 · 아래로 쓸면 닫기</span></div>
-      )}
 
       {post && (
         <>
