@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, CloseIcon, ArrowUpIcon } from './Icons';
 import { useData } from '../hooks/useData';
 
@@ -31,12 +31,35 @@ export default function Layout() {
   const [showSearch, setShowSearch] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // 스크롤 한 곳에서: 맨 위로 버튼 + 아래로 내리면 헤더 숨김, 조금이라도 올리면 다시 보임
   useEffect(() => {
+    let lastY = window.scrollY;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const y = window.scrollY;
+      setShowBackToTop(y > 300);
+      if (y <= 0) {
+        setHeaderHidden(false);
+        lastY = y;
+        return;
+      }
+      const delta = y - lastY;
+      if (Math.abs(delta) < 6) return; // 잔떨림 무시 — 작은 움직임은 쌓아서 본다
+      setHeaderHidden(delta > 0 && y > (headerRef.current?.offsetHeight ?? 0));
+      lastY = y;
+    };
     const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 300);
+      if (!frame) frame = requestAnimationFrame(update);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      cancelAnimationFrame(frame);
+    };
   }, []);
 
   const navigate = useNavigate();
@@ -53,7 +76,7 @@ export default function Layout() {
 
   return (
     <div className={`app ${isDarkMode ? 'dark' : 'light'}`}>
-      <header className="header">
+      <header ref={headerRef} className={`header${headerHidden && !showSearch ? ' header--hidden' : ''}`}>
         <div className="header-content">
           <NavLink to="/" className="logo">
             mmemory

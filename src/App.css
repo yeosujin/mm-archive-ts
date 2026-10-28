@@ -66,6 +66,18 @@
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  transition: transform 0.2s ease;
+}
+
+/* 아래로 스크롤하면 위로 밀려 숨는다 (Layout) */
+.header--hidden {
+  transform: translateY(-100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header {
+    transition: none;
+  }
 }
 
 .dark .header {
