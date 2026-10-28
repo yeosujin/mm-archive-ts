@@ -121,11 +121,12 @@
   height: 44px;
   padding: 0;
   border: none;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.4);
+  background: none;
   color: #fff;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  /* 배경 없이 영상 위에 바로 놓이므로 밝은 장면에서도 보이게 그림자만 */
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
 }
 
 .mv-btn:active {
@@ -137,10 +138,6 @@
   opacity: 0.7;
 }
 
-.mv-close {
-  background: transparent;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
-}
 
 .mv-btn-spinner {
   width: 16px;

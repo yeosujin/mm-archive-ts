@@ -333,10 +333,10 @@ export default function MomentViewer({ moments, startIndex, onClose }: Props) {
 
       <div className="mv-side">
         <button type="button" className="mv-btn" onClick={toggleSound} aria-label={soundOn ? '음소거' : '소리 켜기'}>
-          {soundOn ? <VolumeOnIcon size={22} /> : <VolumeOffIcon size={22} />}
+          {soundOn ? <VolumeOnIcon size={26} /> : <VolumeOffIcon size={26} />}
         </button>
         <button type="button" className="mv-btn" onClick={handleSave} disabled={downloading} aria-label="저장">
-          {downloading ? <span className="mv-btn-spinner" /> : <ShareIcon size={20} />}
+          {downloading ? <span className="mv-btn-spinner" /> : <ShareIcon size={24} />}
         </button>
       </div>
 
