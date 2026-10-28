@@ -126,6 +126,36 @@ export function frameMedia(f: StoryFrame | undefined): { video?: string; image?:
   return {};
 }
 
+export const EPISODE_LABEL: Record<Episode['episode_type'], string> = {
+  dm: 'DM',
+  comment: '댓글',
+  listening_party: '리스닝 파티',
+};
+
+/** 포스트 제목. 따로 없으면 본문 첫 줄 */
+export function postTitle(post: Post): string {
+  return post.title?.trim() || post.content?.trim().split('\n')[0].trim() || '';
+}
+
+/** 제목 밑에 보일 포스트 본문 — 제목으로 쓴 첫 줄은 뺀다 */
+export function postBody(post: Post): string {
+  const content = post.content?.trim() ?? '';
+  if (post.title?.trim()) return content;
+  return content.split('\n').slice(1).join('\n').trim();
+}
+
+/** 스토리 아래 제목과 날짜(YYYY.MM.DD). 모먼트는 상위 영상 제목·날짜 */
+export function frameCaption(f: StoryFrame): { title: string; date: string } {
+  const day = (d: string | undefined) => (d ? d.slice(0, 10).replace(/-/g, '.') : '');
+  switch (f.kind) {
+    case 'moment': return { title: f.video?.title || f.moment.title || '', date: day(f.video?.date || f.moment.date) };
+    case 'video': return { title: f.video.title, date: day(f.video.date) };
+    case 'photo': return { title: f.title, date: day(f.photo.date) };
+    case 'post': return { title: postTitle(f.post), date: day(f.post.date) };
+    case 'episode': return { title: f.episode.title || EPISODE_LABEL[f.episode.episode_type] || '에피소드', date: day(f.episode.date) };
+  }
+}
+
 /** 프레임 표시 길이(ms). null이면 영상 길이를 따른다 */
 export function frameDurationMs(frame: StoryFrame): number | null {
   switch (frame.kind) {

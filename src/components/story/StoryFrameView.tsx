@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { Episode, MemberSettings, Post } from '../../lib/database/types';
 import type { StoryFrame } from '../../lib/onThisDayStory';
+import { EPISODE_LABEL, frameCaption, postBody } from '../../lib/onThisDayStory';
 import { detectPlatformName, getPlatformName } from '../../lib/platformUtils';
 import VideoCover from '../moments/VideoCover';
 
@@ -20,12 +21,6 @@ interface Props {
   onMore: () => void;
 }
 
-const EPISODE_LABEL: Record<Episode['episode_type'], string> = {
-  dm: 'DM',
-  comment: '댓글',
-  listening_party: '리스닝 파티',
-};
-
 /** 원문 칩 문구. 플랫폼을 모르면 그냥 "원문 보기" */
 function sourceLabel(post: Post): string {
   const name = post.platform === 'other' ? detectPlatformName(post.url) : getPlatformName(post.platform);
@@ -36,23 +31,43 @@ function Backdrop({ src }: { src?: string }) {
   return src ? <div className="st-bg" style={{ backgroundImage: `url("${src}")` }} /> : null;
 }
 
-// 포스트 하단(미디어 있음) 또는 가운데(본문만) 캡션: 원문 칩 + 본문 말줄임 + 더보기
-function PostCaption({ post, center, onMore }: { post: Post; center: boolean; onMore: () => void }) {
+// 본문 말줄임 + 더보기 (말줄임이 실제로 생겼을 때만)
+function ClampText({ text, onMore }: { text: string; onMore: () => void }) {
   const textRef = useRef<HTMLParagraphElement>(null);
   const [clamped, setClamped] = useState(false);
-  const text = post.content?.trim() || post.title;
 
-  // 말줄임이 실제로 생겼을 때만 더보기
   useLayoutEffect(() => {
     const el = textRef.current;
     if (el) setClamped(el.scrollHeight > el.clientHeight + 1);
   }, [text]);
 
+  if (!text) return null;
   return (
-    <div className={center ? 'st-text' : 'st-cap'}>
-      <a className="st-src" href={post.url} target="_blank" rel="noopener noreferrer">{sourceLabel(post)}</a>
-      {text && <p ref={textRef} className="st-clamp">{text}</p>}
+    <>
+      <p ref={textRef} className="st-clamp">{text}</p>
       {clamped && <button type="button" className="st-more" onClick={onMore}>더보기</button>}
+    </>
+  );
+}
+
+const SourceChip = ({ post }: { post: Post }) => (
+  <a className="st-src" href={post.url} target="_blank" rel="noopener noreferrer">{sourceLabel(post)}</a>
+);
+
+/**
+ * 모든 프레임 아래: 제목 + 날짜. 미디어 있는 포스트는 한 덩어리로 원문 칩 · 제목 · 날짜 · 본문(제목 줄 뺀 것) · 더보기.
+ * 글자는 탭이 그대로 지나가 다음 장으로 넘어가고, 칩·더보기(a·button)만 제스처에서 빠진다
+ */
+function BottomCaption({ frame, onMore }: { frame: StoryFrame; onMore: () => void }) {
+  const { title, date } = frameCaption(frame);
+  const post = frame.kind === 'post' && frame.media ? frame.post : null;
+  // 모먼트는 오른쪽 아래 저장 버튼 자리를 비운다
+  return (
+    <div className={frame.kind === 'moment' ? 'st-cap has-side' : 'st-cap'}>
+      {post && <SourceChip post={post} />}
+      {title && <p className="st-cap-title">{title}</p>}
+      {date && <p className="st-cap-date">{date}</p>}
+      {post && <ClampText text={postBody(post)} onMore={onMore} />}
     </div>
   );
 }
@@ -87,8 +102,8 @@ function EpisodeChat({ episode, memberSettings, scrollRef }: { episode: Episode;
   );
 }
 
-/** 스토리 프레임 한 장. 키를 바꿔 새로 그리므로 프레임마다 영상 요소도 새로 만들어진다 */
-export default function StoryFrameView({
+/** 프레임 본문 (미디어·카드·채팅) */
+function FrameBody({
   frame, memberSettings, videoRef, scrollRef, onVideoEnded, onVideoError, onVideoWaiting, onVideoPlaying, onImageDone, onMore,
 }: Props) {
   const video = (src: string, poster?: string) => (
@@ -118,7 +133,6 @@ export default function StoryFrameView({
           <Backdrop src={v.thumbnail_url} />
           <div className="st-vcard">
             <div className="st-vcard-cover"><VideoCover video={v} moments={[]} eager /></div>
-            <p className="st-vcard-title">{v.title}</p>
             <a className="st-go" href={v.url} target="_blank" rel="noopener noreferrer">보러가기 →</a>
           </div>
         </>
@@ -130,22 +144,38 @@ export default function StoryFrameView({
         <>
           <Backdrop src={p.thumbnail_url || p.image_url} />
           <img className="st-media" src={p.image_url} alt="" onLoad={onImageDone} onError={onImageDone} />
-          <div className="st-cap"><p className="st-cap-title">{frame.title}</p></div>
         </>
       );
     }
     case 'post': {
       const m = frame.media;
-      if (!m) return <PostCaption post={frame.post} center onMore={onMore} />;
+      // 본문만 있는 포스트: 본문 전체를 가운데 크게 (제목·날짜는 아래 캡션)
+      if (!m) {
+        return (
+          <div className="st-text">
+            <SourceChip post={frame.post} />
+            <ClampText text={frame.post.content?.trim() || frame.post.title} onMore={onMore} />
+          </div>
+        );
+      }
       return (
         <>
           <Backdrop src={m.thumbnail || (m.type === 'image' ? m.url : undefined)} />
           {m.type === 'video' ? video(m.url, m.thumbnail) : <img className="st-media" src={m.url} alt="" onLoad={onImageDone} onError={onImageDone} />}
-          <PostCaption post={frame.post} center={false} onMore={onMore} />
         </>
       );
     }
     case 'episode':
       return <EpisodeChat episode={frame.episode} memberSettings={memberSettings} scrollRef={scrollRef} />;
   }
+}
+
+/** 스토리 프레임 한 장 + 아래 제목·날짜. 키를 바꿔 새로 그리므로 프레임마다 영상 요소도 새로 만들어진다 */
+export default function StoryFrameView(props: Props) {
+  return (
+    <>
+      <FrameBody {...props} />
+      <BottomCaption frame={props.frame} onMore={props.onMore} />
+    </>
+  );
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildStoryYears, frameDurationMs, frameMedia, buildStoryForDate, pickFallbackDate, fallbackLabel, shouldAutoOpen, latestMoments,
-  contentKey, groupStoryContents, parseStoryParam,
+  contentKey, groupStoryContents, parseStoryParam, frameCaption, postBody,
   type StoryData, type StoryFrame,
 } from './onThisDayStory';
 import type { Video, Moment, Photo, Post, Episode } from './database/types';
@@ -252,5 +252,39 @@ describe('parseStoryParam', () => {
     expect(parseStoryParam('abc')).toBeNull();
     expect(parseStoryParam('2025.')).toBeNull();
     expect(parseStoryParam('2025.-1')).toBeNull();
+  });
+});
+
+describe('frameCaption', () => {
+  it('모먼트는 상위 영상 제목·날짜, 없으면 자기 것', () => {
+    const v = { ...video('v1', '2024-10-28'), title: '무대 영상' };
+    const m = moment('m1', '2024-11-01', 'v1');
+    expect(frameCaption({ kind: 'moment', key: 'k', moment: m, video: v })).toEqual({ title: '무대 영상', date: '2024.10.28' });
+    expect(frameCaption({ kind: 'moment', key: 'k', moment: m })).toEqual({ title: 'm1', date: '2024.11.01' });
+  });
+
+  it('사진은 묶음 제목, 날짜는 앞 10자만', () => {
+    const p = photo('p1', '앨범-2', '2023-05-06T12:00:00Z');
+    expect(frameCaption({ kind: 'photo', key: 'k', photo: p, title: '앨범' })).toEqual({ title: '앨범', date: '2023.05.06' });
+  });
+
+  it('포스트는 제목, 없으면 본문 첫 줄', () => {
+    const p = { ...post('x', '2022-01-02'), title: '', content: '  첫 줄\n둘째 줄' };
+    expect(frameCaption({ kind: 'post', key: 'k', post: p }).title).toBe('첫 줄');
+    expect(frameCaption({ kind: 'post', key: 'k', post: { ...p, title: '제목' } }).title).toBe('제목');
+  });
+
+  it('에피소드는 제목, 없으면 종류', () => {
+    expect(frameCaption({ kind: 'episode', key: 'k', episode: episode('e', '2021-03-04') })).toEqual({ title: 'DM', date: '2021.03.04' });
+    expect(frameCaption({ kind: 'episode', key: 'k', episode: { ...episode('e', '2021-03-04'), title: '생일' } }).title).toBe('생일');
+  });
+});
+
+describe('postBody', () => {
+  it('제목이 따로 있으면 본문 전체, 없으면 제목으로 쓴 첫 줄을 뺀 나머지', () => {
+    const p = { ...post('x', '2022-01-02'), content: '첫 줄\n둘째 줄\n셋째 줄' };
+    expect(postBody(p)).toBe('첫 줄\n둘째 줄\n셋째 줄');
+    expect(postBody({ ...p, title: '' })).toBe('둘째 줄\n셋째 줄');
+    expect(postBody({ ...p, title: '', content: '한 줄뿐' })).toBe('');
   });
 });
