@@ -27,8 +27,11 @@ interface HomeStory {
 function computeHomeStory(data: StoryData, today: string): HomeStory {
   const years = buildStoryYears(data, today);
   if (years.length) return { years, day: today.slice(5), isFallback: false };
-  const day = fallbackDay(today, storyDays(data));
-  return { years: day ? buildStoryYears(data, `${today.slice(0, 4)}-${day}`) : [], day, isFallback: true };
+  // 올해 콘텐츠만 있는 날은 '과거 연도만' 규칙에 걸려 비므로, 올해 기준으로 스토리가 나오는 날만 후보로 둔다
+  const year = today.slice(0, 4);
+  const candidates = storyDays(data).filter(d => buildStoryYears(data, `${year}-${d}`).length > 0);
+  const day = fallbackDay(today, candidates);
+  return { years: day ? buildStoryYears(data, `${year}-${day}`) : [], day, isFallback: true };
 }
 
 function cardLabel(story: HomeStory | null): string {
