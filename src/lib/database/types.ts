@@ -20,6 +20,7 @@ export interface Moment {
   thumbnail_url?: string;
   /** 트랜스코딩 전 원본 URL. 채워져 있으면 변환 완료 */
   original_url?: string | null;
+  created_at?: string;
 }
 
 export interface PostMedia {
