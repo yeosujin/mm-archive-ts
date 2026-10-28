@@ -74,7 +74,8 @@ function VideoCatalog() {
   const setFilter = (key: 'y' | 'c' | 'mb', value: string) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
-      if (value === 'all') next.delete(key);
+      // 연도는 '전체'도 남긴다 — 비우면 기본값(최근 연도)으로 돌아가 버린다
+      if (value === 'all' && key !== 'y') next.delete(key);
       else next.set(key, value);
       if (key === 'c') next.delete('mb');
       return next;
