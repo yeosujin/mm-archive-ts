@@ -30,6 +30,17 @@ interface Pos {
 // 영상이 안 열리면 사진처럼 이 시간만큼 보여주고 넘긴다
 const FAILED_VIDEO_MS = 5000;
 
+/** 진행 막대 묶음 기준: 같은 영상의 모먼트, 같은 묶음 사진, 같은 포스트의 미디어는 한 콘텐츠 */
+function contentKey(f: StoryFrame): string {
+  switch (f.kind) {
+    case 'moment': return f.moment.video_id ? `video:${f.moment.video_id}` : `moment:${f.moment.id}`;
+    case 'video': return `video:${f.video.id}`;
+    case 'photo': return `photo:${f.photo.date}|${f.title}`;
+    case 'post': return `post:${f.post.id}`;
+    case 'episode': return `episode:${f.episode.id}`;
+  }
+}
+
 function isSaveData(): boolean {
   const conn = (navigator as { connection?: { saveData?: boolean } }).connection;
   return conn?.saveData === true;
@@ -315,8 +326,10 @@ export default function StoryViewer({ years, startYear, autoStarted, instant = f
               {y.frames.map((f, i) => {
                 const current = yi === pos.yi && i === pos.fi;
                 const done = yi < pos.yi || (yi === pos.yi && i < pos.fi);
+                // 앞 프레임과 다른 콘텐츠(다른 영상·사진 묶음·포스트·에피소드)면 조금 더 띄운다
+                const newContent = i > 0 && contentKey(y.frames[i - 1]) !== contentKey(f);
                 return (
-                  <i key={f.key}>
+                  <i key={f.key} className={newContent ? 'is-new' : undefined}>
                     <b ref={current ? fillRef : undefined} style={current ? undefined : { width: done ? '100%' : '0%' }} />
                   </i>
                 );
