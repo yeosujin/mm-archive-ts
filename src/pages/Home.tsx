@@ -62,6 +62,7 @@ export default function Home() {
   // 자동으로 연 해. 스토리 뷰어는 마운트 때만 읽는다
   const [autoYear, setAutoYear] = useState<number | null>(null);
   const autoTriedRef = useRef(false);
+  const [openYears, setOpenYears] = useState<{ param: string; years: StoryYear[] } | null>(null);
   // 칸을 누르는 순간부터 받아 두는 화면 밖 video. 뷰어가 열리면 버린다(같은 URL이라 캐시를 탄다)
   const preloadRef = useRef<HTMLVideoElement | null>(null);
 
@@ -72,21 +73,26 @@ export default function Home() {
 
   const latest = useMemo(() => (moments ? latestMoments(moments) : null), [moments]);
 
-  // 그날 처음 홈에 오면 스토리 자동 열기 — 마운트당 한 번
-  const maybeAutoOpen = useEffectEvent((data: StoryData) => {
+  // 그날 처음 홈에 오면 스토리 자동 열기 — 마운트당 한 번.
+  // 기기에 저장된 데이터로 열 수 있으면 바로 열고, 아니면 새로 받은 데이터(final)로 정한다
+  const maybeAutoOpen = useEffectEvent((s: HomeStory | null, final: boolean) => {
     if (autoTriedRef.current) return;
+    const opens = !!s && s.years.length > 0 && !s.isFallback;
+    // 저장분엔 없어도 새 데이터엔 있을 수 있다
+    if (!opens && !final) return;
     autoTriedRef.current = true;
-    if (momentParam !== null) return;
+    if (!s || momentParam !== null) return;
     let lastShown: string | null = null;
     try { lastShown = localStorage.getItem(AUTO_SHOWN_KEY); } catch { /* 저장소 막힘 */ }
-    const { years, isFallback } = computeHomeStory(data, today);
-    if (!shouldAutoOpen(lastShown, today, years.length > 0, isFallback)) return;
+    if (!shouldAutoOpen(lastShown, today, s.years.length > 0, s.isFallback)) return;
     if (storyParam === null) {
-      setAutoYear(years[0].year);
-      openStory(String(years[0].year));
+      setAutoYear(s.years[0].year);
+      openStory(String(s.years[0].year));
     }
     try { localStorage.setItem(AUTO_SHOWN_KEY, today); } catch { /* 저장소 막힘 */ }
   });
+
+  useEffect(() => maybeAutoOpen(story, false), [story]);
 
   useEffect(() => {
     let alive = true;
@@ -96,11 +102,14 @@ export default function Home() {
       fetchMemberSettings().catch(() => null),
     ])
       .then(([videos, moments, posts, episodes, photos]) => {
-        if (alive) maybeAutoOpen({ videos, moments, posts, episodes, photos });
+        if (alive) maybeAutoOpen(computeHomeStory({ videos, moments, posts, episodes, photos }, today), true);
       })
-      .catch((error) => console.error('Error loading home:', error));
+      .catch((error) => {
+        console.error('Error loading home:', error);
+        if (alive) maybeAutoOpen(null, true);
+      });
     return () => { alive = false; };
-  }, [fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchPhotos, fetchMemberSettings]);
+  }, [fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchPhotos, fetchMemberSettings, today]);
 
   // AI 모드일 때 placeholder 예시를 일정 주기로 회전
   useEffect(() => {
@@ -144,7 +153,15 @@ export default function Home() {
   };
 
   const storyYear = storyParam !== null ? Number(storyParam) : null;
-  const showStory = !!story && storyYear !== null && story.years.some(y => y.year === storyYear);
+  // 열린 뷰어의 해 목록은 열 때 고정한다. 뒤에 새 데이터가 와도 카드만 바뀌고 뷰어는 그대로
+  // (StoryViewer는 years가 바뀌는 것을 다루지 않는다)
+  if (storyYear === null) {
+    if (openYears) setOpenYears(null);
+  } else if (openYears?.param !== storyParam && story?.years.some(y => y.year === storyYear)) {
+    setOpenYears({ param: storyParam!, years: story.years });
+  }
+  const viewerYears = openYears?.param === storyParam ? openYears.years : null;
+  const showStory = !!viewerYears && storyYear !== null && viewerYears.some(y => y.year === storyYear);
   const momentIndex = latest && momentParam ? latest.findIndex(m => m.id === momentParam) : -1;
 
   return (
@@ -209,10 +226,10 @@ export default function Home() {
 
       <Link to="/ask" className="hm-ask">궁금한 점이나 요청 남기러 가기 →</Link>
 
-      {showStory && story && storyYear !== null && (
+      {showStory && viewerYears && storyYear !== null && (
         <StoryViewer
           key={storyParam}
-          years={story.years}
+          years={viewerYears}
           startYear={storyYear}
           autoStarted={autoYear === storyYear}
           onClose={closeStory}
