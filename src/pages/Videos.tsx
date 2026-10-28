@@ -51,7 +51,7 @@ export default function Videos() {
 function VideoCatalog() {
   const { videos, moments, fetchVideos, fetchMoments } = useData();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { momentId, open, close } = useViewerParam();
+  const { value: momentId, open, close } = useViewerParam();
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {

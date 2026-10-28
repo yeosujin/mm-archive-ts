@@ -22,7 +22,7 @@ export default function VideoDetail() {
   const location = useLocation();
   const { videos, moments, fetchVideos, fetchMoments } = useData();
   const [failed, setFailed] = useState(false);
-  const { momentId, open, close } = useViewerParam();
+  const { value: momentId, open, close } = useViewerParam();
   // 칸을 누르는 순간부터 받아 두는 화면 밖 video. 뷰어가 열리면 버린다(같은 URL이라 캐시를 탄다)
   const preloadRef = useRef<HTMLVideoElement | null>(null);
 
