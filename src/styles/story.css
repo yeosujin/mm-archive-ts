@@ -434,6 +434,30 @@
   to { transform: rotate(360deg); }
 }
 
+/* 창이 열린 뒤 첫 장면·위쪽 막대가 어둠에서 서서히 떠오른다 — 열리자마자 확 시작되지 않게 */
+.st.is-pop .st-stage {
+  animation: st-fade-in 0.7s ease 0.45s both;
+}
+
+.st.is-pop .st-top {
+  animation: st-fade-in 0.5s ease 0.75s both;
+}
+
+.st:not(.is-pop) .st-stage {
+  animation: st-fade-in 0.5s ease 0.3s both;
+}
+
+.st:not(.is-pop) .st-top {
+  animation: st-fade-in 0.4s ease 0.5s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st .st-stage,
+  .st .st-top {
+    animation: none;
+  }
+}
+
 @keyframes st-pop {
   from {
     opacity: 0;

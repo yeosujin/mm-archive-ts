@@ -83,7 +83,8 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
   // 열리는 애니메이션이 끝날 때까지는 재생·진행을 멈춰 둔다 — 화면이 다 열린 뒤 부드럽게 시작
   const [entering, setEntering] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setEntering(false), enter === 'pop' ? 550 : 380); // story.css 등장 시간과 같게
+    // 창이 다 열리고 첫 장면이 서서히 떠오른 뒤에 시작한다 (story.css 등장 시간과 맞춤)
+    const t = setTimeout(() => setEntering(false), enter === 'pop' ? 1300 : 900);
     return () => clearTimeout(t);
   }, [enter]);
   const paused = held || userPaused || sheetOpen || hidden || entering;
