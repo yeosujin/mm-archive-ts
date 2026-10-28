@@ -47,5 +47,5 @@ vault 작성 규칙은 [meta/conventions.md](knowledge-vault/wiki/meta/conventio
 
 - **Videos ≠ Moments**: 네비의 "모먼트"는 `videos` 도메인이다. `moments`는 별도 도메인이고 네비에 없다
 - **`SUPABASE_SERVICE_ROLE_KEY`는 클라이언트에 절대 노출 금지** — `VITE_` 접두사를 붙이지 말 것
-- YouTube 카테고리 필터는 제목 문자열 매칭이라 제목이 바뀌면 분류가 깨진다
+- 모먼트 탭 분류(Weverse/YouTube/외부 출연)는 `classifyVideo`가 URL과 `channel_name`만으로 정한다. 채널명이 `ILLIT`이 아니면 YouTube 영상도 외부 출연으로 간다
 - `src/lib/database.ts`는 배럴 파일이고 실제 구현은 `src/lib/database/`에 도메인별로 나뉘어 있다
