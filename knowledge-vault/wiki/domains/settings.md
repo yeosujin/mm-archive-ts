@@ -3,7 +3,7 @@ type: domain
 status: stable
 tags: [domain, admin]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 ---
 
 # Settings
@@ -29,7 +29,7 @@ updated: 2026-07-24
 ## 주의
 
 - **멤버명이 설정값이다.** UI에 이름을 하드코딩하지 않는다
-- **`articles_visible`는 한 곳이 아니라 다섯 곳에서 읽힌다** — `Layout.tsx`(네비), `Home.tsx`, `Search.tsx`, `Calendar.tsx`, `Articles.tsx`. 라우트는 살아 있고 각 화면이 개별적으로 가린다. 새 진입점을 만들면 여기서도 체크해야 한다
+- **`articles_visible`는 한 곳이 아니라 여러 곳에서 읽힌다** — `Search.tsx`, `Calendar.tsx`, `Articles.tsx`, 어드민 `Dashboard.tsx`(설정). 네비와 홈은 v2부터 읽지 않는다(도서관은 탭에 없음). 라우트는 살아 있고 각 화면이 개별적으로 가린다. 새 진입점을 만들면 여기서도 체크해야 한다
 - `getMemberSettings`는 실패 시 `{ 멤버1, 멤버2, articles_visible: false }`로 폴백한다. 조회가 깨지면 도서관이 **조용히 숨겨진다**
 - 어드민 화면도 anon 키로 직접 쓴다. 이 설정들을 지키는 것은 RLS뿐이다 → [[supabase-key-boundary]]
 

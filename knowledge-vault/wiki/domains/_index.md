@@ -2,7 +2,7 @@
 type: meta
 title: "Domains Index"
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 tags: [meta, index]
 ---
 
@@ -25,4 +25,4 @@ tags: [meta, index]
 > [!key-insight]
 > 네비 표시명과 내부 도메인명이 두 군데서 어긋난다. **모먼트 = `videos`**, **도서관 = `articles`**. 특히 `moments`가 별도로 존재하므로 "모먼트"라는 말이 나오면 어느 쪽인지 먼저 확인한다.
 
-네비 항목은 `src/components/Layout.tsx`에 하드코딩되어 있다(데스크톱/모바일 각각 1벌). `moments`와 `ask`는 라우트만 있고 네비에 없다 — URL 직접 접근은 가능하다.
+네비는 `src/components/Layout.tsx`의 헤더 + 상단 글자 탭 한 벌(모든 화면 크기 공통, v2 브랜치~)이다. 탭: 홈 · 모먼트 · 포스트 · 사진 · 에피소드. 검색과 캘린더는 헤더 오른쪽 아이콘. 도서관(`/articles`), `moments`, `ask`는 탭에 없고 URL로만 들어간다.

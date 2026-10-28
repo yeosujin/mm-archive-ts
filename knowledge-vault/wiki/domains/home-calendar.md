@@ -3,7 +3,7 @@ type: domain
 status: stable
 tags: [domain, home, calendar]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 ---
 
 # Home & Calendar
@@ -31,7 +31,7 @@ updated: 2026-07-24
 - 페이지: `src/pages/Calendar.tsx`
 
 - 2020년~현재 범위
-- 모든 도메인 데이터를 날짜별로 집계
+- 모든 도메인 데이터를 날짜별로 집계 (영상·영상 없는 모먼트·포스트·사진·에피소드·도서관). 사진은 같은 날 같은 제목(끝 `-N` 제외)을 한 묶음으로 보이고 누르면 `/photos?highlight=`로 첫 장을 연다. 날짜 점 색: 빨(영상)·주(모먼트)·노(포스트)·초(에피소드)·파(사진)·보(도서관)
 - 콘텐츠 클릭 시 해당 아이템을 자동으로 펼치고 강조
 - URL 파라미터로 상태 유지 (`?year=2025&month=1`)
 
