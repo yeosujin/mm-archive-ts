@@ -4,7 +4,7 @@ import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, CloseIcon, ArrowUpIcon } f
 import { useData } from '../hooks/useData';
 import EntrySplash from './EntrySplash';
 
-// 상단 글자 탭. 도서관은 탭에서 뺐다 — 라우트(/articles)는 남아 있어 주소로는 들어갈 수 있다
+// 상단 글자 탭
 const TABS = [
   { to: '/', label: '홈', end: true, preload: undefined },
   { to: '/videos', label: '모먼트', end: false, preload: () => import('../pages/Videos') },

@@ -70,16 +70,6 @@ export interface Episode {
 export interface MemberSettings {
   member1_name: string;
   member2_name: string;
-  articles_visible?: boolean;
-}
-
-export interface Article {
-  id: string;
-  title: string;
-  author: string;
-  tags: string[];
-  url: string;
-  date: string;
 }
 
 export interface Ask {
@@ -90,11 +80,6 @@ export interface Ask {
   status: 'pending' | 'answered';
   created_at: string;
   answered_at?: string;
-}
-
-export interface FeaturedContent {
-  type: 'video' | 'post' | 'moment' | 'episode' | null;
-  content_id: string | null;
 }
 
 export interface Photo {

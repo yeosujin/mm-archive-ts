@@ -7,10 +7,8 @@ export type {
   Post,
   Episode,
   MemberSettings,
-  Article,
   Ask,
   Photo,
-  FeaturedContent,
   Activity,
 } from './database/types';
 
@@ -18,9 +16,7 @@ export * from './database/videos';
 export * from './database/moments';
 export * from './database/posts';
 export * from './database/episodes';
-export * from './database/articles';
 export * from './database/asks';
 export * from './database/photos';
-export * from './database/featured';
 export * from './database/settings';
 export * from './database/activities';

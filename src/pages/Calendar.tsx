@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getVideos, getMoments, getPosts, getEpisodes, getMemberSettings, getArticles, getArticlesVisibility, getPhotos } from '../lib/database';
-import type { Video, Moment, Post, Episode, Article, Photo } from '../lib/database';
-import { CalendarIcon, ArrowRightIcon, PostIcon, ChatIcon, BookIcon, VideoIcon, PhotoIcon } from '../components/Icons';
+import { getVideos, getMoments, getPosts, getEpisodes, getMemberSettings, getPhotos } from '../lib/database';
+import type { Video, Moment, Post, Episode, Photo } from '../lib/database';
+import { CalendarIcon, ArrowRightIcon, PostIcon, ChatIcon, VideoIcon, PhotoIcon } from '../components/Icons';
 
 interface ArchiveItem {
     id: string;
-    type: 'video' | 'moment' | 'post' | 'photo' | 'episode' | 'article';
+    type: 'video' | 'moment' | 'post' | 'photo' | 'episode';
     title: string;
     path: string;
     icon?: string;
@@ -42,7 +42,6 @@ const TypeIcon = ({ type }: { type: string }) => {
     case 'post': return <PostIcon size={16} />;
     case 'photo': return <PhotoIcon size={16} />;
     case 'episode': return <ChatIcon size={16} />;
-    case 'article': return <BookIcon size={16} />;
     default: return null;
   }
 };
@@ -100,17 +99,13 @@ export default function Calendar() {
 
   const loadAllData = async () => {
     try {
-      // articles_visible 설정 확인
-      const articlesVisible = await getArticlesVisibility();
-
-      const [videos, moments, posts, photos, episodes, memberSettings, articles] = await Promise.all([
+      const [videos, moments, posts, photos, episodes, memberSettings] = await Promise.all([
         getVideos(),
         getMoments(),
         getPosts(),
         getPhotos(),
         getEpisodes(),
         getMemberSettings(),
-        articlesVisible ? getArticles() : Promise.resolve([])
       ]);
 
       // 멤버 이름 (댓글 쓴 사람)
@@ -195,12 +190,6 @@ export default function Calendar() {
 
         const episodePath = `/episodes?tab=${e.episode_type}`;
         archivesByDate[e.date].push({ id: e.id, type: 'episode', title: episodeTitle, path: episodePath });
-      });
-
-      // articles_visible이 true일 때만 표시
-      articles.forEach((a: Article) => {
-        if (!archivesByDate[a.date]) archivesByDate[a.date] = [];
-        archivesByDate[a.date].push({ id: a.id, type: 'article', title: a.title, path: '/articles' });
       });
 
       setArchives(archivesByDate);
