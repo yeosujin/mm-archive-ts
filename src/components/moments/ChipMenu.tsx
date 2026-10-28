@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 const EDGE = 8;
 
@@ -19,6 +20,8 @@ interface ChipMenuProps<T extends string | number> {
  * 칩 모양 버튼 + 선택 메뉴.
  * 칩이 가로 스크롤 영역(overflow) 안에 있어도 잘리지 않게 목록을 `position: fixed`로 띄우고,
  * 버튼 위치에서 좌표를 잡는다. 스크롤·리사이즈하면 위치가 어긋나므로 닫는다.
+ * iOS Safari는 스크롤 영역 안의 fixed 요소도 잘라 버리므로, 목록은 `.app`으로 포털한다
+ * (body가 아니라 `.app` — 다크 테마 변수가 `.app.dark`에 있다).
  */
 export default function ChipMenu<T extends string | number>({
   options,
@@ -29,9 +32,12 @@ export default function ChipMenu<T extends string | number>({
   buttonLabel,
   className = '',
 }: ChipMenuProps<T>) {
-  const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const [portalTarget, setPortalTarget] = useState<Element | null>(null);
+  const open = portalTarget !== null;
+  const setOpen = (next: boolean) =>
+    setPortalTarget(next ? (buttonRef.current?.closest('.app') ?? document.body) : null);
 
   // 열릴 때 버튼 아래에 두고, 화면 양 끝을 넘지 않게 좌우를 맞춘다
   useLayoutEffect(() => {
@@ -82,11 +88,11 @@ export default function ChipMenu<T extends string | number>({
         aria-haspopup="true"
         aria-expanded={open}
         aria-label={buttonLabel}
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen(!open)}
       >
         {children} <span aria-hidden="true">▾</span>
       </button>
-      {open && (
+      {portalTarget && createPortal(
         <ul ref={listRef} className="mc-menu-list" aria-label={label}>
           {options.map(o => (
             <li key={o.value}>
@@ -104,7 +110,8 @@ export default function ChipMenu<T extends string | number>({
               </button>
             </li>
           ))}
-        </ul>
+        </ul>,
+        portalTarget,
       )}
     </>
   );

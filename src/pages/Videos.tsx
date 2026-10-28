@@ -27,7 +27,7 @@ const CATEGORIES: { value: CatalogFilter['category']; label: string }[] = [
 ];
 
 const MEMBERS = [
-  { value: 'all', label: '전체 멤버' },
+  { value: 'all', label: '전체' },
   { value: '🤍', label: '🤍 둘만' },
   { value: '💙', label: '💙 모카' },
   { value: '🩵', label: '🩵 민주' },
