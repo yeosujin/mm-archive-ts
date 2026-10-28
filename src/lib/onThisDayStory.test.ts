@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildStoryYears, frameDurationMs, storyDays, fallbackDay, shouldAutoOpen, latestMoments,
+  buildStoryYears, frameDurationMs, frameMedia, storyDays, fallbackDay, shouldAutoOpen, latestMoments,
   type StoryData, type StoryFrame,
 } from './onThisDayStory';
 import type { Video, Moment, Photo, Post, Episode } from './database/types';
@@ -147,5 +147,22 @@ describe('latestMoments', () => {
     expect(latestMoments(list).map(m => m.id)).toEqual(['m11', 'm10', 'm9', 'm8', 'm7', 'm6', 'm5', 'm4', 'm3']);
     expect(latestMoments(list, 2).map(m => m.id)).toEqual(['m11', 'm10']);
     expect(list.map(m => m.id)).toEqual(before);
+  });
+});
+
+describe('frameMedia', () => {
+  it('모먼트는 영상 + 썸네일, 사진·이미지 포스트는 이미지, 영상 포스트는 영상 + 썸네일', () => {
+    const m = { ...moment('m1', '2024-10-28'), thumbnail_url: 'https://cdn/m1.jpg' };
+    expect(frameMedia({ kind: 'moment', key: 'k', moment: m })).toEqual({ video: 'https://cdn/m1.mp4', image: 'https://cdn/m1.jpg' });
+    expect(frameMedia({ kind: 'photo', key: 'k', photo: photo('p', 't', '2024-10-28'), title: 't' })).toEqual({ image: 'https://r2/p.jpg' });
+    const p = post('x', '2024-10-28');
+    expect(frameMedia({ kind: 'post', key: 'k', post: p, media: { type: 'image', url: 'https://i.jpg' } })).toEqual({ image: 'https://i.jpg' });
+    expect(frameMedia({ kind: 'post', key: 'k', post: p, media: { type: 'video', url: 'https://v.mp4', thumbnail: 'https://t.jpg' } }))
+      .toEqual({ video: 'https://v.mp4', image: 'https://t.jpg' });
+  });
+  it('미디어 없는 프레임·없음은 빈 객체', () => {
+    expect(frameMedia({ kind: 'post', key: 'k', post: post('x', '2024-10-28') })).toEqual({});
+    expect(frameMedia({ kind: 'episode', key: 'k', episode: episode('e', '2024-10-28') })).toEqual({});
+    expect(frameMedia(undefined)).toEqual({});
   });
 });

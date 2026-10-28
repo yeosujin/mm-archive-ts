@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { StoryFrame, StoryYear } from '../lib/onThisDayStory';
-import { frameDurationMs } from '../lib/onThisDayStory';
+import { frameDurationMs, frameMedia } from '../lib/onThisDayStory';
 import { CloseIcon, VolumeOnIcon, VolumeOffIcon, ShareIcon, PlayIcon } from './Icons';
 import { requestPlay, release } from '../lib/videoPlaybackCoordinator';
 import { shareOrDownloadVideo } from '../lib/shareVideo';
@@ -15,6 +15,8 @@ interface Props {
   startYear: number;
   /** 자동으로 열렸으면 음소거로 시작 (사용자 제스처가 없어 소리 재생이 막힌다) */
   autoStarted: boolean;
+  /** 로딩 화면을 바로 이어받을 때: 올라오는 애니메이션 없이 */
+  instant?: boolean;
   onClose: () => void;
 }
 
@@ -38,18 +40,13 @@ function isVideoFrame(f: StoryFrame | undefined): boolean {
   return f?.kind === 'moment' || (f?.kind === 'post' && f.media?.type === 'video');
 }
 
-/** 다음 프레임 미디어 주소 (영상·이미지) */
-function mediaOf(f: StoryFrame | undefined): { video?: string; image?: string } {
-  if (!f) return {};
-  if (f.kind === 'moment') return { video: f.moment.tweet_url, image: f.moment.thumbnail_url };
-  if (f.kind === 'photo') return { image: f.photo.image_url };
-  if (f.kind === 'post' && f.media) {
-    return f.media.type === 'video' ? { video: f.media.url, image: f.media.thumbnail } : { image: f.media.url };
-  }
-  return {};
+/** 미디어(영상·사진)를 받아야 보이는 프레임 — 받는 동안 스피너 */
+function hasMedia(f: StoryFrame | undefined): boolean {
+  if (!f) return false;
+  return f.kind === 'moment' || f.kind === 'photo' || (f.kind === 'post' && !!f.media);
 }
 
-export default function StoryViewer({ years, startYear, autoStarted, onClose }: Props) {
+export default function StoryViewer({ years, startYear, autoStarted, instant = false, onClose }: Props) {
   const { memberSettings } = useData();
   const [pos, setPos] = useState<Pos>(() => ({ yi: Math.max(0, years.findIndex(y => y.year === startYear)), fi: 0, seq: 0 }));
   const [soundOn, setSoundOn] = useState(() => !autoStarted && getSessionSoundOn());
@@ -59,7 +56,7 @@ export default function StoryViewer({ years, startYear, autoStarted, onClose }: 
   const [hidden, setHidden] = useState(() => document.hidden);
   // 음소거로도 재생이 막힌 경우(저전력 모드 등) 가운데 재생 버튼
   const [blocked, setBlocked] = useState(false);
-  const [loading, setLoading] = useState(() => isVideoFrame(years[pos.yi]?.frames[0]));
+  const [loading, setLoading] = useState(() => hasMedia(years[pos.yi]?.frames[0]));
   const [downloading, setDownloading] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -94,7 +91,7 @@ export default function StoryViewer({ years, startYear, autoStarted, onClose }: 
     setPos(next);
     setUserPaused(false);
     setBlocked(false);
-    setLoading(isVideoFrame(years[yi]?.frames[fi]));
+    setLoading(hasMedia(years[yi]?.frames[fi]));
   };
 
   const next = () => {
@@ -166,7 +163,7 @@ export default function StoryViewer({ years, startYear, autoStarted, onClose }: 
     if (isSaveData()) return;
     const { yi, fi } = posRef.current;
     const upcoming = years[yi]?.frames[fi + 1] ?? years[yi + 1]?.frames[0];
-    const { video, image } = mediaOf(upcoming);
+    const { video, image } = frameMedia(upcoming);
     if (image) new Image().src = image;
     if (video && preloadRef.current?.src !== video) {
       const el = document.createElement('video');
@@ -280,12 +277,13 @@ export default function StoryViewer({ years, startYear, autoStarted, onClose }: 
   const onVideoError = () => { videoFailedRef.current = true; setLoading(false); };
   const onVideoWaiting = () => setLoading(true);
   const onVideoPlaying = () => setLoading(false);
+  const onImageDone = () => setLoading(false);
 
   if (!year || !frame) return null;
   const post = frame.kind === 'post' ? frame.post : null;
 
   return (
-    <div ref={rootRef} className="st" role="dialog" aria-modal="true" aria-label="그 해 오늘">
+    <div ref={rootRef} className={instant ? 'st is-instant' : 'st'} role="dialog" aria-modal="true" aria-label="그 해 오늘">
       <div className="st-stage" {...gestures}>
         <StoryFrameView
           key={`${frame.key}:${pos.seq}`}
@@ -297,6 +295,7 @@ export default function StoryViewer({ years, startYear, autoStarted, onClose }: 
           onVideoError={onVideoError}
           onVideoWaiting={onVideoWaiting}
           onVideoPlaying={onVideoPlaying}
+          onImageDone={onImageDone}
           onMore={() => setSheetOpen(true)}
         />
         {blocked && (

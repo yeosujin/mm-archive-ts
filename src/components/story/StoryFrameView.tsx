@@ -15,6 +15,8 @@ interface Props {
   onVideoError: () => void;
   onVideoWaiting: () => void;
   onVideoPlaying: () => void;
+  /** 사진 프레임 이미지가 뜨거나 실패했을 때 (스피너 끄기) */
+  onImageDone: () => void;
   onMore: () => void;
 }
 
@@ -87,7 +89,7 @@ function EpisodeChat({ episode, memberSettings, scrollRef }: { episode: Episode;
 
 /** 스토리 프레임 한 장. 키를 바꿔 새로 그리므로 프레임마다 영상 요소도 새로 만들어진다 */
 export default function StoryFrameView({
-  frame, memberSettings, videoRef, scrollRef, onVideoEnded, onVideoError, onVideoWaiting, onVideoPlaying, onMore,
+  frame, memberSettings, videoRef, scrollRef, onVideoEnded, onVideoError, onVideoWaiting, onVideoPlaying, onImageDone, onMore,
 }: Props) {
   const video = (src: string, poster?: string) => (
     <video
@@ -127,7 +129,7 @@ export default function StoryFrameView({
       return (
         <>
           <Backdrop src={p.thumbnail_url || p.image_url} />
-          <img className="st-media" src={p.image_url} alt="" />
+          <img className="st-media" src={p.image_url} alt="" onLoad={onImageDone} onError={onImageDone} />
           <div className="st-cap"><p className="st-cap-title">{frame.title}</p></div>
         </>
       );
@@ -138,7 +140,7 @@ export default function StoryFrameView({
       return (
         <>
           <Backdrop src={m.thumbnail || (m.type === 'image' ? m.url : undefined)} />
-          {m.type === 'video' ? video(m.url, m.thumbnail) : <img className="st-media" src={m.url} alt="" />}
+          {m.type === 'video' ? video(m.url, m.thumbnail) : <img className="st-media" src={m.url} alt="" onLoad={onImageDone} onError={onImageDone} />}
           <PostCaption post={frame.post} center={false} onMore={onMore} />
         </>
       );

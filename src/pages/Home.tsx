@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { SearchIcon } from '../components/Icons';
+import { CloseIcon, SearchIcon } from '../components/Icons';
 import { useData } from '../hooks/useData';
 import { useViewerParam } from '../hooks/useViewerParam';
 import { getTodayString } from '../lib/dailyPick';
-import { buildStoryYears, fallbackDay, latestMoments, shouldAutoOpen, storyDays } from '../lib/onThisDayStory';
-import type { StoryData, StoryYear } from '../lib/onThisDayStory';
-import { isSaveData } from '../lib/networkPrefs';
+import { buildStoryYears, fallbackDay, frameMedia, latestMoments, shouldAutoOpen, storyDays } from '../lib/onThisDayStory';
+import type { StoryData, StoryFrame, StoryYear } from '../lib/onThisDayStory';
+import { isSaveData, prefersReducedMotion } from '../lib/networkPrefs';
 import OnThisDayCards from '../components/home/OnThisDayCards';
 import StoryViewer from '../components/StoryViewer';
 import MomentViewer from '../components/MomentViewer';
@@ -15,6 +15,12 @@ import MomentViewer from '../components/MomentViewer';
 const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
 
 const AUTO_SHOWN_KEY = 'mmemory.storyAutoShownDate';
+
+/**
+ * 자동 열기 로딩 화면 단계.
+ * wait: 아직 정하지 않음 · opening: 열기로 함(뷰어가 뜰 때까지 로딩 화면 유지) · fading: 안 열기로 함(로딩 화면 사라지는 중) · done
+ */
+type AutoPhase = 'wait' | 'opening' | 'fading' | 'done';
 
 interface HomeStory {
   years: StoryYear[];
@@ -63,6 +69,12 @@ export default function Home() {
   const [autoYear, setAutoYear] = useState<number | null>(null);
   const autoTriedRef = useRef(false);
   const [openYears, setOpenYears] = useState<{ param: string; years: StoryYear[] } | null>(null);
+  // 그날 첫 방문이면 데이터를 기다리는 동안 로딩 화면을 띄운다
+  const [autoPhase, setAutoPhase] = useState<AutoPhase>(() => {
+    if (storyParam !== null || momentParam !== null) return 'done';
+    try { return localStorage.getItem(AUTO_SHOWN_KEY) !== today ? 'wait' : 'done'; } catch { return 'done'; }
+  });
+  const [autoInstant, setAutoInstant] = useState(false);
   // 칸을 누르는 순간부터 받아 두는 화면 밖 video. 뷰어가 열리면 버린다(같은 URL이라 캐시를 탄다)
   const preloadRef = useRef<HTMLVideoElement | null>(null);
 
@@ -71,7 +83,36 @@ export default function Home() {
     return computeHomeStory({ videos, moments, posts, episodes, photos }, today);
   }, [videos, moments, posts, episodes, photos, today]);
 
+  const storyOpens = !!story && story.years.length > 0 && !story.isFallback;
+  const storyYear = storyParam !== null ? Number(storyParam) : null;
+  // 열린 뷰어의 해 목록은 열 때 고정한다. 뒤에 새 데이터가 와도 카드만 바뀌고 뷰어는 그대로
+  // (StoryViewer는 years가 바뀌는 것을 다루지 않는다)
+  if (storyYear === null) {
+    if (openYears) setOpenYears(null);
+  } else if (openYears?.param !== storyParam && story?.years.some(y => y.year === storyYear)) {
+    setOpenYears({ param: storyParam!, years: story.years });
+  }
+  const viewerYears = openYears?.param === storyParam ? openYears.years : null;
+  const showStory = !!viewerYears && storyYear !== null && viewerYears.some(y => y.year === storyYear);
+  // 뷰어가 떴으면 로딩 화면을 내린다 (같은 렌더에 바뀌어 홈이 비치지 않는다)
+  if (autoPhase === 'opening' && showStory) setAutoPhase('done');
+  // 저장분으로 '오늘은 없음'이면 로딩 화면 없이 홈을 보여주고 새 데이터를 기다린다
+  const overlayOn = autoPhase === 'opening' || autoPhase === 'fading' || (autoPhase === 'wait' && (!story || storyOpens));
+
   const latest = useMemo(() => (moments ? latestMoments(moments) : null), [moments]);
+
+  const preload = (url: string) => {
+    if (isSaveData()) return;
+    preloadRef.current = primeVideo(preloadRef.current, url);
+  };
+
+  // 스토리 첫 장면을 뷰어가 뜨기 전에 받아 둔다
+  const preloadFrame = (frame: StoryFrame | undefined) => {
+    if (isSaveData()) return;
+    const { video, image } = frameMedia(frame);
+    if (image) new Image().src = image;
+    if (video) preload(video);
+  };
 
   // 그날 처음 홈에 오면 스토리 자동 열기 — 마운트당 한 번.
   // 기기에 저장된 데이터로 열 수 있으면 바로 열고, 아니면 새로 받은 데이터(final)로 정한다
@@ -81,16 +122,30 @@ export default function Home() {
     // 저장분엔 없어도 새 데이터엔 있을 수 있다
     if (!opens && !final) return;
     autoTriedRef.current = true;
-    if (!s || momentParam !== null) return;
+    const skip = () => setAutoPhase(overlayOn && !prefersReducedMotion() ? 'fading' : 'done');
+    if (!s || momentParam !== null) { skip(); return; }
     let lastShown: string | null = null;
     try { lastShown = localStorage.getItem(AUTO_SHOWN_KEY); } catch { /* 저장소 막힘 */ }
-    if (!shouldAutoOpen(lastShown, today, s.years.length > 0, s.isFallback)) return;
+    if (!shouldAutoOpen(lastShown, today, s.years.length > 0, s.isFallback)) { skip(); return; }
     if (storyParam === null) {
-      setAutoYear(s.years[0].year);
-      openStory(String(s.years[0].year));
+      const first = s.years[0];
+      preloadFrame(first.frames[0]);
+      setAutoYear(first.year);
+      setAutoInstant(overlayOn);
+      setAutoPhase('opening');
+      openStory(String(first.year));
+    } else {
+      setAutoPhase('done');
     }
     try { localStorage.setItem(AUTO_SHOWN_KEY, today); } catch { /* 저장소 막힘 */ }
   });
+
+  // 로딩 화면 ✕: 오늘은 다시 띄우지 않는다
+  const cancelAuto = () => {
+    autoTriedRef.current = true;
+    try { localStorage.setItem(AUTO_SHOWN_KEY, today); } catch { /* 저장소 막힘 */ }
+    setAutoPhase('done');
+  };
 
   useEffect(() => maybeAutoOpen(story, false), [story]);
 
@@ -130,14 +185,9 @@ export default function Home() {
 
   // 뷰어(자식) effect가 먼저 돌아 src를 넣은 뒤에 버린다
   useEffect(() => {
-    if (momentParam) discardPreload();
-  }, [momentParam, discardPreload]);
+    if (momentParam || showStory) discardPreload();
+  }, [momentParam, showStory, discardPreload]);
   useEffect(() => discardPreload, [discardPreload]);
-
-  const preload = (url: string) => {
-    if (isSaveData()) return;
-    preloadRef.current = primeVideo(preloadRef.current, url);
-  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,16 +202,6 @@ export default function Home() {
     openStory(String(year));
   };
 
-  const storyYear = storyParam !== null ? Number(storyParam) : null;
-  // 열린 뷰어의 해 목록은 열 때 고정한다. 뒤에 새 데이터가 와도 카드만 바뀌고 뷰어는 그대로
-  // (StoryViewer는 years가 바뀌는 것을 다루지 않는다)
-  if (storyYear === null) {
-    if (openYears) setOpenYears(null);
-  } else if (openYears?.param !== storyParam && story?.years.some(y => y.year === storyYear)) {
-    setOpenYears({ param: storyParam!, years: story.years });
-  }
-  const viewerYears = openYears?.param === storyParam ? openYears.years : null;
-  const showStory = !!viewerYears && storyYear !== null && viewerYears.some(y => y.year === storyYear);
   const momentIndex = latest && momentParam ? latest.findIndex(m => m.id === momentParam) : -1;
 
   return (
@@ -226,12 +266,38 @@ export default function Home() {
 
       <Link to="/ask" className="hm-ask">궁금한 점이나 요청 남기러 가기 →</Link>
 
+      {overlayOn && (
+        <div
+          className={autoPhase === 'fading' ? 'st st-wait is-out' : 'st st-wait'}
+          role="dialog"
+          aria-modal="true"
+          aria-label="그 해 오늘 불러오는 중"
+          aria-busy="true"
+          onAnimationEnd={e => { if (e.target === e.currentTarget && autoPhase === 'fading') setAutoPhase('done'); }}
+        >
+          <span className="st-spinner" aria-hidden />
+          <div className="st-top">
+            {/* 뷰어와 ✕ 자리를 맞추려고 진행 막대 높이만 둔다 */}
+            <div className="st-bars" aria-hidden><i style={{ visibility: 'hidden' }} /></div>
+            <div className="st-row">
+              <span />
+              <span className="st-actions">
+                <button type="button" className="st-btn" onClick={cancelAuto} aria-label="닫기">
+                  <CloseIcon size={24} />
+                </button>
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showStory && viewerYears && storyYear !== null && (
         <StoryViewer
           key={storyParam}
           years={viewerYears}
           startYear={storyYear}
           autoStarted={autoYear === storyYear}
+          instant={autoInstant && autoYear === storyYear}
           onClose={closeStory}
         />
       )}

@@ -70,6 +70,7 @@ DB 레이어를 뺀 나머지. → [[database-layer]]
 ## 캐싱
 
 `src/context/DataContext.tsx` — 5분 TTL 인메모리 캐시. `useData()` 훅으로 접근한다.
+목록 6종(videos·moments·posts·episodes·photos·memberSettings)은 `src/lib/dataCache.ts`가 `localStorage`(`mmemory.cache.v1.<이름>`, 24시간)에도 남긴다. 시작 때 '오래됨'으로 되살려 바로 그리고, 첫 `fetchX()`가 네트워크로 새로 받아 덮는다. articles·asks는 남기지 않는다.
 
 `@tanstack/react-query`도 설치되어 있어 **두 방식이 공존한다.** 어느 쪽을 써야 하는지 정해진 규칙은 없다.
 

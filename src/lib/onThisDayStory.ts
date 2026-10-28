@@ -64,6 +64,17 @@ export function buildStoryYears(data: StoryData, today: string): StoryYear[] {
     .map(([year, list]) => ({ year, yearsAgo: todayYear - year, frames: list }));
 }
 
+/** 프레임이 보여줄 미디어 주소 (영상·이미지). 미리 받기에 쓴다 */
+export function frameMedia(f: StoryFrame | undefined): { video?: string; image?: string } {
+  if (!f) return {};
+  if (f.kind === 'moment') return { video: f.moment.tweet_url, image: f.moment.thumbnail_url };
+  if (f.kind === 'photo') return { image: f.photo.image_url };
+  if (f.kind === 'post' && f.media) {
+    return f.media.type === 'video' ? { video: f.media.url, image: f.media.thumbnail } : { image: f.media.url };
+  }
+  return {};
+}
+
 /** 프레임 표시 길이(ms). null이면 영상 길이를 따른다 */
 export function frameDurationMs(frame: StoryFrame): number | null {
   switch (frame.kind) {
