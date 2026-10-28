@@ -26,9 +26,11 @@
   scroll-padding: 0 var(--container-padding);
   overscroll-behavior-x: contain;
   scrollbar-width: none;
-  /* 카드를 짚을 때(.is-hint) 커지고 빛나는 부분이 아래에서 잘리지 않게. 자리는 그대로 */
-  padding-bottom: 8px;
-  margin-bottom: -8px;
+  /* 카드가 들릴 때(.is-lift) 커지고 빛나는 부분이 위아래에서 잘리지 않게. 자리는 그대로 */
+  padding-top: 20px;
+  padding-bottom: 20px;
+  margin-top: -20px;
+  margin-bottom: -20px;
 }
 
 .hm-cards::-webkit-scrollbar {
@@ -72,24 +74,36 @@
   scroll-snap-align: start;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* 자동 열기 직전: 이 카드에서 열린다는 걸 살짝 짚어 준다 */
-.hm-card.is-hint {
-  z-index: 1;
-  animation: hm-card-hint 0.35s ease-in-out;
+/* 자동 열기 직전: 이 카드가 들려 올라와 빛난다 (Home LIFT_MS). 어두운 막(.hm-scrim, z 150) 위로 */
+.hm-card.is-lift {
+  z-index: 151;
+  transform: scale(1.06);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6), 0 10px 26px rgba(0, 0, 0, 0.35), 0 0 22px rgba(112, 164, 249, 0.6);
+  transition: transform 0.45s ease-out, box-shadow 0.45s ease-out;
 }
 
-@keyframes hm-card-hint {
-  50% {
-    transform: scale(1.03);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55), 0 6px 22px rgba(112, 164, 249, 0.55);
-  }
+/* 들리는 동안 글은 걷힌다 — 펼칠 때 뷰어가 덮는 카드 그림(글 없음)과 같은 모습이 되게 */
+.hm-card.is-lift .hm-card-ov {
+  opacity: 0;
+  transition-duration: 0.45s;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .hm-card.is-hint {
-    animation: none;
+/* 들린 카드 뒤 화면을 살짝 어둡게. 뷰어 막(story.css .st-backdrop)이 이 농도(검정 35%)에서 이어 짙어진다 */
+.hm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 150; /* 상단 헤더(100) 위 */
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  animation: hm-scrim-in 0.45s ease-out both;
+}
+
+@keyframes hm-scrim-in {
+  from {
+    opacity: 0;
   }
 }
 
@@ -137,6 +151,7 @@ button.hm-card {
   padding: 0.625rem;
   background: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, 0.82));
   pointer-events: none;
+  transition: opacity 0.3s ease;
 }
 
 /* 은은한 ▶ 표시 */
@@ -237,8 +252,8 @@ button.hm-card {
 @media (min-width: 768px) {
   /* 넓은 화면: 카드 폭 고정, 화면 밖으로 빼지 않음 */
   .hm-cards {
-    margin: 0 0 -8px;
-    padding: 0 0 8px;
+    margin: -20px 0;
+    padding: 20px 0;
     scroll-padding: 0;
   }
 

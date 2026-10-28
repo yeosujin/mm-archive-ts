@@ -16,7 +16,10 @@ interface Props {
   startYear: number;
   /** 그 해의 몇 번째 프레임부터 (범위 밖이면 맞춘다) */
   startFrame?: number;
-  /** 자동으로 열렸으면 음소거로 시작 (사용자 제스처가 없어 소리 재생이 막힌다) */
+  /**
+   * 자동으로 열렸으면 음소거로 시작 (사용자 제스처가 없어 소리 재생이 막힌다).
+   * 열기도 천천히: 홈이 카드를 들어 올리고 화면을 살짝 어둡게 한 데서 이어 펼친다
+   */
   autoStarted: boolean;
   /**
    * 그 해 frameIndex번째 프레임이 든 카드의 화면 위치. 열 때 그 카드에서 커지고, 닫을 때 그 카드로 줄어든다.
@@ -49,14 +52,26 @@ interface Pos {
 // 영상이 안 열리면 사진처럼 이 시간만큼 보여주고 넘긴다
 const FAILED_VIDEO_MS = 5000;
 
-// 카드에서 커지기 · 그 뒤 카드 그림이 걷히며 첫 장면이 드러나는 시간(이것까지 지나야 재생 시작) · 카드로 줄어들기
-const ZOOM_MS = 450;
-const SETTLE_MS = 250;
-const SHRINK_MS = 400;
+// 카드에서 커지기: 자동 열기는 '카드가 열린다'가 보이게 천천히(가속→감속), 카드를 누르면 빠르게
+const AUTO_ZOOM_MS = 750;
+const TAP_ZOOM_MS = 550;
+const AUTO_EASE = 'cubic-bezier(0.65, 0, 0.35, 1)';
+// 누른 카드에서 커지기·카드로 줄어들기: 첫 순간에 확 튀지 않게 부드럽게 출발해 감속
+const CARD_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+// 다 커진 뒤 카드 그림이 걷히며 첫 장면이 드러나는 시간
+const SETTLE_MS = 300;
+// 다 커진 뒤 위 막대·캡션이 떠오르기 시작하는 때와 그 길이. 재생·진행은 다 커진 뒤 PLAY_AFTER_MS에 시작
+const CHROME_DELAY_MS = 100;
+const CHROME_MS = 300;
+const PLAY_AFTER_MS = 400;
+// 카드로 줄어들기
+const SHRINK_MS = 450;
 // 카드 위치를 모를 때 가운데서 커지기/작아지기, 동작 줄이기 설정이면 페이드
 const POP_MS = 300;
 const FADE_MS = 200;
 const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+// 자동 열기 직전 홈이 깔아 둔 어두운 막(home.css .hm-scrim, 검정 35%) — 뷰어 막(.st-backdrop, 검정 60%)이 그 농도에서 이어 짙어진다
+const AUTO_SCRIM = 0.35 / 0.6;
 const FULL_TRANSFORM = 'translate(0px, 0px) scale(1)';
 const FULL_CLIP = 'inset(0px 0px round 0px)';
 
@@ -313,8 +328,8 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
     };
   }, []);
 
-  // 열기: 카드 자리에서 카드 그림을 보이며 전체 화면으로 커진 뒤, 그림이 걷히며 첫 장면이 드러난다.
-  // 재생·진행을 시작할 때까지의 시간(ms)을 돌려준다
+  // 열기: 카드 자리에서 카드 그림을 보이며 전체 화면으로 커진 뒤, 그림이 걷히며 첫 장면이 드러나고
+  // 위 막대·캡션이 떠오른다. 재생·진행을 시작할 때까지의 시간(ms)을 돌려준다
   const animateOpen = useEffectEvent((): number => {
     const root = rootRef.current;
     const ghost = ghostRef.current;
@@ -325,28 +340,34 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
     const origin = reduced ? null : originFor(years[pos.yi].year, pos.fi);
     const vw = root.clientWidth;
     const vh = root.clientHeight;
+    const scrim = autoStarted && !reduced ? AUTO_SCRIM : 0;
+    const chrome = root.querySelectorAll('.st-top, .st-side, .st-cap');
+    const chromeIn = (at: number) => [...chrome].map(el =>
+      el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CHROME_MS, delay: at, easing: 'ease-out', fill: 'backwards' }));
 
     if (!origin) {
       const ms = reduced ? FADE_MS : POP_MS;
       const from = reduced ? FULL_TRANSFORM : centerScale(0.94, vw, vh);
       animsRef.current = [
         root.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: FULL_TRANSFORM }], { duration: ms, easing: EASE }),
-        backdrop.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms, easing: 'ease-out' }),
+        backdrop.animate([{ opacity: scrim }, { opacity: 1 }], { duration: ms, easing: 'ease-out' }),
       ];
       return reduced ? ms : ms + SETTLE_MS;
     }
 
+    const zoom = autoStarted ? AUTO_ZOOM_MS : TAP_ZOOM_MS;
     const fit = fitToCard(origin, vw, vh);
     setGhostImage(img, origin.image);
-    const timing = { duration: ZOOM_MS, easing: EASE };
+    const timing = { duration: zoom, easing: autoStarted ? AUTO_EASE : CARD_EASE };
     animsRef.current = [
       root.animate([{ transform: fit.transform, clipPath: fit.clipPath }, { transform: FULL_TRANSFORM, clipPath: FULL_CLIP }], timing),
       ghost.animate([fit.box, fullBox(vw, vh)], timing),
       // 다 커질 때까지는 카드 그림 그대로, 그 뒤 걷힌다
-      ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: SETTLE_MS, delay: ZOOM_MS, easing: 'ease', fill: 'backwards' }),
-      backdrop.animate([{ opacity: 0 }, { opacity: 1 }], timing),
+      ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: SETTLE_MS, delay: zoom, easing: 'ease', fill: 'backwards' }),
+      backdrop.animate([{ opacity: scrim }, { opacity: 1 }], timing),
+      ...chromeIn(zoom + CHROME_DELAY_MS),
     ];
-    return ZOOM_MS + SETTLE_MS;
+    return zoom + PLAY_AFTER_MS;
   });
 
   useLayoutEffect(() => {
@@ -388,7 +409,7 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
     if (origin) {
       const fit = fitToCard(origin, vw, vh);
       setGhostImage(img, origin.image);
-      const timing = { duration: SHRINK_MS, easing: EASE, fill };
+      const timing = { duration: SHRINK_MS, easing: CARD_EASE, fill };
       main = root.animate([{ transform: from.transform, clipPath: from.clipPath }, { transform: fit.transform, clipPath: fit.clipPath }], timing);
       animsRef.current = [
         main,

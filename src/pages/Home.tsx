@@ -9,7 +9,7 @@ import {
   shouldAutoOpen,
 } from '../lib/onThisDayStory';
 import type { StoryData, StoryFrame, StoryYear } from '../lib/onThisDayStory';
-import { isSaveData } from '../lib/networkPrefs';
+import { isSaveData, prefersReducedMotion } from '../lib/networkPrefs';
 import { entrySplashPhase, releaseEntrySplash, useEntrySplash } from '../lib/entrySplash';
 import OnThisDayCards from '../components/home/OnThisDayCards';
 import StoryViewer from '../components/StoryViewer';
@@ -28,9 +28,10 @@ const NO_MOMENTS: Moment[] = [];
 const AUTO_SHOWN_KEY = 'mmemory.storyAutoShownDate';
 // ?date=YYYY-MM-DD로 날짜를 바꿔 볼 때(확인용)는 '하루 한 번'·'대체 날 제외' 규칙 없이 항상 자동으로 연다
 const DATE_OVERRIDDEN = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('date');
-// 자동 열기: 로고 화면이 걷힌 뒤 홈을 잠깐 보여 주고 → 첫 카드를 살짝 짚은 뒤 → 그 카드에서 연다
-const AUTO_DELAY_MS = 600;
-const HINT_MS = 350; // home.css .hm-card.is-hint와 같게
+// 자동 열기: 로고 화면이 다 걷힌 뒤 홈을 잠깐 가만히 보여 주고 → 첫 카드를 들어 올리며 화면을 살짝 어둡게 한 뒤 →
+// 그 카드에서 천천히 펼친다 (StoryViewer AUTO_ZOOM_MS)
+const AUTO_DELAY_MS = 900;
+const LIFT_MS = 450; // home.css .hm-card.is-lift · .hm-scrim과 같게
 
 interface HomeStory {
   years: StoryYear[];
@@ -119,8 +120,10 @@ export default function Home() {
   const [viewer, setViewer] = useState<OpenStory | null>(null);
   // 마지막으로 연 카드 (닫을 때 지금 콘텐츠 카드를 못 찾으면 여기로 줄어든다)
   const tappedRef = useRef<{ year: number; startIndex: number } | null>(null);
-  // 자동 열기 직전에 살짝 짚는 카드 `YEAR:startIndex`
-  const [hintCard, setHintCard] = useState<string | null>(null);
+  // 자동 열기 직전에 들어 올리는 카드 `YEAR:startIndex`
+  const [liftCard, setLiftCard] = useState<string | null>(null);
+  // 자동 열기를 기다리는 동안엔 카드 미리보기 영상을 틀지 않는다 — 펼칠 때 카드 그림(썸네일)과 같은 장면에서 이어지게
+  const [autoPending, setAutoPending] = useState(false);
   const autoTimerRef = useRef(0);
   // 그날 첫 방문이면 자동 열기를 정할 때까지 입장 로고 화면을 붙잡아 둔다
   const [autoCandidate] = useState(() => {
@@ -129,7 +132,7 @@ export default function Home() {
     try { return localStorage.getItem(AUTO_SHOWN_KEY) !== today; } catch { return false; }
   });
   const splash = useEntrySplash();
-  // 로고 화면이 사라지기 시작하면 열 해 (잠시 뒤 첫 카드에서 커지며 열린다)
+  // 로고 화면이 다 사라지면 열 해 (잠시 뒤 첫 카드에서 커지며 열린다)
   const pendingAutoRef = useRef<number | null>(null);
   // 칸을 누르는 순간부터 받아 두는 화면 밖 video. 뷰어가 열리면 버린다(같은 URL이라 캐시를 탄다)
   const preloadRef = useRef<HTMLVideoElement | null>(null);
@@ -148,6 +151,10 @@ export default function Home() {
   if (storyParam === null || storyYear === null) {
     if (viewer && !viewer.closing) setViewer({ ...viewer, closing: true });
   } else if ((!viewer || viewer.param !== storyParam || viewer.closing) && story?.years.some(y => y.year === storyYear)) {
+    // 들어 올린 카드·어두운 막은 새 뷰어가 같은 자리·농도에서 이어받는다 — 같은 렌더에서 내려야 사이에 빈 장면이 없다
+    // (URL 갱신은 따로 늦게 렌더되므로 여는 쪽에서 미리 내리지 않는다)
+    if (liftCard) setLiftCard(null);
+    if (autoPending) setAutoPending(false);
     setViewer({
       id: (viewer?.id ?? 0) + 1,
       param: storyParam,
@@ -179,20 +186,21 @@ export default function Home() {
   // 그 사이 사용자가 직접 뭔가 열었으면 자동 열기는 그만둔다
   const userOpenedSomething = useEffectEvent(() => storyParam !== null || momentParam !== null || detailParam !== null);
 
-  // 홈을 잠깐 보여 준 뒤 첫 카드를 살짝 짚고, 그 카드에서 연다
+  // 홈을 잠깐 보여 준 뒤 첫 카드를 들어 올리고, 그 카드에서 연다. 동작 줄이기 설정이면 들지 않고 바로(뷰어가 페이드)
   const scheduleAutoOpen = useEffectEvent((year: number) => {
     window.clearTimeout(autoTimerRef.current);
+    const open = () => {
+      if (userOpenedSomething()) { setLiftCard(null); setAutoPending(false); return; }
+      tappedRef.current = { year, startIndex: 0 };
+      openStory(String(year));
+    };
     autoTimerRef.current = window.setTimeout(() => {
-      if (userOpenedSomething()) return;
+      if (userOpenedSomething()) { setAutoPending(false); return; }
+      if (prefersReducedMotion()) { open(); return; }
       const key = `${year}:0`;
       document.querySelector(`.hm-card[data-story-card="${key}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-      setHintCard(key);
-      autoTimerRef.current = window.setTimeout(() => {
-        setHintCard(null);
-        if (userOpenedSomething()) return;
-        tappedRef.current = { year, startIndex: 0 };
-        openStory(String(year));
-      }, HINT_MS);
+      setLiftCard(key);
+      autoTimerRef.current = window.setTimeout(open, LIFT_MS);
     }, AUTO_DELAY_MS);
   });
 
@@ -214,7 +222,8 @@ export default function Home() {
       const first = s.years[0];
       preloadFrame(first.frames[0]);
       setAutoYear(first.year);
-      if (entrySplashPhase() === 'on') pendingAutoRef.current = first.year;
+      setAutoPending(true);
+      if (entrySplashPhase() !== 'off') pendingAutoRef.current = first.year;
       else scheduleAutoOpen(first.year);
     }
     if (!DATE_OVERRIDDEN) {
@@ -231,7 +240,7 @@ export default function Home() {
 
   const openPendingAuto = useEffectEvent((phase: typeof splash) => {
     const year = pendingAutoRef.current;
-    if (year === null || phase === 'on') return;
+    if (year === null || phase !== 'off') return;
     pendingAutoRef.current = null;
     scheduleAutoOpen(year);
   });
@@ -325,8 +334,8 @@ export default function Home() {
       <OnThisDayCards
         years={story ? story.years : null}
         label={story?.label ?? ''}
-        paused={storyParam !== null || momentParam !== null || detailParam !== null}
-        hintCard={hintCard}
+        paused={autoPending || storyParam !== null || momentParam !== null || detailParam !== null}
+        liftCard={liftCard}
         onOpen={handleOpenContent}
       />
 
@@ -373,6 +382,8 @@ export default function Home() {
       </section>
 
       <Link to="/ask" className="hm-ask">궁금한 점이나 요청 남기러 가기 →</Link>
+
+      {liftCard && <div className="hm-scrim" aria-hidden />}
 
       {viewer && (
         <StoryViewer
