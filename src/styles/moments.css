@@ -269,15 +269,17 @@
   left: 0.625rem;
   width: 36px;
   height: 36px;
+  padding: 0;
   border: none;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
+  background: none;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  /* 배경 없이 표지 위에 바로 놓이므로 밝은 이미지에서도 보이게 그림자만 */
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
 }
 
 .vd-back svg {

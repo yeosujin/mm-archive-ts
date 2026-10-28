@@ -78,7 +78,7 @@ export default function VideoDetail() {
       <div className="vd-cover">
         <VideoCover video={video} moments={list} eager />
         <button type="button" className="vd-back" onClick={goBack} aria-label="뒤로">
-          <ArrowRightIcon size={18} />
+          <ArrowRightIcon size={22} />
         </button>
       </div>
 
