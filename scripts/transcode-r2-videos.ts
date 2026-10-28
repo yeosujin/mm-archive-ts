@@ -21,7 +21,7 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { createClient } from '@supabase/supabase-js';
-import { mkdtemp, rm, stat } from 'node:fs/promises';
+import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -37,6 +37,10 @@ import {
   thumbKey,
   buildTranscodeArgs,
   buildThumbArgs,
+  brightnessArgs,
+  parseBrightness,
+  isDarkFrame,
+  THUMB_SEEKS,
   decideResult,
   pendingPostVideoIndexes,
 } from './transcode/plan';
@@ -105,8 +109,31 @@ async function upload(key: string, src: string, contentType: string): Promise<vo
   }).done();
 }
 
-/** 영상 하나 변환. 업로드까지 하고 최종 URL을 돌려준다 (DB는 호출 쪽에서) */
-async function convert(tmp: string, url: string, needThumb: boolean): Promise<Converted> {
+async function brightness(imagePath: string): Promise<number | null> {
+  const { stderr } = await execFileAsync('ffmpeg', brightnessArgs(imagePath));
+  return parseBrightness(stderr);
+}
+
+/** 이미 있는 썸네일이 검은 화면인지. 받거나 읽지 못하면 그대로 둔다(false) */
+async function isDarkThumbnail(thumbUrl: string, dest: string): Promise<boolean> {
+  try {
+    const res = await fetch(thumbUrl);
+    if (!res.ok) return false;
+    await writeFile(dest, Buffer.from(await res.arrayBuffer()));
+    const y = await brightness(dest);
+    return y !== null && isDarkFrame(y);
+  } catch {
+    return false;
+  } finally {
+    await rm(dest, { force: true });
+  }
+}
+
+/**
+ * 영상 하나 변환. 업로드까지 하고 최종 URL을 돌려준다 (DB는 호출 쪽에서)
+ * 썸네일은 없거나, 있어도 검은 화면(업로드 때 첫 장면을 찍어 생김)이면 새로 만든다
+ */
+async function convert(tmp: string, url: string, currentThumb: string | null | undefined): Promise<Converted> {
   const key = urlToKey(url, PUBLIC);
   const inPath = join(tmp, 'in' + key.slice(key.lastIndexOf('.')));
   const outPath = join(tmp, 'out.mp4');
@@ -121,20 +148,27 @@ async function convert(tmp: string, url: string, needThumb: boolean): Promise<Co
     const finalUrl = result === 'use-transcoded' ? `${PUBLIC}/${newKey}` : url;
     const note = `${(inSize / 1048576).toFixed(1)}MB → ${(outSize / 1048576).toFixed(1)}MB ${result}`;
 
+    const darkThumb = !!currentThumb && await isDarkThumbnail(currentThumb, join(tmp, 'current-thumb.jpg'));
+    if (darkThumb) console.log(`   🌑 검은 썸네일 — 다시 만든다: ${currentThumb}`);
+
     let thumbnailUrl: string | undefined;
-    if (needThumb) {
-      // 0.5초보다 짧은 클립은 프레임이 없어 실패하므로 0초로 한 번 더 시도한다. 썸네일 실패는 변환 실패가 아니다
-      for (const seek of ['0.5', '0']) {
+    if (!currentThumb || darkThumb) {
+      // 1초 → 0.5초 → 0초. 검은 장면이면 다음 지점으로. 모두 검으면 마지막으로 뽑힌 것을 쓴다(없는 것보다 낫다)
+      // 썸네일 실패는 변환 실패가 아니다
+      let made = false;
+      for (const seek of THUMB_SEEKS) {
         try {
           await execFileAsync('ffmpeg', buildThumbArgs(outPath, thumbPath, seek));
           await stat(thumbPath);
-          thumbnailUrl = `${PUBLIC}/${thumbKey(newKey)}`;
-          break;
+          made = true;
+          const y = await brightness(thumbPath);
+          if (y === null || !isDarkFrame(y)) break;
         } catch {
-          await rm(thumbPath, { force: true });
+          // 이 지점에서는 프레임이 없다 — 다음 지점
         }
       }
-      if (!thumbnailUrl) console.warn(`   ⚠️ 썸네일 생성 실패 — 건너뜀: ${url}`);
+      if (made) thumbnailUrl = `${PUBLIC}/${thumbKey(newKey)}`;
+      else console.warn(`   ⚠️ 썸네일 생성 실패 — 건너뜀: ${url}`);
     }
 
     if (!DRY_RUN) {
@@ -193,7 +227,7 @@ async function main() {
     if (budget <= 0) break;
     if (stats.failed >= MAX_FAILURES) { console.log(`⛔ 실패 ${MAX_FAILURES}건 — 중단`); break; }
     try {
-      const c = await convert(tmp, m.tweet_url, !m.thumbnail_url);
+      const c = await convert(tmp, m.tweet_url, m.thumbnail_url);
       if (!DRY_RUN) {
         const { data, error } = await sb.from('moments')
           .update({
@@ -233,7 +267,7 @@ async function main() {
       if (stats.failed >= MAX_FAILURES) break;
       try {
         const item = media[i];
-        const c = await convert(tmp, item.url, !item.thumbnail);
+        const c = await convert(tmp, item.url, item.thumbnail);
         console.log(`   ✅ post ${p.id}[${i}] ${c.note}${c.thumbnailUrl ? ' +thumb' : ''}`);
         converted.set(i, { item, c });
         budget--;

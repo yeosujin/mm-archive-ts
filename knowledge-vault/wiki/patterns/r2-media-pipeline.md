@@ -58,7 +58,7 @@ database.createVideo / createPhoto 로 메타 저장
 
 - `moments.original_url` / `posts.media[].original_url` = 원래 주소. 채워져 있으면 처리 완료
 - 원본 객체는 지우지 않는다. 롤백은 `tweet_url ← original_url`
-- 썸네일이 비어 있으면 0.5초 프레임 jpg(`…_thumb.jpg`)도 채운다
+- 썸네일이 비어 있거나 **검은 화면**(평균 밝기 YAVG < 20 — 업로드 때 0.1초 첫 장면을 찍어 시작이 검은 영상에서 생김)이면 1초 → 0.5초 → 0초 지점에서 검지 않은 프레임으로 다시 만든다(`…_thumb.jpg`)
 - `.github/workflows/transcode.yml`이 매시간 새 업로드를 처리한다(libx264). 대량 처리는 로컬 맥(videotoolbox)
 - 어드민에서 영상을 교체하면 `original_url`을 비워 다시 변환 대상이 되게 하고, 삭제 시 원본도 지운다
 
