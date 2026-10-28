@@ -5,6 +5,7 @@ import { useData } from '../hooks/useData';
 import LazyImage from '../components/LazyImage';
 import Skeleton from '../components/Skeleton';
 import { CloseIcon } from '../components/Icons';
+import { SearchField, SortChip } from '../components/FilterChips';
 
 export default function Photos() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -164,12 +165,17 @@ export default function Photos() {
     }
   };
 
+  const filterRow = (
+    <div className="mc-filter">
+      <SearchField value={searchQuery} onChange={setSearchQuery} placeholder="검색... (제목, 날짜, 태그)" />
+      <SortChip value={sortOrder} onChange={setSortOrder} />
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="page photos-page">
-        <div className="page-header">
-          <h1>사진</h1>
-        </div>
+        {filterRow}
         <Skeleton variant="grid" count={12} />
       </div>
     );
@@ -177,30 +183,7 @@ export default function Photos() {
 
   return (
     <div className="page photos-page">
-      <div className="page-header">
-        <h1>사진</h1>
-        <div className="page-controls">
-          <div className="search-box">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="검색... (제목, 날짜, 태그)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="sort-toggle-wrapper">
-            <button
-              type="button"
-              className="sort-toggle"
-              onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
-            >
-              <span className="sort-icon">{sortOrder === 'newest' ? '▼' : '▲'}</span>
-              {sortOrder === 'newest' ? '최신순' : '오래된순'}
-            </button>
-          </div>
-        </div>
-      </div>
+      {filterRow}
 
       {filteredPhotos.length === 0 ? (
         <div className="empty-state">

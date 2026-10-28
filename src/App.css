@@ -588,37 +588,6 @@
   padding: 0.5rem 2rem 0.5rem 0.75rem;
 }
 
-/* Sort Toggle */
-.sort-toggle-wrapper {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.sort-toggle {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  cursor: pointer;
-  padding: 0.25rem 0;
-  white-space: nowrap;
-  transition: color 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-.sort-toggle:hover {
-  color: var(--text-primary);
-}
-
-.sort-toggle .sort-icon {
-  font-size: 0.6rem;
-}
-
 .filter-reset-btn {
   background: none;
   border: 1px solid var(--border);
@@ -2828,39 +2797,6 @@
   color: var(--text-muted);
 }
 
-/* ===== Episode Tabs ===== */
-.episode-tabs {
-  display: flex;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.episode-tab {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.9rem;
-  border-radius: 16px;
-  border: none;
-  background: none;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.episode-tab:hover {
-  color: var(--text-primary);
-  background: rgba(150, 150, 150, 0.1);
-}
-
-.episode-tab.active {
-  background: rgba(150, 150, 150, 0.15);
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
 /* ===== DM Timeline (에피소드) ===== */
 .dm-timeline {
   display: flex;
@@ -3350,10 +3286,6 @@
 }
 
 /* ===== Posts Page (Grid View) ===== */
-.posts-page .page-header {
-  margin-bottom: 1.5rem;
-}
-
 .posts-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
