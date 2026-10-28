@@ -425,6 +425,16 @@
 }
 
 /* 칩 메뉴 (연도·라이브 멤버). 칩 줄의 가로 스크롤에 잘리지 않게 fixed, 좌표는 ChipMenu가 잡는다 */
+.mc-chip-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mc-chip-back svg {
+  transform: scaleX(-1);
+}
+
 .mc-menu-list {
   position: fixed;
   z-index: 20;

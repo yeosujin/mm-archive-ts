@@ -17,6 +17,7 @@ import VideoCard from '../components/moments/VideoCard';
 import ChipMenu from '../components/moments/ChipMenu';
 import MomentViewer from '../components/MomentViewer';
 import Skeleton from '../components/Skeleton';
+import { ArrowRightIcon } from '../components/Icons';
 
 const CATEGORIES: { value: CatalogFilter['category']; label: string }[] = [
   { value: 'all', label: '전체' },
@@ -26,7 +27,7 @@ const CATEGORIES: { value: CatalogFilter['category']; label: string }[] = [
 ];
 
 const MEMBERS = [
-  { value: 'all', label: '전체 라이브' },
+  { value: 'all', label: '전체 멤버' },
   { value: '🤍', label: '🤍 둘만' },
   { value: '💙', label: '💙 모카' },
   { value: '🩵', label: '🩵 민주' },
@@ -107,7 +108,7 @@ function VideoCatalog() {
 
   return (
     <div className="mc">
-      {/* 연도 · 분류 한 줄. 라이브를 고른 뒤 라이브 칩을 다시 누르면 멤버 메뉴 */}
+      {/* 연도 · 분류 한 줄. 라이브를 고르면 그 줄이 '← 위버스 라이브' + 멤버 메뉴로 바뀐다 */}
       <div className="mc-filter">
         {year !== undefined && (
           <ChipMenu
@@ -122,19 +123,27 @@ function VideoCatalog() {
           </ChipMenu>
         )}
         <div className="mc-chips">
-          {CATEGORIES.map(c =>
-            c.value === 'live' && category === 'live' ? (
+          {category === 'live' ? (
+            <>
+              <button
+                type="button"
+                className="mc-chip mc-chip-back active"
+                onClick={() => setFilter('c', 'all')}
+              >
+                <ArrowRightIcon size={12} /> {CATEGORY_LABEL.live}
+              </button>
               <ChipMenu
-                key={c.value}
-                className="active"
+                className={member === 'all' ? '' : 'active'}
                 label="라이브 멤버"
                 options={MEMBERS}
                 value={member}
                 onChange={m => setFilter('mb', m)}
               >
-                {member === 'all' ? c.label : `${MEMBERS.find(m => m.value === member)!.label} 라이브`}
+                {MEMBERS.find(m => m.value === member)!.label}
               </ChipMenu>
-            ) : (
+            </>
+          ) : (
+            CATEGORIES.map(c => (
               <button
                 key={c.value}
                 type="button"
@@ -144,7 +153,7 @@ function VideoCatalog() {
               >
                 {c.label}
               </button>
-            ),
+            ))
           )}
         </div>
       </div>
