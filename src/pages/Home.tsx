@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getFeaturedContent, getArticlesVisibility } from '../lib/database';
+import { getFeaturedContent } from '../lib/database';
 import type { Video, Post, Moment } from '../lib/database';
 import PostEmbed from '../components/PostEmbed';
 import VideoEmbed from '../components/VideoEmbed';
-import { SearchIcon, CalendarIcon, ArrowRightIcon, ExternalLinkIcon } from '../components/Icons';
+import { SearchIcon, ArrowRightIcon, ExternalLinkIcon } from '../components/Icons';
 import { detectVideoPlatform } from '../lib/platformUtils';
 import { useData } from '../hooks/useData';
 import OnThisDay from '../components/OnThisDay';
@@ -25,14 +25,6 @@ const PLATFORM_NAMES: Record<string, string> = {
   other: '외부 링크',
 };
 
-const NAV_ITEMS = [
-  { to: '/videos', label: '모먼트' },
-  { to: '/photos', label: '사진' },
-  { to: '/posts', label: '포스트' },
-  { to: '/episodes', label: '에피소드' },
-  { to: '/articles', label: '도서관' },
-];
-
 // AI 모드 placeholder 예시 (정확한 단어 없이도, 한국어/영어 모두 찾을 수 있음을 보여주기 위한 유도 문구)
 const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
 
@@ -42,15 +34,12 @@ export default function Home() {
   const [aiExampleIdx, setAiExampleIdx] = useState(0);
   const [featuredItem, setFeaturedItem] = useState<{ type: string; item: Video | Post | Moment } | null>(null);
   const [linkedVideo, setLinkedVideo] = useState<Video | null>(null);
-  const [articlesVisible, setArticlesVisible] = useState(false);
   const navigate = useNavigate();
   const { fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchMemberSettings } = useData();
 
   useEffect(() => {
     const loadFeaturedContent = async () => {
       try {
-        const visible = await getArticlesVisibility();
-        setArticlesVisible(visible);
         const featured = await getFeaturedContent();
 
         if (featured.type && featured.content_id) {
@@ -236,18 +225,6 @@ export default function Home() {
           )}
         </div>
       </section>
-
-      {/* Navigation */}
-      <nav className="home-nav">
-        {NAV_ITEMS.filter(item => articlesVisible || item.to !== '/articles').map((item) => (
-          <Link key={item.to} to={item.to} className="home-nav-link">
-            {item.label}
-          </Link>
-        ))}
-        <Link to="/calendar" className="home-nav-link home-nav-calendar" aria-label="캘린더">
-          <CalendarIcon size={16} />
-        </Link>
-      </nav>
 
       {/* 그 해 오늘 — 콘텐츠 0개면 기존 Featured(PICK) 섹션을 fallback으로 렌더 */}
       <OnThisDay fallback={featuredItem?.item ? renderFeatured() : null} />
