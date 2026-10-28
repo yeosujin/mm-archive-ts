@@ -231,3 +231,140 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
 }
+
+/* ===== 영상 표지 (VideoCover) — 이미지가 없으면 플랫폼 색 블록 ===== */
+
+.vcover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--bg-card-hover);
+}
+
+.vcover-youtube { background: linear-gradient(135deg, #3a1214, #7a1f22); }
+.vcover-weverse { background: linear-gradient(135deg, #0d3a35, #1b6f64); }
+.vcover-instagram { background: linear-gradient(135deg, #3d1636, #7a2d4f); }
+.vcover-twitter { background: linear-gradient(135deg, #15161a, #33363d); }
+.vcover-other { background: linear-gradient(135deg, #1f2233, #3a3f5c); }
+
+/* ===== 영상 상세 (/videos/:id) ===== */
+
+.vd {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.vd-cover {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-card-hover);
+}
+
+.vd-back {
+  position: absolute;
+  top: 0.625rem;
+  left: 0.625rem;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vd-back svg {
+  transform: scaleX(-1);
+}
+
+.vd-info {
+  padding: 0.875rem 0.125rem 0;
+}
+
+.vd-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.vd-meta {
+  margin: 0.375rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.vd-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.875rem;
+}
+
+.vd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5625rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vd-btn.is-primary {
+  border-color: var(--text-primary);
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.vd-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin-top: 1.25rem;
+}
+
+.vd-cell {
+  display: block;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  border: none;
+  background: var(--bg-card-hover);
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vd-cell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vd-empty {
+  padding: 4rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.vd-empty p {
+  margin: 0 0 1rem;
+}

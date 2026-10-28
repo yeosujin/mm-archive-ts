@@ -7,6 +7,7 @@ import ErrorFallback from '../components/ErrorFallback';
 // Pages
 const Home = lazy(() => import('../pages/Home'));
 const Videos = lazy(() => import('../pages/Videos'));
+const VideoDetail = lazy(() => import('../pages/VideoDetail'));
 const Moments = lazy(() => import('../pages/Moments'));
 const Posts = lazy(() => import('../pages/Posts'));
 const Episodes = lazy(() => import('../pages/Episodes'));
@@ -54,6 +55,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<PageLoader />}>
                 <Videos />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'videos/:id',
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <VideoDetail />
               </Suspense>
             ),
           },

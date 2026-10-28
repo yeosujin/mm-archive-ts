@@ -56,3 +56,14 @@ export function pickHero<T extends Pick<Video, 'id'>>(videos: T[], moments: Map<
   const candidates = videos.filter(v => (moments.get(v.id)?.length ?? 0) > 0);
   return candidates.length ? candidates[Math.floor(random() * candidates.length)] : null;
 }
+
+export const CATEGORY_LABEL: Record<VideoCategory, string> = {
+  live: '위버스 라이브',
+  official: '아일릿 채널',
+  external: '외부 출연',
+};
+
+/** 'YYYY-MM-DD…' → 'YYYY.MM.DD' */
+export function formatDotDate(date: string): string {
+  return date.slice(0, 10).replaceAll('-', '.');
+}
