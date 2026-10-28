@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getVideos, getMoments, getPosts, getEpisodes, getMemberSettings, getArticles, getArticlesVisibility } from '../lib/database';
-import type { Video, Moment, Post, Episode, Article } from '../lib/database';
-import { CalendarIcon, ArrowRightIcon, PostIcon, ChatIcon, BookIcon, VideoIcon } from '../components/Icons';
+import { getVideos, getMoments, getPosts, getEpisodes, getMemberSettings, getArticles, getArticlesVisibility, getPhotos } from '../lib/database';
+import type { Video, Moment, Post, Episode, Article, Photo } from '../lib/database';
+import { CalendarIcon, ArrowRightIcon, PostIcon, ChatIcon, BookIcon, VideoIcon, PhotoIcon } from '../components/Icons';
 
 interface ArchiveItem {
     id: string;
-    type: 'video' | 'moment' | 'post' | 'episode' | 'article';
+    type: 'video' | 'moment' | 'post' | 'photo' | 'episode' | 'article';
     title: string;
     path: string;
     icon?: string;
@@ -40,6 +40,7 @@ const TypeIcon = ({ type }: { type: string }) => {
     case 'video': return <VideoIcon size={16} />;
     case 'moment': return <VideoIcon size={16} />;
     case 'post': return <PostIcon size={16} />;
+    case 'photo': return <PhotoIcon size={16} />;
     case 'episode': return <ChatIcon size={16} />;
     case 'article': return <BookIcon size={16} />;
     default: return null;
@@ -102,10 +103,11 @@ export default function Calendar() {
       // articles_visible 설정 확인
       const articlesVisible = await getArticlesVisibility();
 
-      const [videos, moments, posts, episodes, memberSettings, articles] = await Promise.all([
+      const [videos, moments, posts, photos, episodes, memberSettings, articles] = await Promise.all([
         getVideos(),
         getMoments(),
         getPosts(),
+        getPhotos(),
         getEpisodes(),
         getMemberSettings(),
         articlesVisible ? getArticles() : Promise.resolve([])
@@ -133,6 +135,19 @@ export default function Calendar() {
       posts.forEach((p: Post) => {
         if (!archivesByDate[p.date]) archivesByDate[p.date] = [];
         archivesByDate[p.date].push({ id: p.id, type: 'post', title: p.title || p.platform, path: '/posts' });
+      });
+
+      // 사진은 같은 날 같은 제목(끝의 -1, -2 번호 제외)을 한 묶음으로. 누르면 첫 장이 라이트박스로 열린다
+      const photoGroups = new Map<string, Photo[]>();
+      photos.forEach((ph: Photo) => {
+        const key = `${ph.date}|${ph.title.replace(/-\d+$/, '')}`;
+        photoGroups.set(key, [...(photoGroups.get(key) ?? []), ph]);
+      });
+      photoGroups.forEach((group, key) => {
+        const [date, title] = key.split('|');
+        if (!archivesByDate[date]) archivesByDate[date] = [];
+        const count = group.length > 1 ? ` (${group.length}장)` : '';
+        archivesByDate[date].push({ id: group[0].id, type: 'photo', title: `${title}${count}`, path: '/photos' });
       });
 
       // 연결된 콘텐츠 제목 가져오기
