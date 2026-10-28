@@ -5,13 +5,15 @@ import { useData } from '../hooks/useData';
 import { useViewerParam } from '../hooks/useViewerParam';
 import { getTodayString } from '../lib/dailyPick';
 import {
-  buildStoryForDate, buildStoryYears, fallbackLabel, frameMedia, latestMoments, parseStoryParam, pickFallbackDate, shouldAutoOpen,
+  buildStoryForDate, buildStoryYears, fallbackLabel, frameMedia, groupStoryContents, latestMoments, parseStoryParam, pickFallbackDate,
+  shouldAutoOpen,
 } from '../lib/onThisDayStory';
 import type { StoryData, StoryFrame, StoryYear } from '../lib/onThisDayStory';
 import { isSaveData } from '../lib/networkPrefs';
 import { entrySplashPhase, releaseEntrySplash, useEntrySplash } from '../lib/entrySplash';
 import OnThisDayCards from '../components/home/OnThisDayCards';
 import StoryViewer from '../components/StoryViewer';
+import type { StoryOrigin } from '../components/StoryViewer';
 import MomentViewer from '../components/MomentViewer';
 
 // AI 모드 placeholder 예시 (정확한 단어 없이도, 한국어/영어 모두 찾을 수 있음을 보여주기 위한 유도 문구)
@@ -20,6 +22,9 @@ const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 �
 const AUTO_SHOWN_KEY = 'mmemory.storyAutoShownDate';
 // ?date=YYYY-MM-DD로 날짜를 바꿔 볼 때(확인용)는 '하루 한 번'·'대체 날 제외' 규칙 없이 항상 자동으로 연다
 const DATE_OVERRIDDEN = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('date');
+// 자동 열기: 로고 화면이 걷힌 뒤 홈을 잠깐 보여 주고 → 첫 카드를 살짝 짚은 뒤 → 그 카드에서 연다
+const AUTO_DELAY_MS = 600;
+const HINT_MS = 350; // home.css .hm-card.is-hint와 같게
 
 interface HomeStory {
   years: StoryYear[];
@@ -40,6 +45,45 @@ function computeHomeStory(data: StoryData, today: string): HomeStory {
   if (!date || !year) return { years: [], label: '', isFallback: true };
   const label = fallbackLabel(date, today);
   return { years: [{ ...year, yearsAgo: Number(today.slice(0, 4)) - year.year, label }], label, isFallback: true };
+}
+
+/** 열린(또는 닫히는 중인) 스토리 뷰어. 해 목록은 열 때 고정한다 */
+interface OpenStory {
+  /** 뷰어 key. 열 때마다 새로 (닫히는 중에 다시 열어도 새 뷰어) */
+  id: number;
+  param: string;
+  years: StoryYear[];
+  year: number;
+  frame: number;
+  auto: boolean;
+  closing: boolean;
+}
+
+/**
+ * 홈 카드(OnThisDayCards의 data-story-card)의 화면 위치. 가로 줄에서 다 보이지 않으면 그 카드가 보이게 줄을 바로 옮긴 뒤 잰다.
+ * 카드가 없거나 세로로 화면 밖이면 null
+ */
+function measureStoryCard(year: number, startIndex: number): StoryOrigin | null {
+  const card = document.querySelector<HTMLElement>(`.hm-card[data-story-card="${year}:${startIndex}"]`);
+  if (!card) return null;
+  let r = card.getBoundingClientRect();
+  const rail = card.closest<HTMLElement>('.hm-cards');
+  if (rail) {
+    const box = rail.getBoundingClientRect();
+    if (r.left < box.left || r.right > box.right) {
+      // 스냅 위치(카드 왼쪽 = 줄 왼쪽 + scroll-padding)로 맞춰 스냅이 다시 움직이지 않게
+      const pad = parseFloat(getComputedStyle(rail).scrollPaddingLeft) || 0;
+      rail.scrollLeft += r.left - (box.left + pad);
+      r = card.getBoundingClientRect();
+    }
+  }
+  if (!r.width || !r.height || r.bottom <= 0 || r.top >= window.innerHeight) return null;
+  const img = card.querySelector('img');
+  return {
+    rect: { left: r.left, top: r.top, width: r.width, height: r.height },
+    radius: parseFloat(getComputedStyle(card).borderTopLeftRadius) || 12,
+    image: img?.currentSrc || img?.getAttribute('src') || undefined,
+  };
 }
 
 /** 화면 밖 video에 url을 넣어 미리 받는다. 없으면 만든다 */
@@ -64,7 +108,12 @@ export default function Home() {
   // 자동으로 연 해. 스토리 뷰어는 마운트 때만 읽는다
   const [autoYear, setAutoYear] = useState<number | null>(null);
   const autoTriedRef = useRef(false);
-  const [openYears, setOpenYears] = useState<{ param: string; years: StoryYear[] } | null>(null);
+  const [viewer, setViewer] = useState<OpenStory | null>(null);
+  // 마지막으로 연 카드 (닫을 때 지금 콘텐츠 카드를 못 찾으면 여기로 줄어든다)
+  const tappedRef = useRef<{ year: number; startIndex: number } | null>(null);
+  // 자동 열기 직전에 살짝 짚는 카드 `YEAR:startIndex`
+  const [hintCard, setHintCard] = useState<string | null>(null);
+  const autoTimerRef = useRef(0);
   // 그날 첫 방문이면 자동 열기를 정할 때까지 입장 로고 화면을 붙잡아 둔다
   const [autoCandidate] = useState(() => {
     if (storyParam !== null || momentParam !== null) return false;
@@ -72,7 +121,7 @@ export default function Home() {
     try { return localStorage.getItem(AUTO_SHOWN_KEY) !== today; } catch { return false; }
   });
   const splash = useEntrySplash();
-  // 로고 화면이 사라지기 시작할 때 열 해 (뷰어가 그 아래에서 팝업으로 뜬다)
+  // 로고 화면이 사라지기 시작하면 열 해 (잠시 뒤 첫 카드에서 커지며 열린다)
   const pendingAutoRef = useRef<number | null>(null);
   // 칸을 누르는 순간부터 받아 두는 화면 밖 video. 뷰어가 열리면 버린다(같은 URL이라 캐시를 탄다)
   const preloadRef = useRef<HTMLVideoElement | null>(null);
@@ -86,14 +135,22 @@ export default function Home() {
   const storyStart = parseStoryParam(storyParam);
   const storyYear = storyStart?.year ?? null;
   // 열린 뷰어의 해 목록은 열 때 고정한다. 뒤에 새 데이터가 와도 카드만 바뀌고 뷰어는 그대로
-  // (StoryViewer는 years가 바뀌는 것을 다루지 않는다)
-  if (storyYear === null) {
-    if (openYears) setOpenYears(null);
-  } else if (openYears?.param !== storyParam && story?.years.some(y => y.year === storyYear)) {
-    setOpenYears({ param: storyParam!, years: story.years });
+  // (StoryViewer는 years가 바뀌는 것을 다루지 않는다).
+  // URL에서 빠지면(닫기·뒤로가기) 바로 내리지 않고 카드로 줄어드는 동안 그대로 둔다
+  if (storyParam === null || storyYear === null) {
+    if (viewer && !viewer.closing) setViewer({ ...viewer, closing: true });
+  } else if ((!viewer || viewer.param !== storyParam || viewer.closing) && story?.years.some(y => y.year === storyYear)) {
+    setViewer({
+      id: (viewer?.id ?? 0) + 1,
+      param: storyParam,
+      years: story.years,
+      year: storyYear,
+      frame: storyStart?.frame ?? 0,
+      auto: autoYear === storyYear,
+      closing: false,
+    });
   }
-  const viewerYears = openYears?.param === storyParam ? openYears.years : null;
-  const showStory = !!viewerYears && storyYear !== null && viewerYears.some(y => y.year === storyYear);
+  const showStory = !!viewer && !viewer.closing;
 
   const latest = useMemo(() => (moments ? latestMoments(moments) : null), [moments]);
 
@@ -109,6 +166,26 @@ export default function Home() {
     if (image) new Image().src = image;
     if (video) preload(video);
   };
+
+  // 그 사이 사용자가 직접 뭔가 열었으면 자동 열기는 그만둔다
+  const userOpenedSomething = useEffectEvent(() => storyParam !== null || momentParam !== null);
+
+  // 홈을 잠깐 보여 준 뒤 첫 카드를 살짝 짚고, 그 카드에서 연다
+  const scheduleAutoOpen = useEffectEvent((year: number) => {
+    window.clearTimeout(autoTimerRef.current);
+    autoTimerRef.current = window.setTimeout(() => {
+      if (userOpenedSomething()) return;
+      const key = `${year}:0`;
+      document.querySelector(`.hm-card[data-story-card="${key}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      setHintCard(key);
+      autoTimerRef.current = window.setTimeout(() => {
+        setHintCard(null);
+        if (userOpenedSomething()) return;
+        tappedRef.current = { year, startIndex: 0 };
+        openStory(String(year));
+      }, HINT_MS);
+    }, AUTO_DELAY_MS);
+  });
 
   // 그날 처음 홈에 오면 스토리 자동 열기 — 마운트당 한 번.
   // 기기에 저장된 데이터로 열 수 있으면 바로 열고, 아니면 새로 받은 데이터(final)로 정한다
@@ -129,7 +206,7 @@ export default function Home() {
       preloadFrame(first.frames[0]);
       setAutoYear(first.year);
       if (entrySplashPhase() === 'on') pendingAutoRef.current = first.year;
-      else openStory(String(first.year));
+      else scheduleAutoOpen(first.year);
     }
     if (!DATE_OVERRIDDEN) {
       try { localStorage.setItem(AUTO_SHOWN_KEY, today); } catch { /* 저장소 막힘 */ }
@@ -147,9 +224,14 @@ export default function Home() {
     const year = pendingAutoRef.current;
     if (year === null || phase === 'on') return;
     pendingAutoRef.current = null;
-    openStory(String(year));
+    scheduleAutoOpen(year);
   });
   useEffect(() => openPendingAuto(splash), [splash]);
+
+  useEffect(() => {
+    const timer = autoTimerRef;
+    return () => window.clearTimeout(timer.current);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -189,6 +271,15 @@ export default function Home() {
   useEffect(() => {
     if (momentParam || showStory) discardPreload();
   }, [momentParam, showStory, discardPreload]);
+
+  // 뷰어가 열고 닫을 때 쓰는 카드 위치: 그 프레임이 든 콘텐츠 카드 → 없으면 마지막으로 연 카드
+  const storyOrigin = (year: number, frameIndex: number): StoryOrigin | null => {
+    const y = viewer?.years.find(v => v.year === year);
+    const group = y && groupStoryContents(y).find(g => frameIndex >= g.startIndex && frameIndex < g.startIndex + g.frames.length);
+    const tapped = tappedRef.current;
+    return (group ? measureStoryCard(year, group.startIndex) : null)
+      ?? (tapped ? measureStoryCard(tapped.year, tapped.startIndex) : null);
+  };
   useEffect(() => discardPreload, [discardPreload]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -201,6 +292,7 @@ export default function Home() {
 
   const handleOpenContent = (year: number, frameIndex: number) => {
     setAutoYear(null);
+    tappedRef.current = { year, startIndex: frameIndex };
     preloadFrame(story?.years.find(y => y.year === year)?.frames[frameIndex]);
     openStory(frameIndex > 0 ? `${year}.${frameIndex}` : String(year));
   };
@@ -213,6 +305,7 @@ export default function Home() {
         years={story ? story.years : null}
         label={story?.label ?? ''}
         paused={storyParam !== null || momentParam !== null}
+        hintCard={hintCard}
         onOpen={handleOpenContent}
       />
 
@@ -269,15 +362,17 @@ export default function Home() {
 
       <Link to="/ask" className="hm-ask">궁금한 점이나 요청 남기러 가기 →</Link>
 
-      {showStory && viewerYears && storyYear !== null && (
+      {viewer && (
         <StoryViewer
-          key={storyParam}
-          years={viewerYears}
-          startYear={storyYear}
-          startFrame={storyStart?.frame ?? 0}
-          autoStarted={autoYear === storyYear}
-          enter={autoYear === storyYear ? 'pop' : 'slide'}
+          key={viewer.id}
+          years={viewer.years}
+          startYear={viewer.year}
+          startFrame={viewer.frame}
+          autoStarted={viewer.auto}
+          originFor={storyOrigin}
+          closing={viewer.closing}
           onClose={closeStory}
+          onExited={() => setViewer(v => (v?.id === viewer.id ? null : v))}
         />
       )}
 

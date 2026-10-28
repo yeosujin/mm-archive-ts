@@ -33,17 +33,13 @@ interface Drag {
 
 /**
  * 스토리 제스처. 한 포인터 층에서 탭(왼쪽 1/3 이전, 나머지 다음), 좌우 스와이프(해 이동),
- * 250ms 길게 누르기(멈춤), 아래로 쓸어 닫기(`sheetRef` 요소가 손가락을 따라 내려감)를 판정한다.
+ * 250ms 길게 누르기(멈춤), 아래로 쓸어 닫기(`sheetRef` 요소가 손가락을 따라 내려가고, 닫을 때는 그 자리에 둔다)를 판정한다.
  */
 export function useStoryGestures(sheetRef: React.RefObject<HTMLElement | null>, cb: Callbacks) {
   const dragRef = useRef<Drag | null>(null);
   const holdTimerRef = useRef(0);
-  const dismissTimerRef = useRef(0);
 
-  useEffect(() => () => {
-    window.clearTimeout(holdTimerRef.current);
-    window.clearTimeout(dismissTimerRef.current);
-  }, []);
+  useEffect(() => () => window.clearTimeout(holdTimerRef.current), []);
 
   const setOffset = (y: number | null, animate: boolean) => {
     const el = sheetRef.current;
@@ -95,10 +91,8 @@ export function useStoryGestures(sheetRef: React.RefObject<HTMLElement | null>, 
 
     if (d.axis === 'y') {
       if (!cancelled && dy > 30 && (dy > DISMISS_MIN || d.speed > FLICK_SPEED)) {
-        // 아래로 빠져나가는 모습을 보여준 뒤 닫는다
-        const h = sheetRef.current?.clientHeight ?? window.innerHeight;
-        setOffset(h, true);
-        dismissTimerRef.current = window.setTimeout(cb.onDismiss, 200);
+        // 손을 뗀 자리 그대로 두고 닫는다 — 뷰어가 이 위치에서 카드로 줄어든다
+        cb.onDismiss();
       } else {
         setOffset(null, true);
       }

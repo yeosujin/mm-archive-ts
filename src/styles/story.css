@@ -10,20 +10,41 @@
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
-  animation: st-in 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  /* 카드에서 커지고 카드로 줄어드는 변환(StoryViewer fitToCard)의 기준점 */
+  transform-origin: 0 0;
 }
 
-/* 자동 열기: 팝업처럼 살짝 작게·투명하게 시작해 커진다.
-   바깥 그림자가 화면을 덮는 어두운 막이 되어 뷰어와 함께 짙어진다 */
-.st.is-pop {
-  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.6);
-  animation: st-pop 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+/* 닫히는 동안엔 눌러도 반응하지 않는다 */
+.st.is-closing {
+  pointer-events: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .st.is-pop {
-    animation: st-fade-in 0.25s ease-out;
-  }
+/* 뷰어 뒤 어두운 막. 열고 닫을 때 뷰어와 함께 짙어지고 옅어진다 */
+.st-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* 커지고 줄어드는 동안 창을 덮는 카드 그림 (평소엔 투명). 그림이 없으면 카드 기본 배경 */
+.st-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 20;
+  opacity: 0;
+  background: linear-gradient(135deg, #1f2233, #3a3f5c);
+  pointer-events: none;
+}
+
+.st-ghost img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* 제스처 층: 프레임 전체. 브라우저 스크롤·확대를 막고 직접 판정 */
@@ -426,49 +447,8 @@
   background: #555;
 }
 
-@keyframes st-in {
-  from { transform: translateY(100%); }
-}
-
 @keyframes st-spin {
   to { transform: rotate(360deg); }
-}
-
-/* 창이 열린 뒤 첫 장면·위쪽 막대가 어둠에서 서서히 떠오른다 — 열리자마자 확 시작되지 않게 */
-.st.is-pop .st-stage {
-  animation: st-fade-in 0.7s ease 0.45s both;
-}
-
-.st.is-pop .st-top {
-  animation: st-fade-in 0.5s ease 0.75s both;
-}
-
-.st:not(.is-pop) .st-stage {
-  animation: st-fade-in 0.5s ease 0.3s both;
-}
-
-.st:not(.is-pop) .st-top {
-  animation: st-fade-in 0.4s ease 0.5s both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .st .st-stage,
-  .st .st-top {
-    animation: none;
-  }
-}
-
-@keyframes st-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.94);
-    border-radius: 28px;
-    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0);
-  }
-}
-
-@keyframes st-fade-in {
-  from { opacity: 0; }
 }
 
 @keyframes st-show {

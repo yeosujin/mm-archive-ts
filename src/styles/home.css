@@ -26,6 +26,9 @@
   scroll-padding: 0 var(--container-padding);
   overscroll-behavior-x: contain;
   scrollbar-width: none;
+  /* 카드를 짚을 때(.is-hint) 커지고 빛나는 부분이 아래에서 잘리지 않게. 자리는 그대로 */
+  padding-bottom: 8px;
+  margin-bottom: -8px;
 }
 
 .hm-cards::-webkit-scrollbar {
@@ -69,6 +72,25 @@
   scroll-snap-align: start;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* 자동 열기 직전: 이 카드에서 열린다는 걸 살짝 짚어 준다 */
+.hm-card.is-hint {
+  z-index: 1;
+  animation: hm-card-hint 0.35s ease-in-out;
+}
+
+@keyframes hm-card-hint {
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55), 0 6px 22px rgba(112, 164, 249, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-card.is-hint {
+    animation: none;
+  }
 }
 
 /* 스켈레톤(div)은 shimmer 배경을 쓴다 */
@@ -237,8 +259,8 @@ button.hm-cell {
 @media (min-width: 768px) {
   /* 넓은 화면: 카드 폭 고정, 화면 밖으로 빼지 않음 */
   .hm-cards {
-    margin: 0;
-    padding: 0;
+    margin: 0 0 -8px;
+    padding: 0 0 8px;
     scroll-padding: 0;
   }
 

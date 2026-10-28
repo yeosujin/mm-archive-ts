@@ -14,6 +14,8 @@ interface Props {
   label: string;
   /** 뷰어가 열려 있으면 미리보기 정지 */
   paused: boolean;
+  /** 살짝 짚어 보일 카드 `YEAR:startIndex` (자동 열기 직전) */
+  hintCard?: string | null;
   /** 그 해 frameIndex번째 프레임부터 연다 */
   onOpen: (year: number, frameIndex: number) => void;
 }
@@ -110,7 +112,7 @@ function CardPreview({ src }: { src: string }) {
 }
 
 /** 그 해 오늘 콘텐츠 카드. 해마다 머리말 + 카드 줄, 전체가 한 줄로 가로 스크롤 */
-export default function OnThisDayCards({ years, label, paused, onOpen }: Props) {
+export default function OnThisDayCards({ years, label, paused, hintCard = null, onOpen }: Props) {
   const railRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [inView, setInView] = useState(false);
@@ -183,11 +185,14 @@ export default function OnThisDayCards({ years, label, paused, onOpen }: Props) 
                 const first = c.frames[0];
                 const preview = previewUrlOf(first);
                 const { title, meta } = cardText(c);
+                // 스토리 뷰어가 이 카드에서 커지고 이 카드로 줄어든다 (Home measureStoryCard)
+                const cardId = `${y.year}:${c.startIndex}`;
                 return (
                   <button
                     key={c.key}
                     type="button"
-                    className="hm-card"
+                    className={hintCard === cardId ? 'hm-card is-hint' : 'hm-card'}
+                    data-story-card={cardId}
                     onClick={() => onOpen(y.year, c.startIndex)}
                     aria-label={`${y.year}년 ${title || meta} 넘겨보기`}
                   >
