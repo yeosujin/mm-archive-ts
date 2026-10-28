@@ -72,6 +72,11 @@
 /* 아래로 스크롤하면 위로 밀려 숨는다 (Layout) */
 .header--hidden {
   transform: translateY(-100%);
+  box-shadow: none;
+}
+
+.dark .header--hidden {
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
