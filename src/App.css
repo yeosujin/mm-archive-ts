@@ -2524,8 +2524,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  max-width: 500px;
-  margin: 0 auto;
 }
 
 .dm-thread {
@@ -3012,8 +3010,6 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 3px;
-  max-width: 900px;
-  margin: 0 auto;
 }
 
 .post-grid-item {
@@ -5311,8 +5307,14 @@ color: white;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 3px;
-  max-width: 900px;
-  margin: 0 auto;
+}
+
+/* 넓은 화면: 칸 크기를 유지하며 열 수를 늘린다 (포스트·사진 공통) */
+@media (min-width: 768px) {
+  .posts-grid,
+  .photos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
 }
 
 .photo-grid-item {

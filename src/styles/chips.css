@@ -115,12 +115,6 @@
   margin-bottom: 0.875rem;
 }
 
-/* 에피소드 목록 폭에 맞춘다 */
-.episodes-page > .mc-filter {
-  max-width: 500px;
-  margin-inline: auto;
-}
-
 /* 칩 메뉴 (연도·라이브 멤버). 칩 줄의 가로 스크롤에 잘리지 않게 fixed, 좌표는 ChipMenu가 잡는다 */
 .mc-menu-list {
   position: fixed;
