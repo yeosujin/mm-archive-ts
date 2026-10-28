@@ -308,11 +308,20 @@ export default function StoryViewer({ years, startYear, autoStarted, instant = f
       </div>
 
       <div className="st-top">
+        {/* 모든 해의 프레임을 한 줄로. 프레임 사이는 좁게, 해 사이는 넓게 띄운다 */}
         <div className="st-bars">
-          {year.frames.map((f, i) => (
-            <i key={`${pos.yi}:${f.key}`}>
-              <b ref={i === pos.fi ? fillRef : undefined} style={i === pos.fi ? undefined : { width: i < pos.fi ? '100%' : '0%' }} />
-            </i>
+          {years.map((y, yi) => (
+            <span key={y.year} className="st-bars-year" style={{ flexGrow: y.frames.length }}>
+              {y.frames.map((f, i) => {
+                const current = yi === pos.yi && i === pos.fi;
+                const done = yi < pos.yi || (yi === pos.yi && i < pos.fi);
+                return (
+                  <i key={f.key}>
+                    <b ref={current ? fillRef : undefined} style={current ? undefined : { width: done ? '100%' : '0%' }} />
+                  </i>
+                );
+              })}
+            </span>
           ))}
         </div>
         <div className="st-row">
