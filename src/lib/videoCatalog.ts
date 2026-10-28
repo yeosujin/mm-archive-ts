@@ -63,7 +63,7 @@ export function pickHero<T extends Pick<Video, 'id'>>(videos: T[], moments: Map<
 }
 
 export const CATEGORY_LABEL: Record<VideoCategory, string> = {
-  live: '위버스 라이브',
+  live: 'Weverse',
   official: 'ILLIT',
   external: '외부 출연',
 };
