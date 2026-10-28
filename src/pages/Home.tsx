@@ -26,7 +26,7 @@ const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 �
 const NO_MOMENTS: Moment[] = [];
 
 const AUTO_SHOWN_KEY = 'mmemory.storyAutoShownDate';
-// ?date=YYYY-MM-DD로 날짜를 바꿔 볼 때(확인용)는 '하루 한 번'·'대체 날 제외' 규칙 없이 항상 자동으로 연다
+// ?date=YYYY-MM-DD로 날짜를 바꿔 볼 때(확인용)는 '하루 한 번' 규칙 없이 자동으로 연다. 대체 날(그 해 오늘 없음)은 여기서도 열지 않는다
 const DATE_OVERRIDDEN = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('date');
 // 자동 열기: 로고 화면이 다 걷힌 뒤 홈을 잠깐 가만히 보여 주고 → 첫 카드를 들어 올리며 화면을 살짝 어둡게 한 뒤 →
 // 그 카드에서 천천히 펼친다 (StoryViewer AUTO_ZOOM_MS)
@@ -208,7 +208,7 @@ export default function Home() {
   // 기기에 저장된 데이터로 열 수 있으면 바로 열고, 아니면 새로 받은 데이터(final)로 정한다
   const maybeAutoOpen = useEffectEvent((s: HomeStory | null, final: boolean) => {
     if (autoTriedRef.current) return;
-    const opens = !!s && s.years.length > 0 && (DATE_OVERRIDDEN || !s.isFallback);
+    const opens = !!s && s.years.length > 0 && !s.isFallback;
     // 저장분엔 없어도 새 데이터엔 있을 수 있다
     if (!opens && !final) return;
     autoTriedRef.current = true;
@@ -217,7 +217,7 @@ export default function Home() {
     let lastShown: string | null = null;
     try { lastShown = localStorage.getItem(AUTO_SHOWN_KEY); } catch { /* 저장소 막힘 */ }
     if (!DATE_OVERRIDDEN && !shouldAutoOpen(lastShown, today, s.years.length > 0, s.isFallback)) return;
-    if (DATE_OVERRIDDEN && s.years.length === 0) return;
+    if (DATE_OVERRIDDEN && (s.years.length === 0 || s.isFallback)) return;
     if (storyParam === null) {
       const first = s.years[0];
       preloadFrame(first.frames[0]);

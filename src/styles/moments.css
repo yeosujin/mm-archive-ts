@@ -193,41 +193,10 @@
   pointer-events: none;
 }
 
-/* 첫 사용 안내 */
-.mv-hint {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(env(safe-area-inset-bottom) + 60px);
-  z-index: 7;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  pointer-events: none;
-}
-
-.mv-hint-arrow {
-  font-size: 26px;
-  line-height: 0.6;
-  animation: mv-bob 1.4s ease-in-out infinite;
-}
-
-.mv-hint-text {
-  padding: 5px 14px;
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.6);
-  font-size: 13px;
-}
-
 @keyframes mv-spin {
   to { transform: rotate(360deg); }
 }
 
-@keyframes mv-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
 
 /* ===== 영상 표지 (VideoCover) — 이미지가 없으면 플랫폼 색 블록 ===== */
 

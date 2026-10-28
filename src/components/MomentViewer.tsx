@@ -12,8 +12,6 @@ interface Props {
   onClose: () => void;
 }
 
-const HINT_KEY = 'mmemory.viewerHintSeen';
-
 function isSaveData(): boolean {
   const conn = (navigator as { connection?: { saveData?: boolean } }).connection;
   return conn?.saveData === true;
@@ -22,10 +20,6 @@ function isSaveData(): boolean {
 function formatTime(sec: number): string {
   const s = Math.max(0, Math.floor(sec || 0));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
-
-function readHintSeen(): boolean {
-  try { return localStorage.getItem(HINT_KEY) !== null; } catch { return true; }
 }
 
 interface SlideProps {
@@ -72,7 +66,6 @@ export default function MomentViewer({ moments, startIndex, onClose }: Props) {
   const [pausedIndex, setPausedIndex] = useState<number | null>(null);
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const [hintVisible, setHintVisible] = useState(() => !readHintSeen());
   // 드래그 중 표시할 `0:12 / 0:48`. null이면 드래그 아님
   const [dragLabel, setDragLabel] = useState<string | null>(null);
 
@@ -165,11 +158,6 @@ export default function MomentViewer({ moments, startIndex, onClose }: Props) {
     setActive(i);
     setPausedIndex(null);
     setLoadingIndex(null);
-    // 안내는 처음 넘기는 순간 숨기고 기록
-    if (hintVisible) {
-      setHintVisible(false);
-      try { localStorage.setItem(HINT_KEY, '1'); } catch { /* noop */ }
-    }
   });
 
   // 첫 위치 이동 + 관찰자 (마운트 1회)
@@ -349,13 +337,6 @@ export default function MomentViewer({ moments, startIndex, onClose }: Props) {
       >
         <div className="mv-seek-track"><i ref={fillRef} className="mv-seek-fill" /></div>
       </div>
-
-      {hintVisible && (
-        <div className="mv-hint" aria-hidden>
-          <span className="mv-hint-arrow">︿</span>
-          <span className="mv-hint-text">위로 넘겨 다음</span>
-        </div>
-      )}
     </div>
   );
 }
