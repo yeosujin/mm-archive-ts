@@ -30,8 +30,8 @@ const AUTO_SHOWN_KEY = 'mmemory.storyAutoShownDate';
 const DATE_OVERRIDDEN = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('date');
 // 자동 열기: 로고 화면이 다 걷힌 뒤 홈을 잠깐 가만히 보여 주고 → 첫 카드를 들어 올리며 화면을 살짝 어둡게 한 뒤 →
 // 그 카드에서 천천히 펼친다 (StoryViewer AUTO_ZOOM_MS)
-const AUTO_DELAY_MS = 900;
-const LIFT_MS = 450; // home.css .hm-card.is-lift · .hm-scrim과 같게
+const AUTO_DELAY_MS = 600;
+const LIFT_MS = 320; // home.css .hm-card.is-lift · .hm-scrim과 같게
 
 interface HomeStory {
   years: StoryYear[];
