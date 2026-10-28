@@ -4,6 +4,10 @@ import {
   thumbKey,
   buildTranscodeArgs,
   buildThumbArgs,
+  brightnessArgs,
+  parseBrightness,
+  isDarkFrame,
+  THUMB_SEEKS,
   decideResult,
   pendingPostVideoIndexes,
 } from './plan';
@@ -56,6 +60,24 @@ describe('buildThumbArgs', () => {
   });
   it('seek를 지정하면 그 지점을 쓴다 (짧은 클립 폴백)', () => {
     expect(buildThumbArgs('i', 'o', '0').slice(0, 3)).toEqual(['-y', '-ss', '0']);
+  });
+});
+
+describe('썸네일 밝기', () => {
+  it('ffmpeg signalstats 출력에서 평균 밝기(YAVG)를 읽는다', () => {
+    expect(parseBrightness('[Parsed_metadata_1] lavfi.signalstats.YAVG=123.4\n')).toBe(123.4);
+    expect(parseBrightness('no stats')).toBeNull();
+  });
+  it('20 미만이면 검은 화면으로 본다', () => {
+    expect(isDarkFrame(0)).toBe(true);
+    expect(isDarkFrame(19.9)).toBe(true);
+    expect(isDarkFrame(20)).toBe(false);
+  });
+  it('밝기 측정 인자', () => {
+    expect(brightnessArgs('a.jpg')).toEqual(['-v', 'info', '-i', 'a.jpg', '-vf', 'signalstats,metadata=print:key=lavfi.signalstats.YAVG', '-f', 'null', '-']);
+  });
+  it('검은 첫 장면을 피하려고 1초 지점부터 시도한다', () => {
+    expect(THUMB_SEEKS).toEqual(['1', '0.5', '0']);
   });
 });
 

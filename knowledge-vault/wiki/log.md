@@ -12,6 +12,13 @@ append-only. **새 항목은 최상단.**
 
 ---
 
+## 2026-10-28 — 영상 표지 (1.22.0)
+
+`getVideoCover`로 표지 우선순위를 정했다(직접 지정 → 유튜브 → 첫 모먼트). 위버스 공식 썸네일은 어드민 `/admin/covers` 북마클릿으로 채운다.
+`/api/r2`에 허용 호스트 전용 `import` 액션 추가, 어드민 로그인은 `localStorage`로 유지 → [[videos-moments]] · [[r2-media-pipeline]]
+
+---
+
 ## 2026-10-27 — 영상 트랜스코딩 + r2.dev 주소 정리 (1.21.3)
 
 모먼트·포스트 영상을 H.264 mp4로 변환해 `videos/t/`에 두고 `original_url`에 원래 주소를 남긴다.

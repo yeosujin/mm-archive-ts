@@ -64,6 +64,13 @@ export default function AdminLayout() {
             >
               <AskIcon size={16} /> 질문
             </NavLink>
+            <NavLink
+              to="/admin/covers"
+              className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/admin/AdminCovers')}
+            >
+              <PhotoIcon size={16} /> 위버스 표지
+            </NavLink>
           </nav>
         </aside>
         

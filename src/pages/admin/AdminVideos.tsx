@@ -10,6 +10,7 @@ import { useToast } from '../../hooks/useToast';
 import Toast from '../../components/Toast';
 import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { extractYouTubeId } from '../../lib/videoCover';
 
 const HEART_OPTIONS = [
   { value: '🤍', label: '🤍 둘만' },
@@ -19,21 +20,6 @@ const HEART_OPTIONS = [
 ];
 
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
-
-function extractYouTubeId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/,
-  ];
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
-  return null;
-}
 
 async function fetchYouTubeInfo(videoId: string): Promise<{ title: string; date: string; channelName: string } | null> {
   // videoId 검증 (11자 영숫자와 -_만 허용)

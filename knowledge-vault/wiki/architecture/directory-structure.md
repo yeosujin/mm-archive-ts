@@ -77,7 +77,7 @@ DB 레이어를 뺀 나머지. → [[database-layer]]
 
 - 전부 `src/App.css` 단일 파일 (`src/styles/`도 존재)
 - CSS 변수 기반 테마 (`--text-primary`, `--bg-card`, `--border`, `--accent` …)
-- 다크/라이트 테마는 `localStorage`에 저장 (`Layout.tsx`). **localStorage는 현재 테마에만 쓰인다**
+- 다크/라이트 테마는 `localStorage`에 저장 (`Layout.tsx`). 어드민 비밀번호도 `localStorage`(`ADMIN_PASSWORD_STORAGE_KEY`, 1.22.0~ — 북마클릿이 여는 새 탭에서도 로그인 유지)
 - 모바일 네비는 `position: fixed` 오버레이 (페이지 밀림 없음)
 
 ## 관련

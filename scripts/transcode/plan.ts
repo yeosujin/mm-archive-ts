@@ -33,6 +33,29 @@ export function buildTranscodeArgs(input: string, output: string, encoder: Encod
   ];
 }
 
+/**
+ * 썸네일을 뽑을 지점. 시작이 검은 화면인 영상(틱톡 등)이 많아 1초부터 시도하고,
+ * 짧은 클립은 0.5초 → 0초로 내려간다
+ */
+export const THUMB_SEEKS = ['1', '0.5', '0'];
+
+/** 이 밝기(YAVG, 0~255) 미만이면 검은 화면으로 본다. 실제 어두운 장면은 20 안팎이라 그보다 낮게 둔다 */
+const DARK_YAVG = 20;
+
+export function brightnessArgs(imagePath: string): string[] {
+  return ['-v', 'info', '-i', imagePath, '-vf', 'signalstats,metadata=print:key=lavfi.signalstats.YAVG', '-f', 'null', '-'];
+}
+
+/** `brightnessArgs` 실행 결과(stderr)에서 평균 밝기를 읽는다 */
+export function parseBrightness(ffmpegOutput: string): number | null {
+  const m = ffmpegOutput.match(/YAVG=([\d.]+)/);
+  return m ? Number(m[1]) : null;
+}
+
+export function isDarkFrame(yavg: number): boolean {
+  return yavg < DARK_YAVG;
+}
+
 /** seek 기본 0.5초. 0.5초보다 짧은 클립은 '0'으로 다시 시도한다 */
 export function buildThumbArgs(input: string, output: string, seek = '0.5'): string[] {
   return ['-y', '-ss', seek, '-i', input, '-frames:v', '1', '-vf', "scale=w='min(640,iw)':h=-2", '-q:v', '3', output];

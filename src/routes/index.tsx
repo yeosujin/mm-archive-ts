@@ -27,6 +27,7 @@ const AdminEpisodes = lazy(() => import('../pages/admin/AdminEpisodes'));
 const AdminArticles = lazy(() => import('../pages/admin/AdminArticles'));
 const AdminPhotos = lazy(() => import('../pages/admin/AdminPhotos'));
 const AdminAsks = lazy(() => import('../pages/admin/AdminAsks'));
+const AdminCovers = lazy(() => import('../pages/admin/AdminCovers'));
 
 import PageLoader from '../components/PageLoader';
 
@@ -201,6 +202,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<PageLoader />}>
                 <AdminAsks />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'covers',
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <AdminCovers />
               </Suspense>
             ),
           },
