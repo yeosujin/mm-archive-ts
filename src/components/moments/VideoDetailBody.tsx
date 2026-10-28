@@ -23,7 +23,7 @@ interface Props {
   coverAction?: ReactNode;
 }
 
-/** 영상 상세 본문 — 표지, 제목·메타, 버튼, 3열 모먼트 그리드. 상세 페이지와 표지 위 모달이 같이 쓴다 */
+/** 영상 상세 본문 — 표지, 제목·메타, 버튼, 3열 모먼트 그리드(없으면 안내 한 줄). 상세 페이지와 표지 위 모달이 같이 쓴다 */
 export default function VideoDetailBody({ video, moments, viewerOpen, onOpenMoment, coverAction }: Props) {
   // 칸을 누르는 순간부터 받아 두는 화면 밖 video. 뷰어가 열리면 버린다(같은 URL이라 캐시를 탄다)
   const preloadRef = useRef<HTMLVideoElement | null>(null);
@@ -58,7 +58,8 @@ export default function VideoDetailBody({ video, moments, viewerOpen, onOpenMome
       <div className="vd-info">
         <h1 className="vd-title">{video.title}</h1>
         <p className="vd-meta">
-          {formatDotDate(video.date)} · {CATEGORY_LABEL[classifyVideo(video)]} · 모먼트 {moments.length}
+          {formatDotDate(video.date)} · {CATEGORY_LABEL[classifyVideo(video)]}
+          {moments.length > 0 && ` · 모먼트 ${moments.length}`}
         </p>
         <div className="vd-btns">
           {moments.length > 0 && (
@@ -66,13 +67,13 @@ export default function VideoDetailBody({ video, moments, viewerOpen, onOpenMome
               <PlayIcon size={14} /> 모먼트 재생
             </button>
           )}
-          <a className="vd-btn" href={video.url} target="_blank" rel="noreferrer">
+          <a className={`vd-btn${moments.length ? '' : ' is-primary'}`} href={video.url} target="_blank" rel="noreferrer">
             보러가기 <ArrowRightIcon size={14} />
           </a>
         </div>
       </div>
 
-      {moments.length > 0 && (
+      {moments.length > 0 ? (
         <div className="vd-grid">
           {moments.map(m => (
             <button
@@ -87,6 +88,8 @@ export default function VideoDetailBody({ video, moments, viewerOpen, onOpenMome
             </button>
           ))}
         </div>
+      ) : (
+        <p className="vd-none">아직 모먼트가 없어요</p>
       )}
     </div>
   );

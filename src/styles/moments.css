@@ -418,6 +418,14 @@
   object-fit: cover;
 }
 
+.vd-none {
+  margin: 1.5rem 0 0;
+  padding: 0 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
 .vd-empty {
   padding: 4rem 1rem;
   text-align: center;
@@ -694,12 +702,6 @@
 .mc-badge {
   right: 5px;
   bottom: 5px;
-}
-
-.mc-badge.is-ext {
-  background: rgba(255, 255, 255, 0.9);
-  color: #000;
-  font-weight: 700;
 }
 
 .mc-tag {

@@ -9,7 +9,7 @@ interface Props {
   video: Video;
   /** 이 영상의 모먼트 */
   moments: Moment[];
-  /** 모먼트가 있는 카드를 눌렀을 때 — 표지 위에 상세 모달을 연다. 링크(/videos/:id)는 새 탭 열기용으로 남긴다 */
+  /** 카드를 눌렀을 때 — 표지 위에 상세 모달을 연다. 링크(/videos/:id)는 새 탭 열기용으로 남긴다 */
   onOpen: (videoId: string) => void;
 }
 
@@ -23,7 +23,7 @@ function sourceTag(video: Video): string | null {
   return null;
 }
 
-/** 월별 레일 카드. 모먼트가 있으면 상세 모달, 없으면 원본 새 탭 */
+/** 월별 레일 카드. 모먼트가 없어도 상세 모달을 연다 */
 const VideoCard = memo(({ video, moments, onOpen }: Props) => {
   const count = moments.length;
   const tag = sourceTag(video);
@@ -32,13 +32,13 @@ const VideoCard = memo(({ video, moments, onOpen }: Props) => {
       <span className="mc-card-thumb">
         <VideoCover video={video} moments={moments} />
         {tag && <span className="mc-tag">{tag}</span>}
-        <span className={`mc-badge${count ? '' : ' is-ext'}`}>{count ? `모먼트 ${count}` : '보러가기'}</span>
+        <span className="mc-badge">{count ? `모먼트 ${count}` : '영상'}</span>
       </span>
       <span className="mc-card-title">{video.title}</span>
       <span className="mc-card-date">{formatDotDate(video.date).slice(5)}</span>
     </>
   );
-  return count ? (
+  return (
     <Link
       to={`/videos/${video.id}`}
       className="mc-card"
@@ -51,8 +51,6 @@ const VideoCard = memo(({ video, moments, onOpen }: Props) => {
     >
       {body}
     </Link>
-  ) : (
-    <a href={video.url} target="_blank" rel="noreferrer" className="mc-card">{body}</a>
   );
 });
 
