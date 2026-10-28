@@ -376,7 +376,7 @@
   margin: 0 auto;
 }
 
-/* 연도 메뉴 + 분류/멤버 칩 한 줄 */
+/* 연도 메뉴 + 분류 칩 한 줄 */
 .mc-filter {
   display: flex;
   align-items: center;
@@ -418,33 +418,18 @@
   font-weight: 700;
 }
 
-.mc-chip-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.mc-chip-back svg {
-  transform: scaleX(-1);
-}
-
-.mc-year-menu {
-  position: relative;
-  flex: none;
-}
-
 .mc-year-btn {
   color: var(--text-primary);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.mc-year-list {
-  position: absolute;
-  top: calc(100% + 0.25rem);
-  left: 0;
+/* 칩 메뉴 (연도·라이브 멤버). 칩 줄의 가로 스크롤에 잘리지 않게 fixed, 좌표는 ChipMenu가 잡는다 */
+.mc-menu-list {
+  position: fixed;
   z-index: 20;
-  min-width: 100%;
+  min-width: 7rem;
+  max-width: calc(100vw - 16px);
   max-height: 50vh;
   margin: 0;
   padding: 0.25rem;
@@ -456,8 +441,11 @@
   box-shadow: var(--shadow);
 }
 
-.mc-year-opt {
-  display: block;
+.mc-menu-opt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
   width: 100%;
   padding: 0.5rem 0.875rem;
   border: none;
@@ -467,12 +455,13 @@
   font: inherit;
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   text-align: left;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
-.mc-year-opt.active {
+.mc-menu-opt.active {
   color: var(--text-primary);
   font-weight: 700;
   background: var(--bg-card-hover);

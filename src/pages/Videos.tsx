@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import type { Moment } from '../lib/database/types';
 import { useData } from '../hooks/useData';
@@ -14,9 +14,9 @@ import {
 } from '../lib/videoCatalog';
 import MomentHero from '../components/moments/MomentHero';
 import VideoCard from '../components/moments/VideoCard';
+import ChipMenu from '../components/moments/ChipMenu';
 import MomentViewer from '../components/MomentViewer';
 import Skeleton from '../components/Skeleton';
-import { ArrowRightIcon } from '../components/Icons';
 
 const CATEGORIES: { value: CatalogFilter['category']; label: string }[] = [
   { value: 'all', label: '전체' },
@@ -26,7 +26,7 @@ const CATEGORIES: { value: CatalogFilter['category']; label: string }[] = [
 ];
 
 const MEMBERS = [
-  { value: 'all', label: '전체' },
+  { value: 'all', label: '전체 라이브' },
   { value: '🤍', label: '🤍 둘만' },
   { value: '💙', label: '💙 모카' },
   { value: '🩵', label: '🩵 민주' },
@@ -107,37 +107,34 @@ function VideoCatalog() {
 
   return (
     <div className="mc">
-      {/* 연도 · 분류(라이브면 멤버) 한 줄. 연도 메뉴가 잘리지 않게 스크롤 영역 밖에 둔다 */}
+      {/* 연도 · 분류 한 줄. 라이브를 고른 뒤 라이브 칩을 다시 누르면 멤버 메뉴 */}
       <div className="mc-filter">
         {year !== undefined && (
-          <YearMenu years={years} year={year} onChange={y => setFilter('y', String(y))} />
+          <ChipMenu
+            className="mc-year-btn"
+            label="연도"
+            buttonLabel={`연도 ${year}`}
+            options={years.map(y => ({ value: y, label: String(y) }))}
+            value={year}
+            onChange={y => setFilter('y', String(y))}
+          >
+            {year}
+          </ChipMenu>
         )}
         <div className="mc-chips">
-          {category === 'live' ? (
-            <>
-              <button
-                type="button"
-                aria-pressed
-                className="mc-chip active mc-chip-back"
-                onClick={() => setFilter('c', 'all')}
+          {CATEGORIES.map(c =>
+            c.value === 'live' && category === 'live' ? (
+              <ChipMenu
+                key={c.value}
+                className="active"
+                label="라이브 멤버"
+                options={MEMBERS}
+                value={member}
+                onChange={m => setFilter('mb', m)}
               >
-                <ArrowRightIcon size={12} />
-                {CATEGORY_LABEL.live}
-              </button>
-              {MEMBERS.map(m => (
-                <button
-                  key={m.value}
-                  type="button"
-                  aria-pressed={m.value === member}
-                  className={`mc-chip${m.value === member ? ' active' : ''}`}
-                  onClick={() => setFilter('mb', m.value)}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </>
-          ) : (
-            CATEGORIES.map(c => (
+                {member === 'all' ? c.label : `${MEMBERS.find(m => m.value === member)!.label} 라이브`}
+              </ChipMenu>
+            ) : (
               <button
                 key={c.value}
                 type="button"
@@ -147,7 +144,7 @@ function VideoCatalog() {
               >
                 {c.label}
               </button>
-            ))
+            ),
           )}
         </div>
       </div>
@@ -179,65 +176,6 @@ function VideoCatalog() {
 
       {viewer && (
         <MomentViewer key={momentId} moments={viewer.list} startIndex={viewer.startIndex} onClose={close} />
-      )}
-    </div>
-  );
-}
-
-function YearMenu({ years, year, onChange }: { years: number[]; year: number; onChange: (year: number) => void }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      setOpen(false);
-      buttonRef.current?.focus();
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
-
-  return (
-    <div className="mc-year-menu" ref={rootRef}>
-      <button
-        ref={buttonRef}
-        type="button"
-        className="mc-chip mc-year-btn"
-        aria-haspopup="true"
-        aria-expanded={open}
-        aria-label={`연도 ${year}`}
-        onClick={() => setOpen(o => !o)}
-      >
-        {year} <span aria-hidden="true">▾</span>
-      </button>
-      {open && (
-        <ul className="mc-year-list" aria-label="연도">
-          {years.map(y => (
-            <li key={y}>
-              <button
-                type="button"
-                aria-current={y === year ? 'true' : undefined}
-                className={`mc-year-opt${y === year ? ' active' : ''}`}
-                onClick={() => {
-                  onChange(y);
-                  setOpen(false);
-                }}
-              >
-                {y}
-              </button>
-            </li>
-          ))}
-        </ul>
       )}
     </div>
   );
