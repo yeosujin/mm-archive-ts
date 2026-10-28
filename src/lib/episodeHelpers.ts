@@ -70,7 +70,7 @@ export function getCommentPlatform(
 export function getLinkedContentPath(episode: Episode): string | null {
   if (!episode.linked_content_id) return null;
   switch (episode.linked_content_type) {
-    case 'video': return `/videos?highlight=${episode.linked_content_id}`;
+    case 'video': return `/videos/${episode.linked_content_id}`;
     case 'moment': return `/moments?highlight=${episode.linked_content_id}`;
     case 'post': return `/posts?highlight=${episode.linked_content_id}`;
     default: return null;

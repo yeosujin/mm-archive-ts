@@ -350,7 +350,7 @@ export default function Search() {
               <h2><VideoIcon size={18} /> 영상 ({rVideos.length})</h2>
               <div className="search-list">
                 {rVideos.map(video => (
-                  <Link to={`/videos?highlight=${video.id}`} key={video.id} className="search-item">
+                  <Link to={`/videos/${video.id}`} key={video.id} className="search-item">
                     <span className="search-item-title">{highlightText(video.title, kw)}</span>
                     <span className="search-item-date">{video.date}</span>
                   </Link>
@@ -369,7 +369,7 @@ export default function Search() {
                     <div className="moment-card-header">
                       <h4 className="moment-card-title">{highlightText(moment.title, kw)}</h4>
                       {moment.video_id && (
-                        <Link to={`/videos?highlight=${moment.video_id}`} className="moment-card-link">
+                        <Link to={`/videos/${moment.video_id}`} className="moment-card-link">
                           영상 보러가기 <ArrowRightIcon size={14} />
                         </Link>
                       )}

@@ -122,7 +122,7 @@ export default function Calendar() {
 
       videos.forEach((v: Video) => {
         if (!archivesByDate[v.date]) archivesByDate[v.date] = [];
-        archivesByDate[v.date].push({ id: v.id, type: 'video', title: v.title, path: '/videos', icon: v.icon });
+        archivesByDate[v.date].push({ id: v.id, type: 'video', title: v.title, path: `/videos/${v.id}`, icon: v.icon });
       });
 
       // 영상에 연결되지 않은 모먼트만 표시

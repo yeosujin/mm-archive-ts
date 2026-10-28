@@ -99,11 +99,11 @@ export default function Home() {
 
     const { type, item } = featuredItem;
     if (type === 'video') {
-      navigate(`/videos?highlight=${item.id}`);
+      navigate(`/videos/${item.id}`);
     } else if (type === 'post') {
       navigate(`/posts?highlight=${item.id}`);
     } else if (type === 'moment') {
-      navigate(`/videos?highlight=${(item as Moment).video_id || item.id}`);
+      navigate((item as Moment).video_id ? `/videos/${(item as Moment).video_id}?m=${item.id}` : '/moments');
     }
   };
 
@@ -158,7 +158,7 @@ export default function Home() {
             return (
               <div>
                 <Link
-                  to={`/videos?highlight=${moment.video_id || moment.id}&moment=${moment.id}`}
+                  to={moment.video_id ? `/videos/${moment.video_id}?m=${moment.id}` : '/moments'}
                   className="home-featured-moment-more"
                   onClick={(e) => e.stopPropagation()}
                 >
