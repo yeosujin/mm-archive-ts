@@ -8,8 +8,9 @@
 
 /* 그 해 오늘 — 맨 위 문구 */
 .hm-otd-label {
-  margin: 0 0 0.625rem;
-  font-size: 0.8125rem;
+  margin: 0 0 0.375rem;
+  /* '새로 올라온 모먼트'(.hm-sec-title)와 같은 크기 */
+  font-size: 0.9375rem;
   font-weight: 700;
   color: var(--text-primary);
 }

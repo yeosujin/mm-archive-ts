@@ -43,7 +43,7 @@ function computeHomeStory(data: StoryData, today: string): HomeStory {
 function cardLabel(story: HomeStory | null): string {
   if (!story?.day) return '';
   const [m, d] = story.day.split('-').map(Number);
-  return story.isFallback ? `오늘은 기록이 없어요 · 대신 ${m}월 ${d}일` : `그 해 오늘 · ${m}월 ${d}일`;
+  return story.isFallback ? `오늘은 기록이 없어요 · 대신 ${m}월 ${d}일` : `그 해 ${m}월 ${d}일`;
 }
 
 /** 화면 밖 video에 url을 넣어 미리 받는다. 없으면 만든다 */
@@ -55,7 +55,7 @@ function primeVideo(el: HTMLVideoElement | null, url: string): HTMLVideoElement 
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchMode, setSearchMode] = useState<'keyword' | 'ai'>('keyword');
+  const [searchMode, setSearchMode] = useState<'keyword' | 'ai'>('ai');
   const [aiExampleIdx, setAiExampleIdx] = useState(0);
   const navigate = useNavigate();
   const {
