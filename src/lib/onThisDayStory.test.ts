@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildStoryYears, frameDurationMs, frameMedia, storyDays, fallbackDay, shouldAutoOpen, latestMoments,
+  buildStoryYears, frameDurationMs, frameMedia, buildStoryForDate, pickFallbackDate, fallbackLabel, shouldAutoOpen, latestMoments,
   contentKey, groupStoryContents, parseStoryParam,
   type StoryData, type StoryFrame,
 } from './onThisDayStory';
@@ -103,32 +103,61 @@ describe('frameDurationMs', () => {
   });
 });
 
-describe('storyDays', () => {
-  it('MM-DD 정렬·중복 없음, 모먼트는 영상 날짜', () => {
-    const d: StoryData = {
-      videos: [video('v', '2024-12-01')],
-      moments: [moment('m', '2024-12-05', 'v'), moment('solo', '2023-02-14'), moment('orphan', '2023-07-07', 'missing')],
-      photos: [photo('p', 'x', '2022-12-01')],
-      posts: [post('post', '2021-01-03')],
-      episodes: [episode('e', '2020-08-15')],
-    };
-    expect(storyDays(d)).toEqual(['01-03', '02-14', '07-07', '08-15', '12-01']);
+describe('pickFallbackDate', () => {
+  const d: StoryData = {
+    videos: [video('v', '2026-03-14')],
+    moments: [moment('m', '2026-09-01', 'v'), moment('solo', '2026-05-05')],
+    photos: [photo('p', 'x', '2026-11-11'), photo('old', 'x', '2025-01-01')],
+    posts: [post('post', '2026-10-28')],
+    episodes: [episode('e', '2024-08-15')],
+  };
+  it('결정적 — 같은 날 같은 결과', () => {
+    expect(pickFallbackDate(d, '2026-10-28')).toBe(pickFallbackDate(d, '2026-10-28'));
   });
-  it('buildStoryYears와 같은 기준 — 각 날마다 다른 해 기준으로 스토리가 있다', () => {
-    const d: StoryData = { ...empty, videos: [video('v', '2024-12-01')], moments: [moment('m', '2024-12-05', 'v')] };
-    for (const day of storyDays(d)) expect(buildStoryYears(d, `2030-${day}`).length).toBeGreaterThan(0);
+  it('올해 오늘 이전 날짜만, 모먼트는 영상 날짜', () => {
+    const picks = new Set(Array.from({ length: 28 }, (_, i) => pickFallbackDate(d, `2026-10-${String(i + 1).padStart(2, '0')}`)));
+    expect([...picks].every(p => p === '2026-03-14' || p === '2026-05-05')).toBe(true);
+    expect(picks.size).toBe(2);
+  });
+  it('올해 오늘 이전에 없으면 콘텐츠가 있는 가장 최근 해', () => {
+    expect(pickFallbackDate(d, '2026-02-01')).toBe('2025-01-01');
+    expect(pickFallbackDate({ ...empty, episodes: [episode('e', '2023-04-04')] }, '2026-02-01')).toBe('2023-04-04');
+  });
+  it('데이터가 없거나 모두 오늘 이후면 null', () => {
+    expect(pickFallbackDate(empty, '2026-10-28')).toBeNull();
+    expect(pickFallbackDate({ ...empty, posts: [post('p', '2026-10-28')] }, '2026-10-28')).toBeNull();
   });
 });
 
-describe('fallbackDay', () => {
-  const days = ['01-01', '02-02', '03-03', '04-04', '05-05'];
-  it('결정적 — 같은 날 같은 결과, 목록 안의 값', () => {
-    const a = fallbackDay('2026-10-28', days);
-    expect(a).toBe(fallbackDay('2026-10-28', days));
-    expect(days).toContain(a);
+describe('buildStoryForDate', () => {
+  const data: StoryData = {
+    videos: [video('v1', '2026-03-14'), video('vEmpty', '2026-03-14'), video('vOther', '2026-03-01'), video('vPast', '2025-03-14')],
+    moments: [
+      moment('m1', '2026-03-20', 'v1'), // 자기 날짜는 다르지만 영상이 그날 → 포함
+      moment('mOther', '2026-03-14', 'vOther'), // 영상 날짜가 다름 → 제외
+      moment('mSolo', '2026-03-14'),
+    ],
+    photos: [photo('p2', 'A-2', '2026-03-14'), photo('p1', 'A-1', '2026-03-14')],
+    posts: [post('post', '2026-03-14')],
+    episodes: [episode('e', '2026-03-14')],
+  };
+  it('정확히 그 날짜만, buildStoryYears와 같은 순서', () => {
+    const y = buildStoryForDate(data, '2026-03-14');
+    expect(y?.year).toBe(2026);
+    expect(keys(y!.frames)).toEqual([
+      'moment:m1', 'moment:mSolo', 'video:vEmpty', 'photo:p1', 'photo:p2', 'post:post', 'episode:e',
+    ]);
   });
-  it('빈 목록이면 null', () => {
-    expect(fallbackDay('2026-10-28', [])).toBeNull();
+  it('그 날짜에 없으면 null', () => {
+    expect(buildStoryForDate(data, '2026-03-20')).toBeNull();
+  });
+});
+
+describe('fallbackLabel', () => {
+  it('올해 / 작년 / YYYY년', () => {
+    expect(fallbackLabel('2026-03-14', '2026-10-28')).toBe('올해 3월 14일');
+    expect(fallbackLabel('2025-12-01', '2026-10-28')).toBe('작년 12월 1일');
+    expect(fallbackLabel('2023-04-04', '2026-10-28')).toBe('2023년 4월 4일');
   });
 });
 

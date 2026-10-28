@@ -177,7 +177,7 @@ export default function OnThisDayCards({ years, label, paused, onOpen }: Props) 
       <div ref={railRef} className="hm-cards" onScroll={handleScroll}>
         {groups.map(({ year: y, contents }) => (
           <div key={y.year} className="hm-otd-year" role="group" aria-label={`${y.year}년`}>
-            <span className="hm-otd-yh">{y.year}년 · {y.yearsAgo > 0 ? `${y.yearsAgo}년 전` : '올해'}</span>
+            <span className="hm-otd-yh">{y.label ?? `${y.year}년 · ${y.yearsAgo > 0 ? `${y.yearsAgo}년 전` : '올해'}`}</span>
             <div className="hm-otd-row">
               {contents.map(({ content: c, index: i }) => {
                 const first = c.frames[0];

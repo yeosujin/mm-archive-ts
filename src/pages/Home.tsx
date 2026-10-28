@@ -4,7 +4,9 @@ import { SearchIcon } from '../components/Icons';
 import { useData } from '../hooks/useData';
 import { useViewerParam } from '../hooks/useViewerParam';
 import { getTodayString } from '../lib/dailyPick';
-import { buildStoryYears, fallbackDay, frameMedia, latestMoments, parseStoryParam, shouldAutoOpen, storyDays } from '../lib/onThisDayStory';
+import {
+  buildStoryForDate, buildStoryYears, fallbackLabel, frameMedia, latestMoments, parseStoryParam, pickFallbackDate, shouldAutoOpen,
+} from '../lib/onThisDayStory';
 import type { StoryData, StoryFrame, StoryYear } from '../lib/onThisDayStory';
 import { isSaveData } from '../lib/networkPrefs';
 import { entrySplashPhase, releaseEntrySplash, useEntrySplash } from '../lib/entrySplash';
@@ -19,26 +21,23 @@ const AUTO_SHOWN_KEY = 'mmemory.storyAutoShownDate';
 
 interface HomeStory {
   years: StoryYear[];
-  /** 카드에 보이는 날 `MM-DD` (대체 날이면 대체 날짜) */
-  day: string | null;
+  /** 카드 위 이름 */
+  label: string;
   isFallback: boolean;
 }
 
-/** 오늘 그 해 오늘. 없으면 날짜 시드로 고른 대체 날 */
+/** 오늘 그 해 오늘. 없으면 날짜 시드로 고른 올해(없으면 가장 최근 해)의 하루 */
 function computeHomeStory(data: StoryData, today: string): HomeStory {
   const years = buildStoryYears(data, today);
-  if (years.length) return { years, day: today.slice(5), isFallback: false };
-  // 올해 콘텐츠만 있는 날은 '과거 연도만' 규칙에 걸려 비므로, 올해 기준으로 스토리가 나오는 날만 후보로 둔다
-  const year = today.slice(0, 4);
-  const candidates = storyDays(data).filter(d => buildStoryYears(data, `${year}-${d}`).length > 0);
-  const day = fallbackDay(today, candidates);
-  return { years: day ? buildStoryYears(data, `${year}-${day}`) : [], day, isFallback: true };
-}
-
-function cardLabel(story: HomeStory | null): string {
-  if (!story?.day) return '';
-  const [m, d] = story.day.split('-').map(Number);
-  return story.isFallback ? `오늘은 기록이 없어요 · 대신 ${m}월 ${d}일` : `그 해 ${m}월 ${d}일`;
+  if (years.length) {
+    const [m, d] = today.slice(5).split('-').map(Number);
+    return { years, label: `그 해 ${m}월 ${d}일`, isFallback: false };
+  }
+  const date = pickFallbackDate(data, today);
+  const year = date ? buildStoryForDate(data, date) : null;
+  if (!date || !year) return { years: [], label: '', isFallback: true };
+  const label = fallbackLabel(date, today);
+  return { years: [{ ...year, yearsAgo: Number(today.slice(0, 4)) - year.year, label }], label, isFallback: true };
 }
 
 /** 화면 밖 video에 url을 넣어 미리 받는다. 없으면 만든다 */
@@ -206,7 +205,7 @@ export default function Home() {
     <div className="hm">
       <OnThisDayCards
         years={story ? story.years : null}
-        label={cardLabel(story)}
+        label={story?.label ?? ''}
         paused={storyParam !== null || momentParam !== null}
         onOpen={handleOpenContent}
       />

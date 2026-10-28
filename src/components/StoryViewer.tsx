@@ -339,7 +339,7 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
           ))}
         </div>
         <div className="st-row">
-          <span className="st-label">{year.year}년 오늘{year.yearsAgo > 0 ? ` · ${year.yearsAgo}년 전` : ''}</span>
+          <span className="st-label">{year.label ?? `${year.year}년 오늘${year.yearsAgo > 0 ? ` · ${year.yearsAgo}년 전` : ''}`}</span>
           <span className="st-actions">
             {isVideoFrame(frame) && (
               <button type="button" className="st-btn" onClick={toggleSound} aria-label={soundOn ? '음소거' : '소리 켜기'}>
