@@ -4,6 +4,7 @@ import './App.css';
 import './styles/admin.css';
 import './styles/moments.css';
 import './styles/story.css';
+import './styles/home.css';
 
 function App() {
   return <RouterProvider router={router} />;

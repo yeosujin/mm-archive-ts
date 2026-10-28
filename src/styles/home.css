@@ -1,0 +1,244 @@
+/* ===== 홈 (/) ===== */
+
+.hm {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-bottom: 2rem;
+}
+
+/* 연도별 그 해 오늘 카드 — 화면 끝까지 넘기게 좌우 여백만큼 밖으로 */
+.hm-cards {
+  position: relative; /* 카드 offsetLeft 기준 */
+  display: flex;
+  gap: 10px;
+  margin: 0 calc(-1 * var(--container-padding));
+  padding: 0 var(--container-padding);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 var(--container-padding);
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.hm-cards::-webkit-scrollbar {
+  display: none;
+}
+
+.hm-card {
+  position: relative;
+  flex: none;
+  width: calc(100% - 36px); /* 옆 카드가 살짝 보이게 */
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  scroll-snap-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 스켈레톤(div)은 shimmer 배경을 쓴다 */
+button.hm-card {
+  background: #222;
+}
+
+/* 한 장뿐이면 가운데 (크기는 그대로 — 스켈레톤과 같은 높이) */
+.hm-card:only-child {
+  margin: 0 auto;
+}
+
+.hm-card-img,
+.hm-card-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hm-card-video {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.hm-card-video.is-on {
+  opacity: 1;
+}
+
+.hm-card-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 25%;
+  background: linear-gradient(135deg, #1f2233, #3a3f5c);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.hm-card-ov {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 26%, transparent 50%, rgba(0, 0, 0, 0.88));
+  pointer-events: none;
+}
+
+.hm-card-kick {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.hm-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.hm-card-year {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.hm-card-meta {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.hm-card-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #000;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+/* 점 — 한 해면 비어 있지만 높이는 유지(레이아웃 밀림 방지) */
+.hm-dots {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  height: 6px;
+  margin-top: 10px;
+}
+
+.hm-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  transition: width 0.2s, background 0.2s;
+}
+
+.hm-dots i.on {
+  width: 16px;
+  background: var(--text-primary);
+}
+
+/* 검색 — 기존 홈 검색창을 전체 폭으로 */
+.hm .home-search-row {
+  display: block;
+  margin-top: 1.125rem;
+}
+
+.hm .home-search {
+  width: 100%;
+  max-width: none;
+  height: 2.75rem;
+}
+
+/* 새로 올라온 모먼트 */
+.hm-sec {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 1.5rem 0 0.625rem;
+}
+
+.hm-sec-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.hm-sec-more {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.hm-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.hm-cell {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.hm-cell {
+  background: var(--bg-card-hover);
+}
+
+.hm-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hm-ask {
+  display: block;
+  margin-top: 1.5rem;
+  padding: 0.875rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  text-align: center;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 768px) {
+  /* 넓은 화면: 카드 폭 고정, 화면 밖으로 빼지 않음 */
+  .hm-cards {
+    margin: 0;
+    padding: 0;
+    scroll-padding: 0;
+  }
+
+  .hm-card {
+    width: 300px;
+    scroll-snap-align: start;
+  }
+
+  .hm-card:only-child {
+    margin: 0;
+  }
+}
