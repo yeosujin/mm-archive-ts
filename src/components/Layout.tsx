@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, CloseIcon, ArrowUpIcon } from './Icons';
 import { useData } from '../hooks/useData';
+import EntrySplash from './EntrySplash';
 
 // 상단 글자 탭. 도서관은 탭에서 뺐다 — 라우트(/articles)는 남아 있어 주소로는 들어갈 수 있다
 const TABS = [
@@ -162,6 +163,8 @@ export default function Layout() {
       >
         <ArrowUpIcon size={18} />
       </button>
+
+      <EntrySplash />
     </div>
   );
 }

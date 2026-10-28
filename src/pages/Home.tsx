@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CloseIcon, SearchIcon } from '../components/Icons';
+import { SearchIcon } from '../components/Icons';
 import { useData } from '../hooks/useData';
 import { useViewerParam } from '../hooks/useViewerParam';
 import { getTodayString } from '../lib/dailyPick';
 import { buildStoryYears, fallbackDay, frameMedia, latestMoments, parseStoryParam, shouldAutoOpen, storyDays } from '../lib/onThisDayStory';
 import type { StoryData, StoryFrame, StoryYear } from '../lib/onThisDayStory';
-import { isSaveData, prefersReducedMotion } from '../lib/networkPrefs';
+import { isSaveData } from '../lib/networkPrefs';
+import { entrySplashPhase, releaseEntrySplash, useEntrySplash } from '../lib/entrySplash';
 import OnThisDayCards from '../components/home/OnThisDayCards';
 import StoryViewer from '../components/StoryViewer';
 import MomentViewer from '../components/MomentViewer';
@@ -15,12 +16,6 @@ import MomentViewer from '../components/MomentViewer';
 const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
 
 const AUTO_SHOWN_KEY = 'mmemory.storyAutoShownDate';
-
-/**
- * 자동 열기 로딩 화면 단계.
- * wait: 아직 정하지 않음 · opening: 열기로 함(뷰어가 뜰 때까지 로딩 화면 유지) · fading: 안 열기로 함(로딩 화면 사라지는 중) · done
- */
-type AutoPhase = 'wait' | 'opening' | 'fading' | 'done';
 
 interface HomeStory {
   years: StoryYear[];
@@ -69,12 +64,14 @@ export default function Home() {
   const [autoYear, setAutoYear] = useState<number | null>(null);
   const autoTriedRef = useRef(false);
   const [openYears, setOpenYears] = useState<{ param: string; years: StoryYear[] } | null>(null);
-  // 그날 첫 방문이면 데이터를 기다리는 동안 로딩 화면을 띄운다
-  const [autoPhase, setAutoPhase] = useState<AutoPhase>(() => {
-    if (storyParam !== null || momentParam !== null) return 'done';
-    try { return localStorage.getItem(AUTO_SHOWN_KEY) !== today ? 'wait' : 'done'; } catch { return 'done'; }
+  // 그날 첫 방문이면 자동 열기를 정할 때까지 입장 로고 화면을 붙잡아 둔다
+  const [autoCandidate] = useState(() => {
+    if (storyParam !== null || momentParam !== null) return false;
+    try { return localStorage.getItem(AUTO_SHOWN_KEY) !== today; } catch { return false; }
   });
-  const [autoInstant, setAutoInstant] = useState(false);
+  const splash = useEntrySplash();
+  // 로고 화면이 사라지기 시작할 때 열 해 (뷰어가 그 아래에서 팝업으로 뜬다)
+  const pendingAutoRef = useRef<number | null>(null);
   // 칸을 누르는 순간부터 받아 두는 화면 밖 video. 뷰어가 열리면 버린다(같은 URL이라 캐시를 탄다)
   const preloadRef = useRef<HTMLVideoElement | null>(null);
 
@@ -83,7 +80,6 @@ export default function Home() {
     return computeHomeStory({ videos, moments, posts, episodes, photos }, today);
   }, [videos, moments, posts, episodes, photos, today]);
 
-  const storyOpens = !!story && story.years.length > 0 && !story.isFallback;
   // `?s=YEAR` 또는 `?s=YEAR.FRAMEINDEX`
   const storyStart = parseStoryParam(storyParam);
   const storyYear = storyStart?.year ?? null;
@@ -96,10 +92,6 @@ export default function Home() {
   }
   const viewerYears = openYears?.param === storyParam ? openYears.years : null;
   const showStory = !!viewerYears && storyYear !== null && viewerYears.some(y => y.year === storyYear);
-  // 뷰어가 떴으면 로딩 화면을 내린다 (같은 렌더에 바뀌어 홈이 비치지 않는다)
-  if (autoPhase === 'opening' && showStory) setAutoPhase('done');
-  // 저장분으로 '오늘은 없음'이면 로딩 화면 없이 홈을 보여주고 새 데이터를 기다린다
-  const overlayOn = autoPhase === 'opening' || autoPhase === 'fading' || (autoPhase === 'wait' && (!story || storyOpens));
 
   const latest = useMemo(() => (moments ? latestMoments(moments) : null), [moments]);
 
@@ -124,32 +116,35 @@ export default function Home() {
     // 저장분엔 없어도 새 데이터엔 있을 수 있다
     if (!opens && !final) return;
     autoTriedRef.current = true;
-    const skip = () => setAutoPhase(overlayOn && !prefersReducedMotion() ? 'fading' : 'done');
-    if (!s || momentParam !== null) { skip(); return; }
+    releaseEntrySplash();
+    if (!s || momentParam !== null) return;
     let lastShown: string | null = null;
     try { lastShown = localStorage.getItem(AUTO_SHOWN_KEY); } catch { /* 저장소 막힘 */ }
-    if (!shouldAutoOpen(lastShown, today, s.years.length > 0, s.isFallback)) { skip(); return; }
+    if (!shouldAutoOpen(lastShown, today, s.years.length > 0, s.isFallback)) return;
     if (storyParam === null) {
       const first = s.years[0];
       preloadFrame(first.frames[0]);
       setAutoYear(first.year);
-      setAutoInstant(overlayOn);
-      setAutoPhase('opening');
-      openStory(String(first.year));
-    } else {
-      setAutoPhase('done');
+      if (entrySplashPhase() === 'on') pendingAutoRef.current = first.year;
+      else openStory(String(first.year));
     }
     try { localStorage.setItem(AUTO_SHOWN_KEY, today); } catch { /* 저장소 막힘 */ }
   });
 
-  // 로딩 화면 ✕: 오늘은 다시 띄우지 않는다
-  const cancelAuto = () => {
-    autoTriedRef.current = true;
-    try { localStorage.setItem(AUTO_SHOWN_KEY, today); } catch { /* 저장소 막힘 */ }
-    setAutoPhase('done');
-  };
-
   useEffect(() => maybeAutoOpen(story, false), [story]);
+
+  // 자동 열기 대상이 아니면 기다릴 것이 없다 — 로고 화면을 바로 내린다
+  useEffect(() => {
+    if (!autoCandidate) releaseEntrySplash();
+  }, [autoCandidate]);
+
+  const openPendingAuto = useEffectEvent((phase: typeof splash) => {
+    const year = pendingAutoRef.current;
+    if (year === null || phase === 'on') return;
+    pendingAutoRef.current = null;
+    openStory(String(year));
+  });
+  useEffect(() => openPendingAuto(splash), [splash]);
 
   useEffect(() => {
     let alive = true;
@@ -269,31 +264,6 @@ export default function Home() {
 
       <Link to="/ask" className="hm-ask">궁금한 점이나 요청 남기러 가기 →</Link>
 
-      {overlayOn && (
-        <div
-          className={autoPhase === 'fading' ? 'st st-wait is-out' : 'st st-wait'}
-          role="dialog"
-          aria-modal="true"
-          aria-label="그 해 오늘 불러오는 중"
-          aria-busy="true"
-          onAnimationEnd={e => { if (e.target === e.currentTarget && autoPhase === 'fading') setAutoPhase('done'); }}
-        >
-          <span className="st-spinner" aria-hidden />
-          <div className="st-top">
-            {/* 뷰어와 ✕ 자리를 맞추려고 진행 막대 높이만 둔다 */}
-            <div className="st-bars" aria-hidden><i style={{ visibility: 'hidden' }} /></div>
-            <div className="st-row">
-              <span />
-              <span className="st-actions">
-                <button type="button" className="st-btn" onClick={cancelAuto} aria-label="닫기">
-                  <CloseIcon size={24} />
-                </button>
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showStory && viewerYears && storyYear !== null && (
         <StoryViewer
           key={storyParam}
@@ -301,7 +271,7 @@ export default function Home() {
           startYear={storyYear}
           startFrame={storyStart?.frame ?? 0}
           autoStarted={autoYear === storyYear}
-          instant={autoInstant && autoYear === storyYear}
+          enter={autoYear === storyYear ? 'pop' : 'slide'}
           onClose={closeStory}
         />
       )}

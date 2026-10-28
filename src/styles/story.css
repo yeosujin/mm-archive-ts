@@ -13,20 +13,17 @@
   animation: st-in 0.28s ease-out;
 }
 
-/* 로딩 화면을 바로 이어받을 때는 올라오지 않는다 */
-.st.is-instant {
-  animation: none;
+/* 자동 열기: 팝업처럼 살짝 작게·투명하게 시작해 커진다.
+   바깥 그림자가 화면을 덮는 어두운 막이 되어 뷰어와 함께 짙어진다 */
+.st.is-pop {
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.6);
+  animation: st-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* 자동 열기 전 로딩 화면: 뷰어와 같은 검은 바탕 + 가운데 스피너 + ✕ */
-.st-wait {
-  animation: none;
-  touch-action: none;
-}
-
-.st-wait.is-out {
-  pointer-events: none;
-  animation: st-fade-out 0.25s ease-out forwards;
+@media (prefers-reduced-motion: reduce) {
+  .st.is-pop {
+    animation: st-fade-in 0.25s ease-out;
+  }
 }
 
 /* 제스처 층: 프레임 전체. 브라우저 스크롤·확대를 막고 직접 판정 */
@@ -437,8 +434,16 @@
   to { transform: rotate(360deg); }
 }
 
-@keyframes st-fade-out {
-  to { opacity: 0; }
+@keyframes st-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+    border-radius: 20px;
+  }
+}
+
+@keyframes st-fade-in {
+  from { opacity: 0; }
 }
 
 @keyframes st-show {

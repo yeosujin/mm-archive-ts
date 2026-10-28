@@ -17,8 +17,8 @@ interface Props {
   startFrame?: number;
   /** 자동으로 열렸으면 음소거로 시작 (사용자 제스처가 없어 소리 재생이 막힌다) */
   autoStarted: boolean;
-  /** 로딩 화면을 바로 이어받을 때: 올라오는 애니메이션 없이 */
-  instant?: boolean;
+  /** 등장 방식. slide: 아래에서 올라온다(칸을 눌러 열 때) · pop: 팝업처럼 커지며 나타난다(자동 열기) */
+  enter?: 'slide' | 'pop';
   onClose: () => void;
 }
 
@@ -48,7 +48,7 @@ function hasMedia(f: StoryFrame | undefined): boolean {
   return f.kind === 'moment' || f.kind === 'photo' || (f.kind === 'post' && !!f.media);
 }
 
-export default function StoryViewer({ years, startYear, startFrame = 0, autoStarted, instant = false, onClose }: Props) {
+export default function StoryViewer({ years, startYear, startFrame = 0, autoStarted, enter = 'slide', onClose }: Props) {
   const { memberSettings } = useData();
   const [pos, setPos] = useState<Pos>(() => {
     const yi = Math.max(0, years.findIndex(y => y.year === startYear));
@@ -289,7 +289,7 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
   const post = frame.kind === 'post' ? frame.post : null;
 
   return (
-    <div ref={rootRef} className={instant ? 'st is-instant' : 'st'} role="dialog" aria-modal="true" aria-label="그 해 오늘">
+    <div ref={rootRef} className={enter === 'pop' ? 'st is-pop' : 'st'} role="dialog" aria-modal="true" aria-label="그 해 오늘">
       <div className="st-stage" {...gestures}>
         <StoryFrameView
           key={`${frame.key}:${pos.seq}`}
