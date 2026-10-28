@@ -1,13 +1,21 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 import type { Episode, MemberSettings, Post } from '../../lib/database/types';
 import type { StoryFrame } from '../../lib/onThisDayStory';
 import { EPISODE_LABEL, frameCaption, postBody } from '../../lib/onThisDayStory';
 import { detectPlatformName, getPlatformName } from '../../lib/platformUtils';
 import VideoCover from '../moments/VideoCover';
 
+/**
+ * 프레임 미디어가 어디까지 준비됐나. poster: 썸네일(흐린 배경·영상 포스터)이 떴다,
+ * full: 영상 첫 장면이나 원본 사진이 떴다(사진은 실패도 여기), error: 영상을 못 연다
+ */
+export type FrameReady = 'poster' | 'full' | 'error';
+
 interface Props {
   frame: StoryFrame;
   memberSettings: MemberSettings | null;
+  /** 지금 보고 있는 프레임. 아니면(다음 프레임 미리 준비·앞 프레임 남겨 두기) 재생·진행 연결 없이 음소거로 둔다 */
+  active: boolean;
   /** 영상 프레임(모먼트·영상 포스트)의 video. 재생·진행은 뷰어가 맡는다 */
   videoRef: React.RefObject<HTMLVideoElement | null>;
   /** 에피소드 채팅 스크롤 영역. 진행에 맞춰 뷰어가 내린다 */
@@ -16,8 +24,8 @@ interface Props {
   onVideoError: () => void;
   onVideoWaiting: () => void;
   onVideoPlaying: () => void;
-  /** 사진 프레임 이미지가 뜨거나 실패했을 때 (스피너 끄기) */
-  onImageDone: () => void;
+  /** 미디어 준비 단계가 올라갈 때마다. 프레임이 내려가면 null */
+  onReady: (key: string, ready: FrameReady | null) => void;
   onMore: () => void;
 }
 
@@ -27,8 +35,24 @@ function sourceLabel(post: Post): string {
   return name ? `${name} 에서 보기 ↗` : '원문 보기 ↗';
 }
 
-function Backdrop({ src }: { src?: string }) {
-  return src ? <div className="st-bg" style={{ backgroundImage: `url("${src}")` }} /> : null;
+/** 흐린 배경 (썸네일). 뜨면 onLoad — 원본·영상보다 먼저 떠 검은 화면 대신 보인다 */
+function Backdrop({ src, onLoad }: { src?: string; onLoad?: () => void }) {
+  return src ? <img className="st-bg" src={src} alt="" draggable={false} onLoad={onLoad} /> : null;
+}
+
+/** 원본 사진. 흐린 배경 위로 다 받은 뒤 살짝 페이드인 */
+function FadeImage({ src, onDone }: { src: string; onDone: () => void }) {
+  const [loaded, setLoaded] = useState(false);
+  const done = (ok: boolean) => { setLoaded(ok); onDone(); };
+  return (
+    <img
+      className={loaded ? 'st-media st-fade is-on' : 'st-media st-fade'}
+      src={src}
+      alt=""
+      onLoad={() => done(true)}
+      onError={() => done(false)}
+    />
+  );
 }
 
 // 본문 말줄임 + 더보기 (말줄임이 실제로 생겼을 때만)
@@ -72,7 +96,7 @@ function BottomCaption({ frame, onMore }: { frame: StoryFrame; onMore: () => voi
   );
 }
 
-function EpisodeChat({ episode, memberSettings, scrollRef }: { episode: Episode; memberSettings: MemberSettings | null; scrollRef: Props['scrollRef'] }) {
+function EpisodeChat({ episode, memberSettings, scrollRef }: { episode: Episode; memberSettings: MemberSettings | null; scrollRef?: Props['scrollRef'] }) {
   const name = memberSettings
     ? (episode.sender === 'member2' ? memberSettings.member2_name : memberSettings.member1_name)
     : '';
@@ -104,27 +128,33 @@ function EpisodeChat({ episode, memberSettings, scrollRef }: { episode: Episode;
 
 /** 프레임 본문 (미디어·카드·채팅) */
 function FrameBody({
-  frame, memberSettings, videoRef, scrollRef, onVideoEnded, onVideoError, onVideoWaiting, onVideoPlaying, onImageDone, onMore,
+  frame, memberSettings, active, videoRef, scrollRef, onVideoEnded, onVideoError, onVideoWaiting, onVideoPlaying, onReady, onMore,
 }: Props) {
+  const report = (ready: FrameReady) => () => onReady(frame.key, ready);
+  const onPoster = report('poster');
+  const onFull = report('full');
+  // 포스터(썸네일)를 먼저 보이고 받는 동안 그대로. 미리 준비 중일 땐 음소거로 첫 장면까지 받아 둔다
   const video = (src: string, poster?: string) => (
     <video
-      ref={videoRef}
+      ref={active ? videoRef : undefined}
       className="st-media"
       src={src}
       poster={poster}
       playsInline
+      muted={!active}
       preload="auto"
-      onEnded={onVideoEnded}
-      onError={onVideoError}
-      onWaiting={onVideoWaiting}
-      onPlaying={onVideoPlaying}
+      onLoadedData={onFull}
+      onEnded={active ? onVideoEnded : undefined}
+      onError={() => { onReady(frame.key, 'error'); if (active) onVideoError(); }}
+      onWaiting={active ? onVideoWaiting : undefined}
+      onPlaying={active ? onVideoPlaying : undefined}
     />
   );
 
   switch (frame.kind) {
     case 'moment': {
       const thumb = frame.moment.thumbnail_url;
-      return <><Backdrop src={thumb} />{video(frame.moment.tweet_url, thumb)}</>;
+      return <><Backdrop src={thumb} onLoad={onPoster} />{video(frame.moment.tweet_url, thumb)}</>;
     }
     case 'video': {
       const v = frame.video;
@@ -142,8 +172,8 @@ function FrameBody({
       const p = frame.photo;
       return (
         <>
-          <Backdrop src={p.thumbnail_url || p.image_url} />
-          <img className="st-media" src={p.image_url} alt="" onLoad={onImageDone} onError={onImageDone} />
+          <Backdrop src={p.thumbnail_url || p.image_url} onLoad={onPoster} />
+          <FadeImage src={p.image_url} onDone={onFull} />
         </>
       );
     }
@@ -160,18 +190,23 @@ function FrameBody({
       }
       return (
         <>
-          <Backdrop src={m.thumbnail || (m.type === 'image' ? m.url : undefined)} />
-          {m.type === 'video' ? video(m.url, m.thumbnail) : <img className="st-media" src={m.url} alt="" onLoad={onImageDone} onError={onImageDone} />}
+          <Backdrop src={m.thumbnail || (m.type === 'image' ? m.url : undefined)} onLoad={onPoster} />
+          {m.type === 'video' ? video(m.url, m.thumbnail) : <FadeImage src={m.url} onDone={onFull} />}
         </>
       );
     }
     case 'episode':
-      return <EpisodeChat episode={frame.episode} memberSettings={memberSettings} scrollRef={scrollRef} />;
+      return <EpisodeChat episode={frame.episode} memberSettings={memberSettings} scrollRef={active ? scrollRef : undefined} />;
   }
 }
 
-/** 스토리 프레임 한 장 + 아래 제목·날짜. 키를 바꿔 새로 그리므로 프레임마다 영상 요소도 새로 만들어진다 */
+/**
+ * 스토리 프레임 한 장 + 아래 제목·날짜. 뷰어가 프레임 키로 그려, 미리 준비하던 다음 프레임이
+ * 지금 프레임이 될 때 영상·사진 요소를 그대로 이어 쓴다
+ */
 export default function StoryFrameView(props: Props) {
+  const forget = useEffectEvent(() => props.onReady(props.frame.key, null));
+  useEffect(() => () => forget(), []);
   return (
     <>
       <FrameBody {...props} />

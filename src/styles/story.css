@@ -60,11 +60,47 @@
   -webkit-touch-callout: none;
 }
 
+/*
+ * 프레임 층. 지금 프레임 위, 아래에 넘기기 전 프레임(새 프레임이 뜰 때까지 남겨 둔다),
+ * 맨 아래 숨긴 다음 프레임(미리 받아 첫 장면까지 준비)
+ */
+.st-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.st-frame.is-cur,
+.st-frame.is-wait {
+  z-index: 2;
+}
+
+.st-frame.is-under {
+  z-index: 1;
+  pointer-events: none;
+}
+
+.st-frame.is-next,
+.st-frame.is-wait {
+  opacity: 0;
+}
+
+.st-frame.is-next {
+  pointer-events: none;
+}
+
+/* 흐린 썸네일 배경. 원본·영상이 뜨기 전에 먼저 보인다 */
 .st-bg {
   position: absolute;
-  inset: -30px;
-  background: center / cover no-repeat;
+  top: -30px;
+  left: -30px;
+  width: calc(100% + 60px);
+  height: calc(100% + 60px);
+  object-fit: cover;
   filter: blur(22px) brightness(0.4);
+  pointer-events: none;
 }
 
 .st-media {
@@ -73,6 +109,16 @@
   height: 100%;
   object-fit: contain;
   pointer-events: none;
+}
+
+/* 원본 사진: 다 받은 뒤 흐린 배경 위로 페이드인 */
+.st-fade {
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+
+.st-fade.is-on {
+  opacity: 1;
 }
 
 /* 상단: 진행 막대 · 라벨 · 소리/닫기 */
@@ -186,6 +232,7 @@
 .st-paused,
 .st-play {
   position: absolute;
+  z-index: 3; /* 프레임 층 위 */
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -214,6 +261,7 @@
   left: 50%;
   width: 32px;
   height: 32px;
+  z-index: 3; /* 프레임 층 위 */
   margin: -16px 0 0 -16px;
   border: 3px solid rgba(255, 255, 255, 0.25);
   border-top-color: #fff;

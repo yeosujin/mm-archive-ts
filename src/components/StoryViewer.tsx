@@ -8,7 +8,7 @@ import { getSessionSoundOn, setSessionSoundOn } from '../lib/viewerSound';
 import { useStoryGestures } from '../hooks/useStoryGestures';
 import { useData } from '../hooks/useData';
 import { prefersReducedMotion } from '../lib/networkPrefs';
-import StoryFrameView from './story/StoryFrameView';
+import StoryFrameView, { type FrameReady } from './story/StoryFrameView';
 
 interface Props {
   years: StoryYear[];
@@ -51,6 +51,10 @@ interface Pos {
 
 // 영상이 안 열리면 사진처럼 이 시간만큼 보여주고 넘긴다
 const FAILED_VIDEO_MS = 5000;
+// 넘긴 프레임이 아직 안 떴으면 앞 프레임을 남겨 두다가, 뜨면 이만큼 겹쳐 바꾼다.
+// 그래도 안 뜨면 REVEAL_TIMEOUT_MS 뒤엔 새 프레임(흐린 배경·포스터)을 그냥 보인다
+const REVEAL_MS = 150;
+const REVEAL_TIMEOUT_MS = 1200;
 
 // 카드에서 커지기: 자동 열기는 '카드가 열린다'가 보이게 천천히(가속→감속), 카드를 누르면 빠르게
 const AUTO_ZOOM_MS = 420;
@@ -126,6 +130,15 @@ function hasMedia(f: StoryFrame | undefined): boolean {
   return f.kind === 'moment' || f.kind === 'photo' || (f.kind === 'post' && !!f.media);
 }
 
+/** 다음 프레임 위치 (해 끝이면 다음 해 첫 프레임). 마지막이면 null */
+function upcoming(years: StoryYear[], at: { yi: number; fi: number } | null): { yi: number; fi: number } | null {
+  if (!at) return null;
+  if (at.fi + 1 < (years[at.yi]?.frames.length ?? 0)) return { yi: at.yi, fi: at.fi + 1 };
+  return years[at.yi + 1]?.frames.length ? { yi: at.yi + 1, fi: 0 } : null;
+}
+
+const frameAt = (years: StoryYear[], at: { yi: number; fi: number } | null) => (at ? years[at.yi]?.frames[at.fi] : undefined);
+
 export default function StoryViewer({ years, startYear, startFrame = 0, autoStarted, originFor, closing, onClose, onExited }: Props) {
   const { memberSettings } = useData();
   const [pos, setPos] = useState<Pos>(() => {
@@ -142,6 +155,12 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
   const [blocked, setBlocked] = useState(false);
   const [loading, setLoading] = useState(() => hasMedia(years[pos.yi]?.frames[pos.fi]));
   const [downloading, setDownloading] = useState(false);
+  // 그려 둔 프레임(지금·다음·남겨 둔 앞)의 미디어 준비 단계
+  const [ready, setReady] = useState<ReadonlyMap<string, FrameReady>>(() => new Map());
+  // 넘긴 프레임이 뜰 때까지 아래에 남겨 두는 앞 프레임
+  const [under, setUnder] = useState<StoryFrame | null>(null);
+  // 기다리다 시간이 다 된 이동(seq) — 안 떴어도 새 프레임을 보인다
+  const [lateSeq, setLateSeq] = useState(-1);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -160,9 +179,15 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
   const closedRef = useRef(false);
   // 미리 받는 영상. 참조를 쥐고 있어야 받기가 이어진다
   const preloadRef = useRef<HTMLVideoElement | null>(null);
+  // 지금 프레임 층 (늦게 뜨면 페이드인)
+  const layerRef = useRef<HTMLDivElement>(null);
+  // 지금 화면 맨 위에 보이는 프레임 (넘긴 프레임이 아직 안 떴으면 남겨 둔 앞 프레임)
+  const shownRef = useRef<StoryFrame | null>(null);
 
   const year = years[pos.yi];
   const frame = year?.frames[pos.fi];
+  // 남겨 둔 앞 프레임 위로, 새 프레임은 뭐라도(썸네일·첫 장면·원본) 뜨거나 시간이 다 되면 보인다
+  const waiting = !!under && hasMedia(frame) && !(frame && ready.has(frame.key)) && lateSeq !== pos.seq;
   // 열리는 애니메이션이 끝날 때까지는 재생·진행을 멈춰 둔다 — 화면이 다 열린 뒤 부드럽게 시작
   const [entering, setEntering] = useState(true);
   const paused = held || userPaused || sheetOpen || hidden || entering || closing;
@@ -176,13 +201,20 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
 
   const go = (yi: number, fi: number) => {
     const next = { yi, fi, seq: posRef.current.seq + 1 };
+    const target = years[yi]?.frames[fi];
+    // 미리 준비해 둔 프레임이면 바로 바꾸고, 아니면 지금 보이는 프레임을 남겨 두고 뜰 때 겹쳐 바꾼다
+    const level = target ? ready.get(target.key) : undefined;
+    const shown = shownRef.current;
+    const instant = !hasMedia(target) || level !== undefined || shown?.key === target?.key;
     posRef.current = next;
     elapsedRef.current = 0;
-    videoFailedRef.current = false;
+    videoFailedRef.current = level === 'error';
     setPos(next);
+    setUnder(instant ? null : shown);
     setUserPaused(false);
     setBlocked(false);
-    setLoading(hasMedia(years[yi]?.frames[fi]));
+    // 영상은 재생이 시작될 때(playing) 스피너를 끈다. 사진은 원본을 이미 받았으면 바로 끈다
+    setLoading(hasMedia(target) && level !== 'error' && (isVideoFrame(target) || level !== 'full'));
   };
 
   const next = () => {
@@ -239,9 +271,18 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
     });
   };
 
-  // 프레임이 바뀌거나 멈춤이 풀리면 재생, 멈추면 정지
+  // 같은 영상 요소를 이어 쓰므로, 다시 보게 된 프레임(앞으로 돌아감·처음부터 다시)은 처음부터
+  const rewind = useEffectEvent(() => {
+    const video = videoRef.current;
+    if (video && video.currentTime > 0) video.currentTime = 0;
+  });
+
+  useEffect(() => rewind(), [pos.seq]);
+
+  // 프레임이 바뀌거나 멈춤이 풀리면 재생, 멈추면 정지. 남겨 둔 앞 프레임·준비 중인 다음 프레임 영상은 멈춘다
   const syncPlayback = useEffectEvent((isPaused: boolean) => {
     const video = videoRef.current;
+    rootRef.current?.querySelectorAll('video').forEach(v => { if (v !== video && !v.paused) v.pause(); });
     if (!video) return;
     if (isPaused) video.pause();
     else if (!blocked) playWithFallback(video);
@@ -249,16 +290,14 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
 
   useEffect(() => syncPlayback(paused), [pos.seq, paused]);
 
-  // 다음 프레임 미디어 미리 받기
+  // 다음 프레임은 화면에 숨겨 그려 두므로(아래 층) 그다음 프레임만 가볍게 미리 받는다 — 사진·썸네일, 영상은 메타데이터만
   const preloadNext = useEffectEvent(() => {
     if (isSaveData()) return;
-    const { yi, fi } = posRef.current;
-    const upcoming = years[yi]?.frames[fi + 1] ?? years[yi + 1]?.frames[0];
-    const { video, image } = frameMedia(upcoming);
+    const { video, image } = frameMedia(frameAt(years, upcoming(years, upcoming(years, posRef.current))));
     if (image) new Image().src = image;
     if (video && preloadRef.current?.src !== video) {
       const el = document.createElement('video');
-      el.preload = 'auto';
+      el.preload = 'metadata';
       el.muted = true;
       el.src = video;
       preloadRef.current = el;
@@ -266,6 +305,46 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
   });
 
   useEffect(() => preloadNext(), [pos.seq]);
+
+  // 지금 보이는 프레임 기록 (다음 이동에서 아래에 남겨 둘 프레임)
+  useLayoutEffect(() => {
+    shownRef.current = waiting ? under : frame ?? null;
+  });
+
+  // 기다리는 동안 시간이 다 되면 안 떴어도 새 프레임을 보인다
+  useEffect(() => {
+    if (!waiting) return;
+    const seq = pos.seq;
+    const t = window.setTimeout(() => setLateSeq(seq), REVEAL_TIMEOUT_MS);
+    return () => window.clearTimeout(t);
+  }, [waiting, pos.seq]);
+
+  // 새 프레임이 뜨면 남겨 둔 앞 프레임 위로 겹쳐 바꾸고, 다 바뀌면 앞 프레임을 내린다
+  useLayoutEffect(() => {
+    const el = layerRef.current;
+    if (!under || waiting || !el) return;
+    const anim = el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: REVEAL_MS, easing: 'ease-out' });
+    anim.finished.then(() => setUnder(null), () => { /* 다시 넘겨 취소됨 */ });
+    return () => anim.cancel();
+  }, [under, waiting]);
+
+  const onFrameReady = (key: string, level: FrameReady | null) => {
+    setReady(prev => {
+      const cur = prev.get(key);
+      if (level === null) {
+        if (!cur) return prev;
+        const m = new Map(prev);
+        m.delete(key);
+        return m;
+      }
+      // 썸네일은 첫 장면·원본보다 늦게 떠도 단계를 낮추지 않는다
+      if (cur === level || (level === 'poster' && cur)) return prev;
+      return new Map(prev).set(key, level);
+    });
+    // 지금 프레임 사진을 다 받았으면(또는 실패) 스피너를 끈다
+    const current = frameAt(years, posRef.current);
+    if (level === 'full' && current?.key === key && !isVideoFrame(current)) setLoading(false);
+  };
 
   // 진행: 시간 프레임은 경과 시간, 영상 프레임은 재생 위치. 멈춤 동안은 그대로
   const onTick = useEffectEvent((dt: number) => {
@@ -481,29 +560,44 @@ export default function StoryViewer({ years, startYear, startFrame = 0, autoStar
   const onVideoError = () => { videoFailedRef.current = true; setLoading(false); };
   const onVideoWaiting = () => setLoading(true);
   const onVideoPlaying = () => setLoading(false);
-  const onImageDone = () => setLoading(false);
 
   if (!year || !frame) return null;
   const post = frame.kind === 'post' ? frame.post : null;
+
+  // 그릴 프레임: 남겨 둔 앞 프레임 · 지금 · 다음 프레임(숨겨 미리 준비). 키를 프레임별로 고정하고 순서대로 두어,
+  // 다음 프레임이 지금이 될 때 요소를 그대로 이어 쓴다. 지금 프레임을 기다리는 동안과 데이터 절약 모드에선 다음 프레임을 두지 않는다
+  const all = years.flatMap(y => y.frames);
+  const nextFrame = waiting || isSaveData() ? undefined : frameAt(years, upcoming(years, pos));
+  const layers = [under, frame, nextFrame]
+    .filter((f, i, list): f is StoryFrame => !!f && list.findIndex(g => g?.key === f.key) === i)
+    .sort((a, b) => all.indexOf(a) - all.indexOf(b));
 
   return (
     <>
       <div ref={backdropRef} className="st-backdrop" aria-hidden />
       <div ref={rootRef} className={closing ? 'st is-closing' : 'st'} role="dialog" aria-modal="true" aria-label="그 해 오늘">
         <div className="st-stage" {...gestures}>
-          <StoryFrameView
-            key={`${frame.key}:${pos.seq}`}
-            frame={frame}
-            memberSettings={memberSettings}
-            videoRef={videoRef}
-            scrollRef={scrollRef}
-            onVideoEnded={next}
-            onVideoError={onVideoError}
-            onVideoWaiting={onVideoWaiting}
-            onVideoPlaying={onVideoPlaying}
-            onImageDone={onImageDone}
-            onMore={() => setSheetOpen(true)}
-          />
+          {layers.map(f => {
+            const active = f.key === frame.key;
+            const role = active ? (waiting ? 'is-wait' : 'is-cur') : f.key === under?.key ? 'is-under' : 'is-next';
+            return (
+              <div key={f.key} ref={active ? layerRef : undefined} className={`st-frame ${role}`} inert={!active} aria-hidden={!active}>
+                <StoryFrameView
+                  frame={f}
+                  memberSettings={memberSettings}
+                  active={active}
+                  videoRef={videoRef}
+                  scrollRef={scrollRef}
+                  onVideoEnded={next}
+                  onVideoError={onVideoError}
+                  onVideoWaiting={onVideoWaiting}
+                  onVideoPlaying={onVideoPlaying}
+                  onReady={onFrameReady}
+                  onMore={() => setSheetOpen(true)}
+                />
+              </div>
+            );
+          })}
           {blocked && (
             <button type="button" className="st-play" onClick={playBlocked} aria-label="재생">
               <PlayIcon size={44} />
