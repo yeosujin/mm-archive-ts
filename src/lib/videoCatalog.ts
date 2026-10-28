@@ -14,7 +14,7 @@ export function videoYears(videos: Pick<Video, 'date'>[]): number[] {
 }
 
 export interface CatalogFilter {
-  year: number;
+  year: number | 'all';
   category: 'all' | VideoCategory;
   /** 위버스 멤버 아이콘. 라이브 분류에서만 적용 */
   member: string;
@@ -22,21 +22,26 @@ export interface CatalogFilter {
 
 export function filterVideos<T extends Video>(videos: T[], f: CatalogFilter): T[] {
   return videos.filter(v =>
-    Number(v.date.slice(0, 4)) === f.year &&
+    (f.year === 'all' || Number(v.date.slice(0, 4)) === f.year) &&
     (f.category === 'all' || classifyVideo(v) === f.category) &&
     (f.category !== 'live' || f.member === 'all' || v.icon === f.member)
   );
 }
 
-export function groupByMonth<T extends Pick<Video, 'date'>>(videos: T[]): { month: number; videos: T[] }[] {
-  const byMonth = new Map<number, T[]>();
+/** 연·월 내림차순 묶음. 연도 '전체'일 때도 같은 달끼리 연도가 섞이지 않게 연·월로 묶는다 */
+export function groupByMonth<T extends Pick<Video, 'date'>>(videos: T[]): { year: number; month: number; videos: T[] }[] {
+  const byMonth = new Map<string, T[]>();
   for (const v of videos) {
-    const month = Number(v.date.slice(5, 7));
-    byMonth.set(month, [...(byMonth.get(month) ?? []), v]);
+    const key = v.date.slice(0, 7);
+    byMonth.set(key, [...(byMonth.get(key) ?? []), v]);
   }
   return [...byMonth.entries()]
-    .sort(([a], [b]) => b - a)
-    .map(([month, list]) => ({ month, videos: list.sort((a, b) => b.date.localeCompare(a.date)) }));
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([key, list]) => ({
+      year: Number(key.slice(0, 4)),
+      month: Number(key.slice(5, 7)),
+      videos: list.sort((a, b) => b.date.localeCompare(a.date)),
+    }));
 }
 
 /** 영상 id → 모먼트(position → created_at 오름차순) */
@@ -59,7 +64,7 @@ export function pickHero<T extends Pick<Video, 'id'>>(videos: T[], moments: Map<
 
 export const CATEGORY_LABEL: Record<VideoCategory, string> = {
   live: '위버스 라이브',
-  official: '아일릿 채널',
+  official: 'ILLIT',
   external: '외부 출연',
 };
 

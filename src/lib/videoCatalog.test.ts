@@ -29,6 +29,7 @@ describe('videoYears', () => {
 describe('filterVideos', () => {
   const all = [live, official, external, insta];
   it('연도', () => expect(filterVideos(all, { year: 2024, category: 'all', member: 'all' }).map(x => x.id)).toEqual(['ext']));
+  it('연도 전체', () => expect(filterVideos(all, { year: 'all', category: 'all', member: 'all' })).toHaveLength(4));
   it('분류', () => expect(filterVideos(all, { year: 2025, category: 'external', member: 'all' }).map(x => x.id)).toEqual(['ig']));
   it('멤버는 라이브에서만', () => {
     expect(filterVideos(all, { year: 2025, category: 'live', member: '💙' }).map(x => x.id)).toEqual(['live']);
@@ -37,11 +38,12 @@ describe('filterVideos', () => {
 });
 
 describe('groupByMonth', () => {
-  it('월 내림차순, 월 안은 날짜 내림차순', () => {
-    const a = v('a', 'x', '2025-10-03'), b = v('b', 'x', '2025-10-20'), c = v('c', 'x', '2025-09-10');
-    expect(groupByMonth([a, c, b])).toEqual([
-      { month: 10, videos: [b, a] },
-      { month: 9, videos: [c] },
+  it('연·월 내림차순, 달 안은 날짜 내림차순', () => {
+    const a = v('a', 'x', '2025-10-03'), b = v('b', 'x', '2025-10-20'), c = v('c', 'x', '2025-09-10'), d = v('d', 'x', '2024-10-01');
+    expect(groupByMonth([a, d, c, b])).toEqual([
+      { year: 2025, month: 10, videos: [b, a] },
+      { year: 2025, month: 9, videos: [c] },
+      { year: 2024, month: 10, videos: [d] },
     ]);
   });
 });

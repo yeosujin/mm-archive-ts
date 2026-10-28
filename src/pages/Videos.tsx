@@ -63,8 +63,9 @@ function VideoCatalog() {
 
   // 필터는 URL(y, c, mb)에 둬서 상세에서 뒤로 오면 같은 조건으로 돌아온다
   const years = useMemo(() => (videos ? videoYears(videos) : []), [videos]);
-  const yearParam = Number(searchParams.get('y'));
-  const year = years.includes(yearParam) ? yearParam : years[0];
+  const yearParam = searchParams.get('y');
+  const year: number | 'all' | undefined =
+    yearParam === 'all' ? 'all' : years.includes(Number(yearParam)) ? Number(yearParam) : years[0];
   const categoryParam = searchParams.get('c');
   const category = CATEGORIES.find(c => c.value === categoryParam)?.value ?? 'all';
   const memberParam = searchParams.get('mb');
@@ -114,12 +115,12 @@ function VideoCatalog() {
           <ChipMenu
             className="mc-year-btn"
             label="연도"
-            buttonLabel={`연도 ${year}`}
-            options={years.map(y => ({ value: y, label: String(y) }))}
+            buttonLabel={`연도 ${year === 'all' ? '전체' : year}`}
+            options={[{ value: 'all' as const, label: '전체' }, ...years.map(y => ({ value: y, label: String(y) }))]}
             value={year}
             onChange={y => setFilter('y', String(y))}
           >
-            {year}
+            {year === 'all' ? '전체' : year}
           </ChipMenu>
         )}
         <div className="mc-chips">
@@ -168,10 +169,10 @@ function VideoCatalog() {
         />
       )}
 
-      {months.map(({ month, videos: list }) => (
-        <section key={month} className="mc-month">
+      {months.map(({ year: y, month, videos: list }) => (
+        <section key={`${y}-${month}`} className="mc-month">
           <h2 className="mc-month-title">
-            {month}월 <small>{list.length}개</small>
+            {year === 'all' ? `${y}년 ${month}월` : `${month}월`} <small>{list.length}개</small>
           </h2>
           <div className="mc-rail">
             {list.map(v => (
