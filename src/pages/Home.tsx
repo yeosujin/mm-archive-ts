@@ -18,6 +18,8 @@ import MomentViewer from '../components/MomentViewer';
 const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
 
 const AUTO_SHOWN_KEY = 'mmemory.storyAutoShownDate';
+// ?date=YYYY-MM-DD로 날짜를 바꿔 볼 때(확인용)는 '하루 한 번'·'대체 날 제외' 규칙 없이 항상 자동으로 연다
+const DATE_OVERRIDDEN = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('date');
 
 interface HomeStory {
   years: StoryYear[];
@@ -66,6 +68,7 @@ export default function Home() {
   // 그날 첫 방문이면 자동 열기를 정할 때까지 입장 로고 화면을 붙잡아 둔다
   const [autoCandidate] = useState(() => {
     if (storyParam !== null || momentParam !== null) return false;
+    if (DATE_OVERRIDDEN) return true;
     try { return localStorage.getItem(AUTO_SHOWN_KEY) !== today; } catch { return false; }
   });
   const splash = useEntrySplash();
@@ -111,7 +114,7 @@ export default function Home() {
   // 기기에 저장된 데이터로 열 수 있으면 바로 열고, 아니면 새로 받은 데이터(final)로 정한다
   const maybeAutoOpen = useEffectEvent((s: HomeStory | null, final: boolean) => {
     if (autoTriedRef.current) return;
-    const opens = !!s && s.years.length > 0 && !s.isFallback;
+    const opens = !!s && s.years.length > 0 && (DATE_OVERRIDDEN || !s.isFallback);
     // 저장분엔 없어도 새 데이터엔 있을 수 있다
     if (!opens && !final) return;
     autoTriedRef.current = true;
@@ -119,7 +122,8 @@ export default function Home() {
     if (!s || momentParam !== null) return;
     let lastShown: string | null = null;
     try { lastShown = localStorage.getItem(AUTO_SHOWN_KEY); } catch { /* 저장소 막힘 */ }
-    if (!shouldAutoOpen(lastShown, today, s.years.length > 0, s.isFallback)) return;
+    if (!DATE_OVERRIDDEN && !shouldAutoOpen(lastShown, today, s.years.length > 0, s.isFallback)) return;
+    if (DATE_OVERRIDDEN && s.years.length === 0) return;
     if (storyParam === null) {
       const first = s.years[0];
       preloadFrame(first.frames[0]);
@@ -127,7 +131,9 @@ export default function Home() {
       if (entrySplashPhase() === 'on') pendingAutoRef.current = first.year;
       else openStory(String(first.year));
     }
-    try { localStorage.setItem(AUTO_SHOWN_KEY, today); } catch { /* 저장소 막힘 */ }
+    if (!DATE_OVERRIDDEN) {
+      try { localStorage.setItem(AUTO_SHOWN_KEY, today); } catch { /* 저장소 막힘 */ }
+    }
   });
 
   useEffect(() => maybeAutoOpen(story, false), [story]);
