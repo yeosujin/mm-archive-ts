@@ -123,9 +123,11 @@ export default function Calendar() {
         archivesByDate[v.date].push({ id: v.id, type: 'video', title: v.title, path: '/videos', icon: v.icon });
       });
 
-      // 영상에 연결되지 않은 모먼트만 표시
+      // 상위 영상과 날짜가 같은 모먼트는 영상 항목으로 이미 표시되므로 제외.
+      // 날짜가 다르면(독립 모먼트 포함) 자기 날짜에 별도 표시 — '그 해 오늘' 판정 규칙과 일치시킴
       moments.forEach((m: Moment) => {
-        if (m.video_id) return; // 영상에 연결된 모먼트는 제외
+        const parentVideo = m.video_id ? videos.find(v => v.id === m.video_id) : undefined;
+        if (parentVideo && parentVideo.date === m.date) return;
         if (!archivesByDate[m.date]) archivesByDate[m.date] = [];
         archivesByDate[m.date].push({ id: m.id, type: 'moment', title: m.title, path: '/moments' });
       });
