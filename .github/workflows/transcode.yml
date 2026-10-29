@@ -1,0 +1,40 @@
+name: Transcode R2 Videos
+
+# 어드민이 새로 올린 모먼트·포스트 영상을 가벼운 mp4로 바꾼다.
+# 올린 직후 잠깐은 원본이 재생되고, 다음 실행 때 변환본으로 바뀐다.
+# 대기 행이 없으면 DB 조회만 하고 끝난다.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: '최대 처리 개수'
+        default: '30'
+
+# 두 실행이 같은 행을 동시에 처리하지 않도록
+concurrency:
+  group: transcode
+  cancel-in-progress: false
+
+jobs:
+  transcode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      VITE_R2_ACCOUNT_ID: ${{ secrets.VITE_R2_ACCOUNT_ID }}
+      VITE_R2_ACCESS_KEY_ID: ${{ secrets.VITE_R2_ACCESS_KEY_ID }}
+      VITE_R2_SECRET_ACCESS_KEY: ${{ secrets.VITE_R2_SECRET_ACCESS_KEY }}
+      VITE_R2_BUCKET_NAME: ${{ secrets.VITE_R2_BUCKET_NAME }}
+      VITE_R2_PUBLIC_URL: ${{ secrets.VITE_R2_PUBLIC_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm ci
+      - run: npx tsx scripts/transcode-r2-videos.ts --encoder libx264 --limit ${{ inputs.limit || '30' }}

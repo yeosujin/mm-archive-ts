@@ -2,7 +2,7 @@
 type: meta
 title: "Index"
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 tags: [meta, index]
 ---
 
@@ -12,7 +12,7 @@ tags: [meta, index]
 
 ## Domains (9)
 
-[[domains/_index|_index]] · [[videos-moments]] · [[posts]] · [[photos]] · [[episodes]] · [[articles]] · [[search]] · [[ask]] · [[home-calendar]] · [[settings]]
+[[domains/_index|_index]] · [[videos-moments]] · [[posts]] · [[photos]] · [[episodes]] · [[articles]] (2.0.0 제거) · [[search]] · [[ask]] · [[home-calendar]] · [[settings]]
 
 ## Architecture (5)
 

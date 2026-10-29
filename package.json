@@ -1,7 +1,7 @@
 {
   "name": "mmemory",
   "private": true,
-  "version": "1.20.7",
+  "version": "2.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,7 +11,8 @@
     "backfill:thumb-hash": "tsx scripts/backfill-thumb-hash.ts",
     "backfill:embeddings": "tsx scripts/backfill-embeddings.ts",
     "test": "vitest run",
-    "tweet:dry": "tsx scripts/dailyTweet/index.ts --dry-run"
+    "tweet:dry": "tsx scripts/dailyTweet/index.ts --dry-run",
+    "transcode": "tsx scripts/transcode-r2-videos.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.971.0",

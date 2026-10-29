@@ -1,0 +1,669 @@
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
+import type { StoryFrame, StoryYear } from '../lib/onThisDayStory';
+import { contentKey, frameDurationMs, frameMedia } from '../lib/onThisDayStory';
+import { CloseIcon, VolumeOnIcon, VolumeOffIcon, ShareIcon, PlayIcon } from './Icons';
+import { requestPlay, release } from '../lib/videoPlaybackCoordinator';
+import { shareOrDownloadVideo } from '../lib/shareVideo';
+import { getSessionSoundOn, setSessionSoundOn } from '../lib/viewerSound';
+import { useStoryGestures } from '../hooks/useStoryGestures';
+import { useData } from '../hooks/useData';
+import { prefersReducedMotion } from '../lib/networkPrefs';
+import StoryFrameView, { type FrameReady } from './story/StoryFrameView';
+
+interface Props {
+  years: StoryYear[];
+  /** 이 해부터 */
+  startYear: number;
+  /** 그 해의 몇 번째 프레임부터 (범위 밖이면 맞춘다) */
+  startFrame?: number;
+  /**
+   * 자동으로 열렸으면 음소거로 시작 (사용자 제스처가 없어 소리 재생이 막힌다).
+   * 열기도 천천히: 홈이 카드를 들어 올리고 화면을 살짝 어둡게 한 데서 이어 펼친다
+   */
+  autoStarted: boolean;
+  /**
+   * 그 해 frameIndex번째 프레임이 든 카드의 화면 위치. 열 때 그 카드에서 커지고, 닫을 때 그 카드로 줄어든다.
+   * null이면(카드가 화면 밖 등) 가운데서 살짝 커지며/작아지며 나타나고 사라진다
+   */
+  originFor: (year: number, frameIndex: number) => StoryOrigin | null;
+  /** 닫히는 중 (URL에선 이미 빠졌다 — 뒤로가기 포함). 카드로 줄어든 뒤 onExited */
+  closing: boolean;
+  /** 닫기 요청 (URL에서 뺀다) */
+  onClose: () => void;
+  /** 닫는 애니메이션이 끝남 — 이제 내려도 된다 */
+  onExited: () => void;
+}
+
+/** 카드의 화면 위치(뷰포트 좌표)와 모양 */
+export interface StoryOrigin {
+  rect: { left: number; top: number; width: number; height: number };
+  radius: number;
+  /** 카드 이미지. 커지고 줄어드는 동안 이것을 보여준다 (없으면 카드 기본 배경) */
+  image?: string;
+}
+
+interface Pos {
+  yi: number;
+  fi: number;
+  /** 같은 프레임을 처음부터 다시 볼 때도 새로 그리도록 매 이동마다 올린다 */
+  seq: number;
+}
+
+// 영상이 안 열리면 사진처럼 이 시간만큼 보여주고 넘긴다
+const FAILED_VIDEO_MS = 5000;
+// 넘긴 프레임이 아직 안 떴으면 앞 프레임을 남겨 두다가, 뜨면 이만큼 겹쳐 바꾼다.
+// 그래도 안 뜨면 REVEAL_TIMEOUT_MS 뒤엔 새 프레임(흐린 배경·포스터)을 그냥 보인다
+const REVEAL_MS = 150;
+const REVEAL_TIMEOUT_MS = 1200;
+
+// 카드에서 커지기: 자동 열기는 '카드가 열린다'가 보이게 천천히(가속→감속), 카드를 누르면 빠르게
+const AUTO_ZOOM_MS = 420;
+const TAP_ZOOM_MS = 400;
+const AUTO_EASE = 'cubic-bezier(0.65, 0, 0.35, 1)';
+// 누른 카드에서 커지기·카드로 줄어들기: 첫 순간에 확 튀지 않게 부드럽게 출발해 감속
+const CARD_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+// 다 커진 뒤 카드 그림이 걷히며 첫 장면이 드러나는 시간
+const SETTLE_MS = 220;
+// 다 커진 뒤 위 막대·캡션이 떠오르기 시작하는 때와 그 길이. 재생·진행은 다 커진 뒤 PLAY_AFTER_MS에 시작
+const CHROME_DELAY_MS = 100;
+const CHROME_MS = 220;
+const PLAY_AFTER_MS = 150;
+// 카드로 줄어들기
+const SHRINK_MS = 350;
+// 카드 위치를 모를 때 가운데서 커지기/작아지기, 동작 줄이기 설정이면 페이드
+const POP_MS = 300;
+const FADE_MS = 200;
+const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+// 자동 열기 직전 홈이 깔아 둔 어두운 막(home.css .hm-scrim, 검정 35%) — 뷰어 막(.st-backdrop, 검정 60%)이 그 농도에서 이어 짙어진다
+const AUTO_SCRIM = 0.35 / 0.6;
+const FULL_TRANSFORM = 'translate(0px, 0px) scale(1)';
+const FULL_CLIP = 'inset(0px 0px round 0px)';
+
+/**
+ * 전체 화면 창(vw×vh, transform-origin 왼쪽 위)을 카드 자리에 겹치는 값.
+ * 비율을 지키려고 한 배율 s로 줄이고(카드를 덮는 쪽), 남는 부분은 clip-path로 가운데만 남긴다.
+ * box는 그 남는 영역(창 좌표) — 카드 그림을 여기에 cover로 채우면 화면에서 카드와 똑같이 보인다
+ */
+function fitToCard({ rect, radius }: StoryOrigin, vw: number, vh: number) {
+  const s = Math.max(rect.width / vw, rect.height / vh);
+  const w = rect.width / s;
+  const h = rect.height / s;
+  const ix = (vw - w) / 2;
+  const iy = (vh - h) / 2;
+  return {
+    // 창의 점 (x, y) → (tx + s·x, ty + s·y). 남는 영역의 왼쪽 위 (ix, iy)가 카드 왼쪽 위에 오게
+    transform: `translate(${rect.left - s * ix}px, ${rect.top - s * iy}px) scale(${s})`,
+    clipPath: `inset(${iy}px ${ix}px round ${radius / s}px)`,
+    box: { left: `${ix}px`, top: `${iy}px`, width: `${w}px`, height: `${h}px` },
+  };
+}
+
+const fullBox = (vw: number, vh: number) => ({ left: '0px', top: '0px', width: `${vw}px`, height: `${vh}px` });
+
+/** 가운데를 기준으로 k배 (transform-origin이 왼쪽 위라 직접 옮긴다) */
+const centerScale = (k: number, vw: number, vh: number, dy = 0) =>
+  `translate(${((1 - k) * vw) / 2}px, ${((1 - k) * vh) / 2 + dy}px) scale(${k})`;
+
+function setGhostImage(img: HTMLImageElement, src: string | undefined) {
+  if (src) {
+    img.src = src;
+    img.hidden = false;
+  } else {
+    img.removeAttribute('src');
+    img.hidden = true;
+  }
+}
+
+function isSaveData(): boolean {
+  const conn = (navigator as { connection?: { saveData?: boolean } }).connection;
+  return conn?.saveData === true;
+}
+
+
+function isVideoFrame(f: StoryFrame | undefined): boolean {
+  return f?.kind === 'moment' || (f?.kind === 'post' && f.media?.type === 'video');
+}
+
+/** 미디어(영상·사진)를 받아야 보이는 프레임 — 받는 동안 스피너 */
+function hasMedia(f: StoryFrame | undefined): boolean {
+  if (!f) return false;
+  return f.kind === 'moment' || f.kind === 'photo' || (f.kind === 'post' && !!f.media);
+}
+
+/** 다음 프레임 위치 (해 끝이면 다음 해 첫 프레임). 마지막이면 null */
+function upcoming(years: StoryYear[], at: { yi: number; fi: number } | null): { yi: number; fi: number } | null {
+  if (!at) return null;
+  if (at.fi + 1 < (years[at.yi]?.frames.length ?? 0)) return { yi: at.yi, fi: at.fi + 1 };
+  return years[at.yi + 1]?.frames.length ? { yi: at.yi + 1, fi: 0 } : null;
+}
+
+const frameAt = (years: StoryYear[], at: { yi: number; fi: number } | null) => (at ? years[at.yi]?.frames[at.fi] : undefined);
+
+export default function StoryViewer({ years, startYear, startFrame = 0, autoStarted, originFor, closing, onClose, onExited }: Props) {
+  const { memberSettings } = useData();
+  const [pos, setPos] = useState<Pos>(() => {
+    const yi = Math.max(0, years.findIndex(y => y.year === startYear));
+    const last = Math.max(0, (years[yi]?.frames.length ?? 1) - 1);
+    return { yi, fi: Math.min(Math.max(0, Math.floor(startFrame)), last), seq: 0 };
+  });
+  const [soundOn, setSoundOn] = useState(() => !autoStarted && getSessionSoundOn());
+  const [held, setHeld] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [hidden, setHidden] = useState(() => document.hidden);
+  // 음소거로도 재생이 막힌 경우(저전력 모드 등) 가운데 재생 버튼
+  const [blocked, setBlocked] = useState(false);
+  const [loading, setLoading] = useState(() => hasMedia(years[pos.yi]?.frames[pos.fi]));
+  const [downloading, setDownloading] = useState(false);
+  // 그려 둔 프레임(지금·다음·남겨 둔 앞)의 미디어 준비 단계
+  const [ready, setReady] = useState<ReadonlyMap<string, FrameReady>>(() => new Map());
+  // 넘긴 프레임이 뜰 때까지 아래에 남겨 두는 앞 프레임
+  const [under, setUnder] = useState<StoryFrame | null>(null);
+  // 기다리다 시간이 다 된 이동(seq) — 안 떴어도 새 프레임을 보인다
+  const [lateSeq, setLateSeq] = useState(-1);
+
+  const rootRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  // 커지고 줄어드는 동안 창을 덮는 카드 그림
+  const ghostRef = useRef<HTMLDivElement>(null);
+  const ghostImgRef = useRef<HTMLImageElement>(null);
+  const animsRef = useRef<Animation[]>([]);
+  const fillRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  // 이벤트·rAF에서 바로 읽는 현재 위치 (렌더 전에 두 번 넘겨도 같은 칸을 두 번 밟지 않게)
+  const posRef = useRef(pos);
+  const elapsedRef = useRef(0);
+  const videoFailedRef = useRef(false);
+  const soundRef = useRef(soundOn);
+  const closedRef = useRef(false);
+  // 미리 받는 영상. 참조를 쥐고 있어야 받기가 이어진다
+  const preloadRef = useRef<HTMLVideoElement | null>(null);
+  // 지금 프레임 층 (늦게 뜨면 페이드인)
+  const layerRef = useRef<HTMLDivElement>(null);
+  // 지금 화면 맨 위에 보이는 프레임 (넘긴 프레임이 아직 안 떴으면 남겨 둔 앞 프레임)
+  const shownRef = useRef<StoryFrame | null>(null);
+
+  const year = years[pos.yi];
+  const frame = year?.frames[pos.fi];
+  // 남겨 둔 앞 프레임 위로, 새 프레임은 뭐라도(썸네일·첫 장면·원본) 뜨거나 시간이 다 되면 보인다
+  const waiting = !!under && hasMedia(frame) && !(frame && ready.has(frame.key)) && lateSeq !== pos.seq;
+  // 열리는 애니메이션이 끝날 때까지는 재생·진행을 멈춰 둔다 — 화면이 다 열린 뒤 부드럽게 시작
+  const [entering, setEntering] = useState(true);
+  const paused = held || userPaused || sheetOpen || hidden || entering || closing;
+
+  const close = useCallback(() => {
+    if (closedRef.current) return;
+    closedRef.current = true;
+    onClose();
+  }, [onClose]);
+
+
+  const go = (yi: number, fi: number) => {
+    const next = { yi, fi, seq: posRef.current.seq + 1 };
+    const target = years[yi]?.frames[fi];
+    // 미리 준비해 둔 프레임이면 바로 바꾸고, 아니면 지금 보이는 프레임을 남겨 두고 뜰 때 겹쳐 바꾼다
+    const level = target ? ready.get(target.key) : undefined;
+    const shown = shownRef.current;
+    const instant = !hasMedia(target) || level !== undefined || shown?.key === target?.key;
+    posRef.current = next;
+    elapsedRef.current = 0;
+    videoFailedRef.current = level === 'error';
+    setPos(next);
+    setUnder(instant ? null : shown);
+    setUserPaused(false);
+    setBlocked(false);
+    // 영상은 재생이 시작될 때(playing) 스피너를 끈다. 사진은 원본을 이미 받았으면 바로 끈다
+    setLoading(hasMedia(target) && level !== 'error' && (isVideoFrame(target) || level !== 'full'));
+  };
+
+  const next = () => {
+    const { yi, fi } = posRef.current;
+    if (fi + 1 < years[yi].frames.length) go(yi, fi + 1);
+    else if (yi + 1 < years.length) go(yi + 1, 0);
+    else close();
+  };
+
+  // 해 첫 프레임에서 이전 → 이전 해 마지막 프레임. 맨 처음이면 처음부터 다시
+  const prev = () => {
+    const { yi, fi } = posRef.current;
+    if (fi > 0) go(yi, fi - 1);
+    else if (yi > 0) go(yi - 1, years[yi - 1].frames.length - 1);
+    else go(0, 0);
+  };
+
+  const nextYear = () => {
+    const { yi } = posRef.current;
+    if (yi + 1 < years.length) go(yi + 1, 0);
+    else close();
+  };
+
+  const prevYear = () => go(Math.max(0, posRef.current.yi - 1), 0);
+
+  const gestures = useStoryGestures(rootRef, {
+    onTapPrev: () => { prev(); },
+    onTapNext: () => { next(); },
+    onSwipePrev: () => { prevYear(); },
+    onSwipeNext: () => { nextYear(); },
+    onHoldStart: () => setHeld(true),
+    onHoldEnd: () => setHeld(false),
+    onDismiss: close,
+  });
+
+  // muted를 먼저 지정한 뒤 재생. 소리 재생이 막히면 음소거로 다시, 그것도 막히면 재생 버튼
+  const playWithFallback = (video: HTMLVideoElement) => {
+    const seq = posRef.current.seq;
+    video.muted = !soundRef.current;
+    requestPlay(video);
+    video.play().catch((err: unknown) => {
+      if (posRef.current.seq !== seq) return;
+      // AbortError(빠르게 넘겨서 pause된 경우)는 정책 차단이 아니다
+      if (!(err instanceof Error) || err.name !== 'NotAllowedError') return;
+      if (!video.muted) {
+        video.muted = true;
+        soundRef.current = false;
+        setSessionSoundOn(false);
+        setSoundOn(false);
+        video.play().catch(() => { if (posRef.current.seq === seq) setBlocked(true); });
+      } else {
+        setBlocked(true);
+      }
+    });
+  };
+
+  // 같은 영상 요소를 이어 쓰므로, 다시 보게 된 프레임(앞으로 돌아감·처음부터 다시)은 처음부터
+  const rewind = useEffectEvent(() => {
+    const video = videoRef.current;
+    if (video && video.currentTime > 0) video.currentTime = 0;
+  });
+
+  useEffect(() => rewind(), [pos.seq]);
+
+  // 프레임이 바뀌거나 멈춤이 풀리면 재생, 멈추면 정지. 남겨 둔 앞 프레임·준비 중인 다음 프레임 영상은 멈춘다
+  const syncPlayback = useEffectEvent((isPaused: boolean) => {
+    const video = videoRef.current;
+    rootRef.current?.querySelectorAll('video').forEach(v => { if (v !== video && !v.paused) v.pause(); });
+    if (!video) return;
+    if (isPaused) video.pause();
+    else if (!blocked) playWithFallback(video);
+  });
+
+  useEffect(() => syncPlayback(paused), [pos.seq, paused]);
+
+  // 다음 프레임은 화면에 숨겨 그려 두므로(아래 층) 그다음 프레임만 가볍게 미리 받는다 — 사진·썸네일, 영상은 메타데이터만
+  const preloadNext = useEffectEvent(() => {
+    if (isSaveData()) return;
+    const { video, image } = frameMedia(frameAt(years, upcoming(years, upcoming(years, posRef.current))));
+    if (image) new Image().src = image;
+    if (video && preloadRef.current?.src !== video) {
+      const el = document.createElement('video');
+      el.preload = 'metadata';
+      el.muted = true;
+      el.src = video;
+      preloadRef.current = el;
+    }
+  });
+
+  useEffect(() => preloadNext(), [pos.seq]);
+
+  // 지금 보이는 프레임 기록 (다음 이동에서 아래에 남겨 둘 프레임)
+  useLayoutEffect(() => {
+    shownRef.current = waiting ? under : frame ?? null;
+  });
+
+  // 기다리는 동안 시간이 다 되면 안 떴어도 새 프레임을 보인다
+  useEffect(() => {
+    if (!waiting) return;
+    const seq = pos.seq;
+    const t = window.setTimeout(() => setLateSeq(seq), REVEAL_TIMEOUT_MS);
+    return () => window.clearTimeout(t);
+  }, [waiting, pos.seq]);
+
+  // 새 프레임이 뜨면 남겨 둔 앞 프레임 위로 겹쳐 바꾸고, 다 바뀌면 앞 프레임을 내린다
+  useLayoutEffect(() => {
+    const el = layerRef.current;
+    if (!under || waiting || !el) return;
+    const anim = el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: REVEAL_MS, easing: 'ease-out' });
+    anim.finished.then(() => setUnder(null), () => { /* 다시 넘겨 취소됨 */ });
+    return () => anim.cancel();
+  }, [under, waiting]);
+
+  const onFrameReady = (key: string, level: FrameReady | null) => {
+    setReady(prev => {
+      const cur = prev.get(key);
+      if (level === null) {
+        if (!cur) return prev;
+        const m = new Map(prev);
+        m.delete(key);
+        return m;
+      }
+      // 썸네일은 첫 장면·원본보다 늦게 떠도 단계를 낮추지 않는다
+      if (cur === level || (level === 'poster' && cur)) return prev;
+      return new Map(prev).set(key, level);
+    });
+    // 지금 프레임 사진을 다 받았으면(또는 실패) 스피너를 끈다
+    const current = frameAt(years, posRef.current);
+    if (level === 'full' && current?.key === key && !isVideoFrame(current)) setLoading(false);
+  };
+
+  // 진행: 시간 프레임은 경과 시간, 영상 프레임은 재생 위치. 멈춤 동안은 그대로
+  const onTick = useEffectEvent((dt: number) => {
+    if (closedRef.current || !frame) return;
+    const video = videoRef.current;
+    let duration = frameDurationMs(frame);
+    if (duration === null && videoFailedRef.current) duration = FAILED_VIDEO_MS;
+    let pct = 0;
+    if (duration === null) {
+      if (video?.duration) pct = video.currentTime / video.duration;
+    } else {
+      if (!paused) elapsedRef.current += dt;
+      pct = elapsedRef.current / duration;
+      if (pct >= 1) { next(); return; }
+    }
+    if (fillRef.current) fillRef.current.style.width = `${Math.min(100, pct * 100)}%`;
+    // 에피소드: 긴 대화는 진행에 맞춰 아래로 내린다
+    const chat = scrollRef.current;
+    if (frame.kind === 'episode' && chat) chat.scrollTop = pct * (chat.scrollHeight - chat.clientHeight);
+  });
+
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const loop = (t: number) => {
+      // 탭이 가려져 오래 멈췄다 돌아와도 한 번에 넘어가지 않게 간격 상한
+      onTick(Math.min(100, t - last));
+      last = t;
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // 앱 전환·화면 꺼짐이면 멈춤
+  useEffect(() => {
+    const handler = () => setHidden(document.hidden);
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, []);
+
+  // body 스크롤 잠금 + 언마운트 시 영상 정지. 카드 위치를 재기 전에 잠근다(아래 열기보다 먼저 선언).
+  // 스크롤바가 자리를 차지하는 화면(PC)에선 그만큼 오른쪽 여백을 줘 페이지가 옆으로 밀리지 않게
+  useLayoutEffect(() => {
+    const body = document.body;
+    const prevOverflow = body.style.overflow;
+    const prevPadding = body.style.paddingRight;
+    const gap = window.innerWidth - document.documentElement.clientWidth;
+    body.style.overflow = 'hidden';
+    if (gap > 0) body.style.paddingRight = `${gap}px`;
+    const videoBox = videoRef;
+    const anims = animsRef;
+    return () => {
+      body.style.overflow = prevOverflow;
+      body.style.paddingRight = prevPadding;
+      anims.current.forEach(a => a.cancel());
+      const video = videoBox.current;
+      if (video) { video.pause(); release(video); }
+      preloadRef.current?.removeAttribute('src');
+    };
+  }, []);
+
+  // 열기: 카드 자리에서 카드 그림을 보이며 전체 화면으로 커진 뒤, 그림이 걷히며 첫 장면이 드러나고
+  // 위 막대·캡션이 떠오른다. 재생·진행을 시작할 때까지의 시간(ms)을 돌려준다
+  const animateOpen = useEffectEvent((): number => {
+    const root = rootRef.current;
+    const ghost = ghostRef.current;
+    const img = ghostImgRef.current;
+    const backdrop = backdropRef.current;
+    if (!root || !ghost || !img || !backdrop) return 0;
+    const reduced = prefersReducedMotion();
+    const origin = reduced ? null : originFor(years[pos.yi].year, pos.fi);
+    const vw = root.clientWidth;
+    const vh = root.clientHeight;
+    const scrim = autoStarted && !reduced ? AUTO_SCRIM : 0;
+    const chrome = root.querySelectorAll('.st-top, .st-side, .st-cap');
+    const chromeIn = (at: number) => [...chrome].map(el =>
+      el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CHROME_MS, delay: at, easing: 'ease-out', fill: 'backwards' }));
+
+    if (!origin) {
+      const ms = reduced ? FADE_MS : POP_MS;
+      const from = reduced ? FULL_TRANSFORM : centerScale(0.94, vw, vh);
+      animsRef.current = [
+        root.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: FULL_TRANSFORM }], { duration: ms, easing: EASE }),
+        backdrop.animate([{ opacity: scrim }, { opacity: 1 }], { duration: ms, easing: 'ease-out' }),
+      ];
+      return reduced ? ms : ms + SETTLE_MS;
+    }
+
+    const zoom = autoStarted ? AUTO_ZOOM_MS : TAP_ZOOM_MS;
+    const fit = fitToCard(origin, vw, vh);
+    setGhostImage(img, origin.image);
+    const timing = { duration: zoom, easing: autoStarted ? AUTO_EASE : CARD_EASE };
+    animsRef.current = [
+      root.animate([{ transform: fit.transform, clipPath: fit.clipPath }, { transform: FULL_TRANSFORM, clipPath: FULL_CLIP }], timing),
+      ghost.animate([fit.box, fullBox(vw, vh)], timing),
+      // 다 커질 때까지는 카드 그림 그대로, 그 뒤 걷힌다
+      ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: SETTLE_MS, delay: zoom, easing: 'ease', fill: 'backwards' }),
+      backdrop.animate([{ opacity: scrim }, { opacity: 1 }], timing),
+      ...chromeIn(zoom + CHROME_DELAY_MS),
+    ];
+    return zoom + PLAY_AFTER_MS;
+  });
+
+  useLayoutEffect(() => {
+    const t = window.setTimeout(() => setEntering(false), animateOpen());
+    return () => window.clearTimeout(t);
+  }, []);
+
+  // 닫기: 지금 보고 있는 콘텐츠의 카드로 줄어든다(손으로 내리던 중이면 그 자리에서). 카드를 못 찾으면 작아지며 사라진다
+  const animateClose = useEffectEvent(() => {
+    closedRef.current = true;
+    const root = rootRef.current;
+    const ghost = ghostRef.current;
+    const img = ghostImgRef.current;
+    const backdrop = backdropRef.current;
+    if (!root || !ghost || !img || !backdrop) {
+      onExited();
+      return;
+    }
+    // 열리던 중이어도 지금 모습에서 이어지게 현재 값을 읽고 멈춘다
+    const rs = getComputedStyle(root);
+    const gs = getComputedStyle(ghost);
+    const from = {
+      transform: rs.transform === 'none' ? FULL_TRANSFORM : rs.transform,
+      clipPath: rs.clipPath === 'none' ? FULL_CLIP : rs.clipPath,
+      opacity: rs.opacity,
+    };
+    const ghostFrom = { box: { left: gs.left, top: gs.top, width: gs.width, height: gs.height }, opacity: gs.opacity };
+    const backdropFrom = getComputedStyle(backdrop).opacity;
+    animsRef.current.forEach(a => a.cancel());
+
+    const reduced = prefersReducedMotion();
+    const { yi, fi } = posRef.current;
+    const origin = reduced ? null : originFor(years[yi].year, fi);
+    const vw = root.clientWidth;
+    const vh = root.clientHeight;
+    const fill = 'forwards' as const;
+    let main: Animation;
+
+    if (origin) {
+      const fit = fitToCard(origin, vw, vh);
+      setGhostImage(img, origin.image);
+      const timing = { duration: SHRINK_MS, easing: CARD_EASE, fill };
+      main = root.animate([{ transform: from.transform, clipPath: from.clipPath }, { transform: fit.transform, clipPath: fit.clipPath }], timing);
+      animsRef.current = [
+        main,
+        ghost.animate([ghostFrom.box, fit.box], timing),
+        // 앞부분에 카드 그림이 덮여, 다 줄어들면 카드 그대로
+        ghost.animate([{ opacity: ghostFrom.opacity }, { opacity: 1 }], { duration: SHRINK_MS * 0.4, easing: 'ease-out', fill }),
+        backdrop.animate([{ opacity: backdropFrom }, { opacity: 0 }], timing),
+      ];
+    } else {
+      const ms = reduced ? FADE_MS : POP_MS;
+      const dy = root.getBoundingClientRect().top; // 손으로 내린 만큼
+      const to = reduced ? from.transform : centerScale(0.92, vw, vh, dy);
+      const timing = { duration: ms, easing: 'ease-out', fill };
+      main = root.animate([{ ...from }, { transform: to, clipPath: from.clipPath, opacity: 0 }], timing);
+      animsRef.current = [main, backdrop.animate([{ opacity: backdropFrom }, { opacity: 0 }], timing)];
+    }
+    main.finished.then(() => onExited(), () => { /* 언마운트로 취소됨 */ });
+  });
+
+  useLayoutEffect(() => {
+    if (closing) animateClose();
+  }, [closing]);
+
+  // 키보드(PC): ←/→ 프레임, ↑/↓ 해, Esc 닫기(시트가 열려 있으면 시트), Space 멈춤
+  const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (sheetOpen) setSheetOpen(false);
+      else close();
+      return;
+    }
+    if (sheetOpen) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); nextYear(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); prevYear(); }
+    else if (e.key === ' ') { e.preventDefault(); setUserPaused(p => !p); }
+  });
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => onKeyDown(e);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  const toggleSound = () => {
+    const on = !soundOn;
+    soundRef.current = on;
+    setSessionSoundOn(on);
+    setSoundOn(on);
+    if (videoRef.current) videoRef.current.muted = !on;
+  };
+
+  const handleSave = async () => {
+    if (downloading || frame?.kind !== 'moment') return;
+    try {
+      setDownloading(true);
+      await shareOrDownloadVideo(frame.moment.tweet_url);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const playBlocked = () => {
+    setBlocked(false);
+    if (videoRef.current) playWithFallback(videoRef.current);
+  };
+
+  const onVideoError = () => { videoFailedRef.current = true; setLoading(false); };
+  const onVideoWaiting = () => setLoading(true);
+  const onVideoPlaying = () => setLoading(false);
+
+  if (!year || !frame) return null;
+  const post = frame.kind === 'post' ? frame.post : null;
+
+  // 그릴 프레임: 남겨 둔 앞 프레임 · 지금 · 다음 프레임(숨겨 미리 준비). 키를 프레임별로 고정하고 순서대로 두어,
+  // 다음 프레임이 지금이 될 때 요소를 그대로 이어 쓴다. 지금 프레임을 기다리는 동안과 데이터 절약 모드에선 다음 프레임을 두지 않는다
+  const all = years.flatMap(y => y.frames);
+  const nextFrame = waiting || isSaveData() ? undefined : frameAt(years, upcoming(years, pos));
+  const layers = [under, frame, nextFrame]
+    .filter((f, i, list): f is StoryFrame => !!f && list.findIndex(g => g?.key === f.key) === i)
+    .sort((a, b) => all.indexOf(a) - all.indexOf(b));
+
+  return (
+    <>
+      <div ref={backdropRef} className="st-backdrop" aria-hidden />
+      <div ref={rootRef} className={closing ? 'st is-closing' : 'st'} role="dialog" aria-modal="true" aria-label="그 해 오늘">
+        <div className="st-stage" {...gestures}>
+          {layers.map(f => {
+            const active = f.key === frame.key;
+            const role = active ? (waiting ? 'is-wait' : 'is-cur') : f.key === under?.key ? 'is-under' : 'is-next';
+            return (
+              <div key={f.key} ref={active ? layerRef : undefined} className={`st-frame ${role}`} inert={!active} aria-hidden={!active}>
+                <StoryFrameView
+                  frame={f}
+                  memberSettings={memberSettings}
+                  active={active}
+                  videoRef={videoRef}
+                  scrollRef={scrollRef}
+                  onVideoEnded={next}
+                  onVideoError={onVideoError}
+                  onVideoWaiting={onVideoWaiting}
+                  onVideoPlaying={onVideoPlaying}
+                  onReady={onFrameReady}
+                  onMore={() => setSheetOpen(true)}
+                />
+              </div>
+            );
+          })}
+          {blocked && (
+            <button type="button" className="st-play" onClick={playBlocked} aria-label="재생">
+              <PlayIcon size={44} />
+            </button>
+          )}
+          {userPaused && !blocked && <span className="st-paused" aria-hidden><PlayIcon size={44} /></span>}
+          {loading && !paused && !blocked && <span className="st-spinner" aria-hidden />}
+        </div>
+
+        <div className="st-top">
+          {/* 모든 해의 프레임을 한 줄로. 프레임 사이는 좁게, 해 사이는 넓게 띄운다 */}
+          <div className="st-bars">
+            {years.map((y, yi) => (
+              <span key={y.year} className="st-bars-year" style={{ flexGrow: y.frames.length }}>
+                {y.frames.map((f, i) => {
+                  const current = yi === pos.yi && i === pos.fi;
+                  const done = yi < pos.yi || (yi === pos.yi && i < pos.fi);
+                  // 앞 프레임과 다른 콘텐츠(다른 영상·사진 묶음·포스트·에피소드)면 조금 더 띄운다
+                  const newContent = i > 0 && contentKey(y.frames[i - 1]) !== contentKey(f);
+                  return (
+                    <i key={f.key} className={newContent ? 'is-new' : undefined}>
+                      <b ref={current ? fillRef : undefined} style={current ? undefined : { width: done ? '100%' : '0%' }} />
+                    </i>
+                  );
+                })}
+              </span>
+            ))}
+          </div>
+          <div className="st-row">
+            <span className="st-label">{year.label ?? `${year.year}년 오늘${year.yearsAgo > 0 ? ` · ${year.yearsAgo}년 전` : ''}`}</span>
+            <span className="st-actions">
+              {isVideoFrame(frame) && (
+                <button type="button" className="st-btn" onClick={toggleSound} aria-label={soundOn ? '음소거' : '소리 켜기'}>
+                  {soundOn ? <VolumeOnIcon size={24} /> : <VolumeOffIcon size={24} />}
+                </button>
+              )}
+              <button type="button" className="st-btn" onClick={close} aria-label="닫기">
+                <CloseIcon size={24} />
+              </button>
+            </span>
+          </div>
+        </div>
+
+        {frame.kind === 'moment' && (
+          <div className="st-side">
+            <button type="button" className="st-btn" onClick={handleSave} disabled={downloading} aria-label="저장">
+              {downloading ? <span className="st-btn-spinner" /> : <ShareIcon size={24} />}
+            </button>
+          </div>
+        )}
+
+
+        {post && (
+          <>
+            <div className={`st-dim${sheetOpen ? ' is-on' : ''}`} onClick={() => setSheetOpen(false)} />
+            <div className={`st-sheet${sheetOpen ? ' is-on' : ''}`} aria-hidden={!sheetOpen}>
+              <div className="st-grab" />
+              {post.content?.trim() || post.title}
+            </div>
+          </>
+        )}
+
+        <div ref={ghostRef} className="st-ghost" aria-hidden>
+          <img ref={ghostImgRef} alt="" hidden />
+        </div>
+      </div>
+    </>
+  );
+}

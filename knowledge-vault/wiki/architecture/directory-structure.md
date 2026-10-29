@@ -3,7 +3,7 @@ type: architecture
 status: stable
 tags: [architecture, structure]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 ---
 
 # 디렉토리 구조
@@ -70,6 +70,7 @@ DB 레이어를 뺀 나머지. → [[database-layer]]
 ## 캐싱
 
 `src/context/DataContext.tsx` — 5분 TTL 인메모리 캐시. `useData()` 훅으로 접근한다.
+목록 6종(videos·moments·posts·episodes·photos·memberSettings)은 `src/lib/dataCache.ts`가 `localStorage`(`mmemory.cache.v1.<이름>`, 24시간)에도 남긴다. 시작 때 '오래됨'으로 되살려 바로 그리고, 첫 `fetchX()`가 네트워크로 새로 받아 덮는다. asks는 남기지 않는다.
 
 `@tanstack/react-query`도 설치되어 있어 **두 방식이 공존한다.** 어느 쪽을 써야 하는지 정해진 규칙은 없다.
 
@@ -77,7 +78,7 @@ DB 레이어를 뺀 나머지. → [[database-layer]]
 
 - 전부 `src/App.css` 단일 파일 (`src/styles/`도 존재)
 - CSS 변수 기반 테마 (`--text-primary`, `--bg-card`, `--border`, `--accent` …)
-- 다크/라이트 테마는 `localStorage`에 저장 (`Layout.tsx`). **localStorage는 현재 테마에만 쓰인다**
+- 다크/라이트 테마는 `localStorage`에 저장 (`Layout.tsx`). 어드민 비밀번호도 `localStorage`(`ADMIN_PASSWORD_STORAGE_KEY`, 1.22.0~ — 북마클릿이 여는 새 탭에서도 로그인 유지)
 - 모바일 네비는 `position: fixed` 오버레이 (페이지 밀림 없음)
 
 ## 관련

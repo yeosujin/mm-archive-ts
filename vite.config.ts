@@ -32,16 +32,13 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
         navigateFallbackDenylist: [/^\/admin/, /^\/api/],
-        runtimeCaching: [
-          {
-            urlPattern: /\/assets\/.*\.(?:js|css|woff2?)$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'static-assets',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
-            },
-          },
-        ],
+        // 이전 배포의 precache를 지운다. 안 지우면 낡은 셸이 계속 남는다.
+        cleanupOutdatedCaches: true,
+        // /assets/* 에 runtimeCaching(CacheFirst, maxEntries 100)을 걸지 않는다.
+        // 해시가 박힌 불변 파일이라 이미 precache에 들어가는데, 거기에 CacheFirst를 또 얹으면
+        // 배포가 쌓일수록 LRU로 옛 청크가 밀려난다. 그 상태에서 낡은 index.html이 사라진 청크를
+        // 요청하면 vercel.json의 SPA 폴백이 index.html(HTML)을 200으로 돌려주고,
+        // 모듈 로드가 깨져 화면이 에러 폴백으로 떨어진다. (2026-09-18 실제 장애)
       },
     }),
   ],

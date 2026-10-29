@@ -1,0 +1,65 @@
+/* ===== 입장 로고 화면 (EntrySplash) ===== */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 1100; /* 스토리 뷰어(1000) 위 — 뷰어가 아래에서 팝업으로 뜨는 동안 덮고 있다가 사라진다 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  touch-action: none;
+}
+
+.splash.is-out {
+  pointer-events: none;
+  animation: splash-out 0.22s ease forwards;
+}
+
+/* 헤더 로고와 같은 그라데이션 글자 */
+.splash-mark {
+  position: relative;
+  display: block; /* transform이 먹도록 */
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  background: linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  /* 살짝 작고 흐린 상태에서 둥글게 부풀듯 또렷해진다 */
+  animation: splash-mark-in 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+}
+
+@keyframes splash-mark-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.86);
+    filter: blur(8px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes splash-out {
+  to { opacity: 0; }
+}
+
+/* 움직임 줄이기: 로고는 가만히, 짧게 나타났다 사라지기만 */
+@media (prefers-reduced-motion: reduce) {
+  .splash-mark {
+    animation: splash-fade-in 0.2s ease-out both;
+  }
+}
+
+@keyframes splash-fade-in {
+  from { opacity: 0; }
+}

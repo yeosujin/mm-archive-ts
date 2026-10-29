@@ -4,7 +4,7 @@ status: stable
 enforcement: should
 tags: [pattern, database, structure]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 ---
 
 # 도메인별 DB 모듈 + 배럴
@@ -22,8 +22,8 @@ src/lib/database.ts          ← 배럴. re-export만 있다
 src/lib/database/
   types.ts                   ← 모든 인터페이스 (단일 출처)
   videos.ts  moments.ts  posts.ts  photos.ts
-  episodes.ts  articles.ts  asks.ts  activities.ts
-  featured.ts  settings.ts  embeddings.ts
+  episodes.ts  asks.ts  activities.ts
+  settings.ts  embeddings.ts
 ```
 
 호출부는 예전과 똑같이 쓴다.

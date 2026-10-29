@@ -8,6 +8,7 @@ export interface Video {
   thumbnail_url?: string;
   channel_name?: string;
   platform_name?: string;
+  created_at?: string;
 }
 
 export interface Moment {
@@ -18,6 +19,9 @@ export interface Moment {
   video_id?: string;
   position?: number;
   thumbnail_url?: string;
+  /** 트랜스코딩 전 원본 URL. 채워져 있으면 변환 완료 */
+  original_url?: string | null;
+  created_at?: string;
 }
 
 export interface PostMedia {
@@ -25,6 +29,8 @@ export interface PostMedia {
   url: string;
   thumbnail?: string;
   thumb_hash?: string;
+  /** 트랜스코딩 전 원본 URL (영상만). 채워져 있으면 변환 완료 */
+  original_url?: string;
 }
 
 export interface Post {
@@ -54,21 +60,16 @@ export interface Episode {
   linked_content_type?: 'video' | 'moment' | 'post';
   linked_content_id?: string;
   comment_text?: string;
+  /**
+   * X 봇 전용 이미지(R2 URL). 공개 페이지에는 노출하지 않고
+   * scripts/dailyTweet 봇의 "그 해 오늘" 게시에만 쓴다.
+   */
+  tweet_images?: string[];
 }
 
 export interface MemberSettings {
   member1_name: string;
   member2_name: string;
-  articles_visible?: boolean;
-}
-
-export interface Article {
-  id: string;
-  title: string;
-  author: string;
-  tags: string[];
-  url: string;
-  date: string;
 }
 
 export interface Ask {
@@ -79,11 +80,6 @@ export interface Ask {
   status: 'pending' | 'answered';
   created_at: string;
   answered_at?: string;
-}
-
-export interface FeaturedContent {
-  type: 'video' | 'post' | 'moment' | 'episode' | null;
-  content_id: string | null;
 }
 
 export interface Photo {

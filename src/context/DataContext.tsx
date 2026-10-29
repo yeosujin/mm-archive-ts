@@ -5,7 +5,6 @@ import {
   getMoments,
   getPosts,
   getEpisodes,
-  getArticles,
   getAnsweredAsks,
   getPhotos,
   getMemberSettings,
@@ -21,7 +20,6 @@ const queryKeys = {
   moments: ['moments'] as const,
   posts: ['posts'] as const,
   episodes: ['episodes'] as const,
-  articles: ['articles'] as const,
   asks: ['asks'] as const,
   photos: ['photos'] as const,
   memberSettings: ['memberSettings'] as const,
@@ -89,12 +87,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     enabled: false,
     staleTime: CACHE_TIME,
   });
-  const { data: articles = null } = useQuery({
-    queryKey: queryKeys.articles,
-    queryFn: getArticles,
-    enabled: false,
-    staleTime: CACHE_TIME,
-  });
   const { data: asks = null } = useQuery({
     queryKey: queryKeys.asks,
     queryFn: getAnsweredAsks,
@@ -154,15 +146,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   }, [qc]);
 
-  const fetchArticles = useCallback(async (force = false) => {
-    if (force) await qc.invalidateQueries({ queryKey: queryKeys.articles });
-    return qc.fetchQuery({
-      queryKey: queryKeys.articles,
-      queryFn: getArticles,
-      staleTime: CACHE_TIME,
-    });
-  }, [qc]);
-
   const fetchAsks = useCallback(async (force = false) => {
     if (force) await qc.invalidateQueries({ queryKey: queryKeys.asks });
     return qc.fetchQuery({
@@ -201,7 +184,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     moments,
     posts,
     episodes,
-    articles,
     asks,
     photos,
     memberSettings,
@@ -210,14 +192,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     fetchMoments,
     fetchPosts,
     fetchEpisodes,
-    fetchArticles,
     fetchAsks,
     fetchPhotos,
     fetchMemberSettings,
     invalidateCache,
   }), [
-    videos, moments, posts, episodes, articles, asks, photos, memberSettings,
-    fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchArticles, fetchAsks, fetchPhotos, fetchMemberSettings, invalidateCache,
+    videos, moments, posts, episodes, asks, photos, memberSettings,
+    fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchAsks, fetchPhotos, fetchMemberSettings, invalidateCache,
   ]);
 
   return (

@@ -7,10 +7,10 @@ import ErrorFallback from '../components/ErrorFallback';
 // Pages
 const Home = lazy(() => import('../pages/Home'));
 const Videos = lazy(() => import('../pages/Videos'));
+const VideoDetail = lazy(() => import('../pages/VideoDetail'));
 const Moments = lazy(() => import('../pages/Moments'));
 const Posts = lazy(() => import('../pages/Posts'));
 const Episodes = lazy(() => import('../pages/Episodes'));
-const Articles = lazy(() => import('../pages/Articles'));
 const Calendar = lazy(() => import('../pages/Calendar'));
 const Search = lazy(() => import('../pages/Search'));
 const Photos = lazy(() => import('../pages/Photos'));
@@ -24,9 +24,9 @@ const AdminVideos = lazy(() => import('../pages/admin/AdminVideos'));
 const AdminMoments = lazy(() => import('../pages/admin/AdminMoments'));
 const AdminPosts = lazy(() => import('../pages/admin/AdminPosts'));
 const AdminEpisodes = lazy(() => import('../pages/admin/AdminEpisodes'));
-const AdminArticles = lazy(() => import('../pages/admin/AdminArticles'));
 const AdminPhotos = lazy(() => import('../pages/admin/AdminPhotos'));
 const AdminAsks = lazy(() => import('../pages/admin/AdminAsks'));
+const AdminCovers = lazy(() => import('../pages/admin/AdminCovers'));
 
 import PageLoader from '../components/PageLoader';
 
@@ -53,6 +53,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<PageLoader />}>
                 <Videos />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'videos/:id',
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <VideoDetail />
               </Suspense>
             ),
           },
@@ -93,14 +101,6 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<PageLoader />}>
                 <Episodes />
-              </Suspense>
-            ),
-          },
-          {
-            path: 'articles',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <Articles />
               </Suspense>
             ),
           },
@@ -181,14 +181,6 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            path: 'articles',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <AdminArticles />
-              </Suspense>
-            ),
-          },
-          {
             path: 'photos',
             element: (
               <Suspense fallback={<PageLoader />}>
@@ -201,6 +193,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<PageLoader />}>
                 <AdminAsks />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'covers',
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <AdminCovers />
               </Suspense>
             ),
           },

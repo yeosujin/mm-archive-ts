@@ -532,23 +532,6 @@
   color: var(--text-primary);
 }
 
-.featured-select-row {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.featured-select-row .form-group {
-  flex: 1;
-  min-width: 200px;
-}
-
-.featured-btn-row {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
 /* ===== Admin List ===== */
 .admin-list {
   display: flex;
@@ -563,11 +546,6 @@
   padding: 1rem;
   background: var(--bg-secondary);
   border-radius: 10px;
-}
-
-.admin-list-item.article-item {
-  flex-direction: column;
-  align-items: flex-start;
 }
 
 .admin-list-thumb {
@@ -597,19 +575,6 @@
   font-size: 0.8rem;
   color: var(--text-secondary);
   margin-bottom: 0.5rem;
-}
-
-.article-link {
-  font-size: 0.75rem;
-  color: var(--accent);
-  text-decoration: none;
-  word-break: break-all;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.article-link:hover {
-  text-decoration: underline;
 }
 
 .admin-list-tags {
@@ -665,7 +630,6 @@
   height: 46px;
   box-sizing: border-box;
 }
-
 
 /* Member settings */
 .member-settings-form {
@@ -979,6 +943,63 @@
   transition: width 0.3s ease;
 }
 
+/* Tweet-only Images (X 봇 전용, 공개 페이지 비노출) */
+.tweet-image-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tweet-image-list:empty {
+  display: none;
+}
+
+.tweet-image-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tweet-image-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.tweet-image-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.tweet-image-move,
+.tweet-image-remove {
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tweet-image-move:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.tweet-image-remove {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: transparent;
+  color: #ef4444;
+}
+
 /* Episode Type Tabs */
 .episode-type-tabs {
   display: flex;
@@ -1217,19 +1238,6 @@
     padding: 0.75rem;
   }
 
-  .featured-select-row {
-    flex-direction: column;
-  }
-
-  .featured-select-row .form-group {
-    min-width: auto;
-    width: 100%;
-  }
-
-  .featured-btn-row {
-    flex-direction: column;
-  }
-
   .admin-list-item {
     display: block;
     padding: 0.875rem;
@@ -1263,8 +1271,7 @@
     margin-bottom: 0.25rem;
   }
 
-  .admin-list-info .item-link,
-  .admin-list-info .article-link {
+  .admin-list-info .item-link{
     font-size: 0.7rem;
     display: block;
     word-break: break-all;
@@ -1314,8 +1321,7 @@
   .input-with-button input[type="url"],
   .input-with-button input[type="text"],
   #video-url,
-  #post-url,
-  #article-url {
+  #post-url{
     width: 100% !important;
     min-width: 100% !important;
     height: 42px !important;
@@ -1519,17 +1525,6 @@
   text-align: center;
   color: var(--text-muted);
   font-size: 0.9rem;
-}
-
-/* Featured Moment Info */
-.featured-moment-info {
-  padding: 0.5rem 0;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.featured-moment-info p {
-  margin: 0;
 }
 
 /* ===== Type Select Button ===== */

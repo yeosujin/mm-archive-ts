@@ -105,6 +105,9 @@ export default function AdminPosts() {
         if (item.data.thumbnail) {
           await deleteFileFromR2(item.data.thumbnail);
         }
+        if (item.data.original_url) {
+          await deleteFileFromR2(item.data.original_url);
+        }
       } catch (error) {
         console.error('R2 파일 삭제 실패:', error);
       }
@@ -285,6 +288,9 @@ export default function AdminPosts() {
           await deleteFileFromR2(media.url);
           if (media.thumbnail) {
             await deleteFileFromR2(media.thumbnail);
+          }
+          if (media.original_url) {
+            await deleteFileFromR2(media.original_url);
           }
         } catch (error) {
           console.error('미디어 삭제 실패:', error);

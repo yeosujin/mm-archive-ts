@@ -2,26 +2,44 @@ import { supabase } from '../supabase';
 import type { Moment } from './types';
 import { syncEmbedding } from './embeddings';
 
+const PAGE_SIZE = 1000;
+
+// supabase 쿼리는 await할 때 요청이 나가므로 async로 감싸 부르는 즉시 보낸다
+async function momentsPage(from: number) {
+  return await supabase
+    .from('moments')
+    .select('*')
+    .order('date', { ascending: false })
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true })
+    .range(from, from + PAGE_SIZE - 1);
+}
+
+// 1000행씩 나눠 받는다. 전체 개수와 첫 장을 함께 요청하고, 나머지 장은 한꺼번에 받는다
 export async function getMoments(): Promise<Moment[]> {
+  const firstRequest = momentsPage(0);
+  const { count, error: countError } = await supabase.from('moments').select('*', { count: 'exact', head: true });
+  if (countError) throw countError;
+
+  const rest: ReturnType<typeof momentsPage>[] = [];
+  for (let from = PAGE_SIZE; from < (count ?? 0); from += PAGE_SIZE) rest.push(momentsPage(from));
+  const pages = await Promise.all([firstRequest, ...rest]);
+
   const allData: Moment[] = [];
-  let from = 0;
-
-  while (true) {
-    const { data, error } = await supabase
-      .from('moments')
-      .select('*')
-      .order('date', { ascending: false })
-      .order('position', { ascending: true })
-      .order('created_at', { ascending: true })
-      .range(from, from + 999);
-
+  for (const { data, error } of pages) {
     if (error) throw error;
-    if (!data || data.length === 0) break;
+    allData.push(...(data ?? []));
+  }
 
-    allData.push(...data);
-    if (data.length < 1000) break;
-
-    from += 1000;
+  // 세는 사이에 늘었으면 마지막 장이 꽉 찬다 — 짧은 장이 나올 때까지 이어 받는다
+  let lastLength = pages[pages.length - 1].data?.length ?? 0;
+  let from = pages.length * PAGE_SIZE;
+  while (lastLength === PAGE_SIZE) {
+    const { data, error } = await momentsPage(from);
+    if (error) throw error;
+    allData.push(...(data ?? []));
+    lastLength = data?.length ?? 0;
+    from += PAGE_SIZE;
   }
 
   return allData;

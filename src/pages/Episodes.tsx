@@ -4,11 +4,21 @@ import type { Episode, MemberSettings, Video, Moment, Post } from '../lib/databa
 import { useData } from '../hooks/useData';
 import PlatformIcon from '../components/PlatformIcon';
 import EpisodeContentBody from '../components/EpisodeContentBody';
+import { SearchField, SortChip } from '../components/FilterChips';
+import { SearchIcon } from '../components/Icons';
 import {
   getMemberName as getMemberNameHelper,
   getLinkedContentTitle as getLinkedContentTitleHelper,
   getCommentPlatform as getCommentPlatformHelper,
 } from '../lib/episodeHelpers';
+
+type EpisodeTab = 'dm' | 'comment' | 'listening_party';
+
+const TABS: { value: EpisodeTab; label: string }[] = [
+  { value: 'dm', label: 'DM' },
+  { value: 'comment', label: '댓글' },
+  { value: 'listening_party', label: '리스닝파티' },
+];
 
 export default function Episodes() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -37,6 +47,7 @@ export default function Episodes() {
   });
   const [expandedEpisode, setExpandedEpisode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const activeTab = tabParam && ['dm', 'comment', 'listening_party'].includes(tabParam) ? tabParam : 'dm';
   const [loading, setLoading] = useState(!cachedEpisodes || !cachedSettings);
@@ -136,47 +147,37 @@ export default function Episodes() {
 
   return (
     <div className="page episodes-page">
-      <div className="page-header">
-        <h1>에피소드</h1>
-        <p className="page-desc">💬</p>
-        <div className="episode-tabs">
-          <button
-            className={`episode-tab ${activeTab === 'dm' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dm')}
-          >
-            <PlatformIcon platform="weverse" size={16} />
-            <span>DM</span>
-          </button>
-          <button
-            className={`episode-tab ${activeTab === 'comment' ? 'active' : ''}`}
-            onClick={() => setActiveTab('comment')}
-          >댓글</button>
-          <button
-            className={`episode-tab ${activeTab === 'listening_party' ? 'active' : ''}`}
-            onClick={() => setActiveTab('listening_party')}
-          >리스닝파티</button>
-        </div>
-        <div className="page-controls">
-          <div className="search-box">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="날짜 또는 내용으로 검색"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="sort-toggle-wrapper">
-            <button
-              type="button"
-              className="sort-toggle"
-              onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
-            >
-              <span className="sort-icon">{sortOrder === 'newest' ? '▼' : '▲'}</span>
-              {sortOrder === 'newest' ? '최신순' : '오래된순'}
+      {/* 탭 칩 · 검색 · 정렬 한 줄. 검색을 열면 탭 자리에 검색창이 들어간다 */}
+      <div className="mc-filter">
+        {searchOpen ? (
+          <SearchField
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="날짜 또는 내용으로 검색"
+            onClose={() => setSearchOpen(false)}
+          />
+        ) : (
+          <>
+            <div className="mc-chips">
+              {TABS.map(tab => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  aria-pressed={activeTab === tab.value}
+                  className={`mc-chip${tab.value === 'dm' ? ' mc-chip-ico' : ''}${activeTab === tab.value ? ' active' : ''}`}
+                  onClick={() => setActiveTab(tab.value)}
+                >
+                  {tab.value === 'dm' && <PlatformIcon platform="weverse" size={14} />}
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="mc-icon-btn" aria-label="검색" onClick={() => setSearchOpen(true)}>
+              <SearchIcon size={16} />
             </button>
-          </div>
-        </div>
+          </>
+        )}
+        <SortChip value={sortOrder} onChange={setSortOrder} />
       </div>
 
       {filteredEpisodes.length === 0 ? (

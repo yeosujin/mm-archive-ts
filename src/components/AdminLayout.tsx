@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import AdminAuth from './AdminAuth';
-import { VideoIcon, PostIcon, PhotoIcon, ChatIcon, BookIcon, AskIcon, DashboardIcon } from './Icons';
+import { VideoIcon, PostIcon, PhotoIcon, ChatIcon, AskIcon, DashboardIcon } from './Icons';
 
 export default function AdminLayout() {
   return (
@@ -44,13 +44,6 @@ export default function AdminLayout() {
               <ChatIcon size={16} /> 에피소드
             </NavLink>
             <NavLink
-              to="/admin/articles"
-              className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
-              onMouseEnter={() => import('../pages/admin/AdminArticles')}
-            >
-              <BookIcon size={16} /> 도서관
-            </NavLink>
-            <NavLink
               to="/admin/photos"
               className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
               onMouseEnter={() => import('../pages/admin/AdminPhotos')}
@@ -63,6 +56,13 @@ export default function AdminLayout() {
               onMouseEnter={() => import('../pages/admin/AdminAsks')}
             >
               <AskIcon size={16} /> 질문
+            </NavLink>
+            <NavLink
+              to="/admin/covers"
+              className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+              onMouseEnter={() => import('../pages/admin/AdminCovers')}
+            >
+              <PhotoIcon size={16} /> 위버스 표지
             </NavLink>
           </nav>
         </aside>

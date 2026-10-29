@@ -3,7 +3,7 @@ type: architecture
 status: stable
 tags: [architecture, database]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-28
 ---
 
 # DB 레이어
@@ -23,11 +23,9 @@ updated: 2026-07-24
 | `posts.ts` | `getPosts` `createPost` `updatePost` `deletePost` |
 | `photos.ts` | `getPhotos` `createPhoto` `updatePhoto` `deletePhoto` |
 | `episodes.ts` | `getEpisodes` `createEpisode` `updateEpisode` `deleteEpisode` |
-| `articles.ts` | `getArticles` `createArticle` `updateArticle` `deleteArticle` |
 | `asks.ts` | `getAsks` `getAnsweredAsks` `getAsk` `createAsk` `answerAsk` `updateAsk` `deleteAsk` `getExpiredImageAsks` `clearAskImageUrl` |
 | `activities.ts` | `getActivities` `createActivity` `deleteActivity` |
-| `featured.ts` | `getFeaturedContent` `setFeaturedContent` |
-| `settings.ts` | `getMemberSettings` `updateMemberSettings` `getArticlesVisibility` `setArticlesVisibility` |
+| `settings.ts` | `getMemberSettings` `updateMemberSettings` |
 | `embeddings.ts` | `syncEmbedding`, `EmbeddingContentType` |
 
 ## 규약
