@@ -25,7 +25,7 @@ updated: 2026-10-30
 | **새로 올라온 영상** | `latestVideos`(`created_at` 내림차순 9개). 누르면 영상 상세 모달(`?v=`) |
 | 문의 링크 | `궁금한 점이나 요청 남기러 가기 →` (`/ask`) |
 
-- 검색은 홈 본문에 없다. 헤더 돋보기로 검색 화면에 간다(2.2.0~) → [[search]]
+- 검색은 홈 본문에 없다. 헤더 돋보기로 검색 화면에 간다(2.1.0~) → [[search]]
 - 스토리 뷰어(`components/StoryViewer.tsx`, `components/story/StoryFrameView.tsx`, `lib/onThisDayStory.ts`)는 쿼리 `?s=YEAR[.FRAME]`로 열린다. 카드에서 커지며 열리고(FLIP 확대) 닫힐 때 그 카드로 돌아간다. 장면 사이 검은 화면이 없도록 포스터(썸네일)를 먼저 깔고 다음 장면을 미리 받는다
 - 세션 첫 홈 진입이면 로고 화면(`components/EntrySplash.tsx`, `lib/entrySplash.ts`)을 띄운다. 최소 0.6초, 늦어도 2.5초면 내린다. 다른 경로로 들어오면 안 띄운다
 - 자동 열기 규칙 → [[on-this-day]]
@@ -34,7 +34,7 @@ updated: 2026-10-30
 
 ## Calendar (2.1.0~ 표지 달력)
 
-- 라우트: `/calendar`, 상단 탭 맨 끝 `캘린더` (2.2.0~, 전에는 헤더 아이콘). 홈 '그 해 오늘' 제목 옆 `캘린더 ›` 링크도 있다
+- 라우트: `/calendar`, 상단 탭 맨 끝 `캘린더` (2.1.0~, 전에는 헤더 아이콘). 홈 '그 해 오늘' 제목 옆 `캘린더 ›` 링크도 있다
 - 페이지: `src/pages/Calendar.tsx`, 날짜별 집계는 `src/lib/calendarDays.ts`, 스타일은 `src/styles/calendar.css`
 
 위에서 아래로:
