@@ -200,18 +200,6 @@ button.hm-card {
   text-overflow: ellipsis;
 }
 
-/* 검색 — 기존 홈 검색창을 전체 폭으로 */
-.hm .home-search-row {
-  display: block;
-  margin-top: 1.125rem;
-}
-
-.hm .home-search {
-  width: 100%;
-  max-width: none;
-  height: 2.75rem;
-}
-
 /* 새로 올라온 영상 */
 .hm-sec {
   display: flex;

@@ -21,11 +21,11 @@ updated: 2026-10-30
 
 | 요소 | 내용 |
 |---|---|
-| **그 해 오늘 카드** | `components/home/OnThisDayCards.tsx`. 연도가 아니라 **콘텐츠 하나당 카드 하나**(같은 영상의 모먼트·같은 묶음 사진·같은 포스트 미디어는 한 카드, `groupStoryContents`). 누르면 그 카드부터 스토리를 연다 → [[on-this-day]] |
-| 검색 | 키워드/AI 토글. **기본값은 AI** → [[search]] |
+| **그 해 오늘 카드** | `components/home/OnThisDayCards.tsx`. 연도가 아니라 **콘텐츠 하나당 카드 하나**(같은 영상의 모먼트·같은 묶음 사진·같은 포스트 미디어는 한 카드, `groupStoryContents`). 누르면 그 카드부터 스토리를 연다. 영상 미리보기는 2번 재생 후 썸네일로. 제목 옆 `캘린더 ›` → [[on-this-day]] |
 | **새로 올라온 영상** | `latestVideos`(`created_at` 내림차순 9개). 누르면 영상 상세 모달(`?v=`) |
 | 문의 링크 | `궁금한 점이나 요청 남기러 가기 →` (`/ask`) |
 
+- 검색은 홈 본문에 없다. 헤더 돋보기로 검색 화면에 간다(2.2.0~) → [[search]]
 - 스토리 뷰어(`components/StoryViewer.tsx`, `components/story/StoryFrameView.tsx`, `lib/onThisDayStory.ts`)는 쿼리 `?s=YEAR[.FRAME]`로 열린다. 카드에서 커지며 열리고(FLIP 확대) 닫힐 때 그 카드로 돌아간다. 장면 사이 검은 화면이 없도록 포스터(썸네일)를 먼저 깔고 다음 장면을 미리 받는다
 - 세션 첫 홈 진입이면 로고 화면(`components/EntrySplash.tsx`, `lib/entrySplash.ts`)을 띄운다. 최소 0.6초, 늦어도 2.5초면 내린다. 다른 경로로 들어오면 안 띄운다
 - 자동 열기 규칙 → [[on-this-day]]

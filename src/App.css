@@ -210,82 +210,6 @@
 
 /* ===== Home Page ===== */
 
-/* Home Search Row */
-.home-search-row {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.home-search {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 220px;
-  height: 2.5rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 100px;
-  transition: all 0.2s;
-}
-
-.home-search:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.home-search-input {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  padding: 0 2.5rem 0 1rem;
-  background: transparent;
-  border: none;
-  border-radius: 100px;
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  outline: none;
-  transition: padding 0.25s ease;
-}
-
-.home-search-input::placeholder {
-  color: var(--text-muted);
-  transition: opacity 0.2s;
-}
-
-.home-search-btn {
-  position: absolute;
-  right: 0.25rem;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  background: transparent;
-  border: none;
-  border-radius: 50%;
-  font-size: 0.9rem;
-  cursor: pointer;
-  opacity: 0.5;
-  transition: all 0.15s ease;
-  color: var(--text-primary);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.home-search:focus-within .home-search-btn {
-  opacity: 1;
-  background: var(--accent);
-  color: white;
-}
-
-.home-search-btn:active {
-  transform: scale(0.9);
-}
-
 .home-calendar-btn {
   display: flex;
   align-items: center;
@@ -897,11 +821,6 @@
 }
 
 @media (max-width: 479px) {
-  .home-search {
-    max-width: 100%;
-    padding: 0 1rem;
-  }
-
   .hero-btn {
     padding: 0.65rem 1.25rem;
     font-size: 0.85rem;
@@ -5149,9 +5068,7 @@ color: white;
   padding-right: 4rem;
 }
 
-/* 홈 검색창 안 AI 스위치 */
-.home-search { width: 270px; }
-.home-search-input { padding: 0 5.4rem 0 1rem; }
+/* AI 스위치 (검색 화면 검색창 안) */
 .home-ai-switch {
   position: absolute;
   right: 2.5rem;
@@ -5171,17 +5088,6 @@ color: white;
 }
 .home-ai-switch.on {
   border-color: transparent;
-  background: linear-gradient(135deg, #f078b3, #a97ff5);
-  color: #fff;
-}
-/* 홈 검색창 AI 모드: 소프트한 단색 테두리 + 돋보기 버튼도 AI 색으로 */
-.home-search.ai-mode { border-color: #dd7ac4; }
-.home-search.ai-mode:focus-within {
-  border-color: #dd7ac4;
-  box-shadow: 0 0 0 3px rgba(196, 181, 253, 0.2);
-}
-.home-search.ai-mode .home-search-btn {
-  opacity: 1;
   background: linear-gradient(135deg, #f078b3, #a97ff5);
   color: #fff;
 }

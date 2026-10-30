@@ -100,8 +100,7 @@ export default function Layout() {
               mmemory
             </NavLink>
             <span className="header-end">
-              {/* 홈은 본문에 검색창이 있어 돋보기를 두지 않는다 */}
-              {!isAskPage && location.pathname !== '/' && (
+              {!isAskPage && (
                 <button
                   type="button"
                   className="header-icon-btn"
