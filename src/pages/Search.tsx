@@ -13,7 +13,7 @@ import VideoDetailModal from '../components/moments/VideoDetailModal';
 import EntryCard from '../components/EntryCard';
 import EntryDetail from '../components/calendar/EntryDetail';
 import MomentViewer from '../components/MomentViewer';
-import { VideoIcon, PostIcon, PhotoIcon, ChatIcon, CalendarIcon } from '../components/Icons';
+import { VideoIcon, PostIcon, PhotoIcon, ChatIcon, CalendarIcon, SearchIcon } from '../components/Icons';
 import type { LayoutContext } from '../components/Layout';
 
 type Kind = 'video' | 'moment' | 'post' | 'episode';
@@ -46,8 +46,8 @@ const SHORTCUTS = [
   { to: '/calendar', label: '캘린더', desc: '날짜로 보기', Icon: CalendarIcon },
 ];
 
-// AI 모드 placeholder 예시 (정확한 단어 없이도, 한국어/영어 모두 찾을 수 있음을 보여주기 위한 유도 문구)
-const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
+/** 입력하는 동안 보여 줄 자동완성 개수 */
+const SUGGEST_LIMIT = 8;
 
 // 키워드 모드에서 매칭된 부분을 <mark>로 강조 (첫 번째 일치 지점). query가 비면 원본 그대로 반환
 function highlightText(text: string, query: string): React.ReactNode {
@@ -86,16 +86,8 @@ export default function Search() {
   const [inputValue, setInputValue] = useState(query);
   // AI 검색 결과는 어떤 검색어의 것인지와 함께 둔다. 지금 검색어의 결과가 아직 없으면 불러오는 중
   const [ai, setAi] = useState<{ query: string; hits: SemanticHit[]; error: boolean } | null>(null);
-  const [aiExampleIdx, setAiExampleIdx] = useState(0);
-
-  // AI 모드일 때 placeholder 예시를 일정 주기로 회전
-  useEffect(() => {
-    if (mode !== 'ai') return;
-    const id = setInterval(() => {
-      setAiExampleIdx(i => (i + 1) % AI_EXAMPLES.length);
-    }, 2800);
-    return () => clearInterval(id);
-  }, [mode]);
+  // 자동완성: 입력하면 열고, 검색·선택·Esc·포커스 이탈이면 닫는다
+  const [suggestOpen, setSuggestOpen] = useState(false);
 
   // URL q → 입력창 동기화 (뒤로가기/홈 재진입 등). 검색어가 바뀌면 필터는 전체로
   const [syncedQuery, setSyncedQuery] = useState(query);
@@ -120,12 +112,17 @@ export default function Search() {
     navigate(`/search?${params.toString()}`, { replace: true });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = inputValue.trim();
+  const runSearch = (text: string) => {
+    const trimmed = text.trim();
     if (!trimmed) return;
+    setSuggestOpen(false);
     const suffix = mode === 'keyword' ? '&mode=keyword' : '';
     navigate(`/search?q=${encodeURIComponent(trimmed)}${suffix}`);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    runSearch(inputValue);
   };
 
   const trimmedQuery = query.trim();
@@ -246,6 +243,30 @@ export default function Search() {
   const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/'));
 
   // 헤더 첫 줄에 띄우는 검색창 (Layout의 searchSlot)
+  // 자동완성: 입력한 글자가 든 제목. 제목이 그 글자로 시작하는 것 먼저, 그다음 최신순. 같은 제목은 하나만
+  const typed = inputValue.trim().toLowerCase();
+  const suggestions: { title: string; kind: Kind }[] = [];
+  if (suggestOpen && typed && loaded) {
+    const pool: { title: string; kind: Kind; date: string }[] = [
+      ...videos.map(v => ({ title: v.title, kind: 'video' as const, date: v.date })),
+      ...moments.map(m => ({ title: m.title, kind: 'moment' as const, date: m.date })),
+      ...posts.map(p => ({ title: p.title ?? '', kind: 'post' as const, date: p.date })),
+      ...episodes.map(e => ({ title: e.title ?? '', kind: 'episode' as const, date: e.date })),
+    ];
+    const seen = new Set<string>();
+    pool
+      .filter(x => x.title.toLowerCase().includes(typed))
+      .sort((a, b) =>
+        Number(b.title.toLowerCase().startsWith(typed)) - Number(a.title.toLowerCase().startsWith(typed))
+        || b.date.localeCompare(a.date))
+      .forEach(x => {
+        const key = x.title.trim().toLowerCase();
+        if (suggestions.length >= SUGGEST_LIMIT || seen.has(key)) return;
+        seen.add(key);
+        suggestions.push({ title: x.title.trim(), kind: x.kind });
+      });
+  }
+
   const searchBar = (
     <>
       <button type="button" className="sr-back" onClick={goBack} aria-label="뒤로">
@@ -256,10 +277,20 @@ export default function Search() {
           type="text"
           enterKeyHint="search"
           className="sr-input"
-          placeholder={mode === 'ai' ? `예: ${AI_EXAMPLES[aiExampleIdx]}` : '검색어를 입력하세요'}
+          placeholder="제목이나 날짜(2025-05)로 검색"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={(e) => {
+            setInputValue(e.target.value);
+            setSuggestOpen(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setSuggestOpen(false);
+          }}
+          onBlur={() => setSuggestOpen(false)}
           aria-label="검색어"
+          aria-autocomplete="list"
+          aria-expanded={suggestions.length > 0}
+          aria-controls="sr-suggest"
           autoFocus={!trimmedQuery}
         />
         <button
@@ -273,6 +304,28 @@ export default function Search() {
           ✨ AI
         </button>
       </form>
+      {suggestions.length > 0 && (
+        <ul id="sr-suggest" className="sr-suggest" role="listbox" aria-label="자동완성">
+          {suggestions.map(({ title, kind }) => (
+            <li key={title} role="option" aria-selected={false}>
+              <button
+                type="button"
+                className="sr-suggest-item"
+                // 입력창 포커스를 지켜야 onBlur로 목록이 먼저 닫히지 않는다
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setInputValue(title);
+                  runSearch(title);
+                }}
+              >
+                <SearchIcon size={14} />
+                <span className="sr-suggest-title">{highlightText(title, inputValue.trim())}</span>
+                <small>{KIND_LABEL[kind]}</small>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   );
 

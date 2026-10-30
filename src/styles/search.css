@@ -6,6 +6,7 @@
 
 /* 헤더 첫 줄(Layout의 .sr-head)에 띄우는 ← + 검색창. 로고·아이콘 줄과 같은 높이 */
 .header-content.sr-head {
+  position: relative;
   justify-content: flex-start;
   gap: 0.25rem;
   padding-block: 0.5rem; /* 로고 줄과 같은 52px */
@@ -52,20 +53,85 @@
   border-color: #dd7ac4;
 }
 
-/* 16px 미만이면 iOS가 입력할 때 화면을 확대한다 */
+/* 보이는 크기는 탭 글자와 같은 15px. 16px 미만이면 iOS가 입력할 때 화면을 확대해서,
+   글자는 16px로 두고 15/16으로 줄여 보인다 (줄인 만큼 폭을 넓힌다) */
 .sr-input {
   flex: 1;
   min-width: 0;
+  margin-right: -6.67%;
   padding: 0;
   border: none;
   outline: none;
   background: none;
   color: var(--text-primary);
   font: inherit;
-  font-size: 1rem;
+  font-size: 16px;
+  transform: scale(0.9375);
+  transform-origin: left center;
 }
 
 .sr-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* 자동완성: 검색창 줄 바로 아래에 뜬다 */
+.sr-suggest {
+  position: absolute;
+  top: 100%;
+  left: var(--container-padding);
+  right: var(--container-padding);
+  z-index: 5;
+  max-width: 680px;
+  max-height: 60vh;
+  margin: 0;
+  padding: 0.25rem 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  box-shadow: var(--shadow);
+  animation: sr-fade 0.15s ease-out both;
+}
+
+.sr-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 0.875rem;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sr-suggest-item:active,
+.sr-suggest-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.sr-suggest-item > svg {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.sr-suggest-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sr-suggest-item small {
+  flex: none;
+  font-size: 0.6875rem;
   color: var(--text-muted);
 }
 
@@ -264,6 +330,7 @@
   .sr-count,
     .sr .mc-empty,
   .sr-browse,
+  .sr-suggest,
   .sr-bar,
   .sr-back {
     animation: none;
