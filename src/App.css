@@ -117,8 +117,12 @@
   justify-self: center;
 }
 
+.header-start,
 .header-end {
   display: flex;
+}
+
+.header-end {
   justify-content: flex-end;
 }
 
@@ -136,6 +140,11 @@
   color: var(--accent); /* 로고 그라데이션(하늘→보라)의 가운데 색 */
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+.header-icon-btn--start {
+  margin-right: 0;
+  margin-left: -0.5rem;
 }
 
 /* 돋보기를 누를 때 키보드를 먼저 띄우는 숨은 입력칸 (Layout). 16px 미만이면 iOS가 확대한다 */

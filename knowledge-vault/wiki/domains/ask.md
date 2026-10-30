@@ -14,7 +14,7 @@ updated: 2026-07-24
 
 ## 위치
 
-- 라우트: `/ask`, `/ask/:id` — **네비 숨김**
+- 라우트: `/ask`, `/ask/:id` — 탭에는 없고 헤더 왼쪽 물음표 아이콘(2.2.0~)과 홈 맨 아래 링크로 들어간다
 - 공개 페이지: `src/pages/Ask.tsx`, `src/pages/AskDetail.tsx`
 - 어드민: `src/pages/admin/AdminAsks.tsx`
 - DB 모듈: `src/lib/database/asks.ts`

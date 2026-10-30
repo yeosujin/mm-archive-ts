@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
-import { SearchIcon, ArrowUpIcon } from './Icons';
+import { SearchIcon, ArrowUpIcon, AskIcon } from './Icons';
 import { useData } from '../hooks/useData';
 import EntrySplash from './EntrySplash';
 
@@ -95,7 +95,19 @@ export default function Layout() {
           <div className="header-content sr-head" ref={setSearchSlot} />
         ) : (
           <div className="header-content header-content--center">
-            <span aria-hidden />
+            <span className="header-start">
+              {/* 문의(/ask): 어느 화면에서든 한 번에. 문의 화면에선 숨긴다 */}
+              {!isAskPage && (
+                <NavLink
+                  to="/ask"
+                  className="header-icon-btn header-icon-btn--start"
+                  aria-label="궁금한 점·요청 남기기"
+                  onMouseEnter={() => import('../pages/Ask')}
+                >
+                  <AskIcon size={17} />
+                </NavLink>
+              )}
+            </span>
             <NavLink to="/" className="logo">
               mmemory
             </NavLink>
