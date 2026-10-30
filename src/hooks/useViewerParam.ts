@@ -14,9 +14,11 @@ export function useViewerParam(key = 'm') {
   const openedHereFlag = `viewerOpenedHere:${key}`;
   const openedHere = (location.state as Record<string, unknown> | null)?.[openedHereFlag] === true;
 
-  const open = useCallback((next: string) => {
+  // drop: 같이 지울 다른 뷰어 키. 모먼트 뷰어에서 영상 상세로 넘어갈 때 `?m=`을 빼고 `?v=`를 연다 — 뒤로가면 모먼트로 돌아온다
+  const open = useCallback((next: string, drop: string[] = []) => {
     setSearchParams(prev => {
       const params = new URLSearchParams(prev);
+      drop.forEach(k => params.delete(k));
       params.set(key, next);
       return params;
     }, { state: { [openedHereFlag]: true } });

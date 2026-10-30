@@ -324,7 +324,13 @@ export default function Search() {
 
       {/* 뷰어(1000)는 모달(900) 위. 모달 본문의 미리 받기 정리가 뷰어 effect 뒤에 돌도록 모달보다 앞에 둔다 */}
       {momentViewer && (
-        <MomentViewer key={momentParam} moments={momentViewer.list} startIndex={momentViewer.startIndex} onClose={closeMoment} />
+        <MomentViewer
+          key={momentParam}
+          moments={momentViewer.list}
+          startIndex={momentViewer.startIndex}
+          onClose={closeMoment}
+          onOpenVideo={id => openDetail(id, ['m'])}
+        />
       )}
 
       {entryDetail && (
