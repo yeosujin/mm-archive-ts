@@ -384,16 +384,19 @@
 .cal-cell-chat {
   display: flex;
   align-items: flex-end;
-  padding: 0 5px 6px;
+  padding: 0 4px 5px;
   box-sizing: border-box;
 }
 
+/* 칸 너비를 꽉 채워 크게. '리스닝'(12px)이 칸 안쪽 폭에 딱 맞는 크기 */
 .cal-cell-tag {
-  padding: 1px 6px;
-  border-radius: 2px 7px 7px 7px;
-  font-size: 0.625rem;
+  flex: 1;
+  padding: 3px 4px;
+  border-radius: 2px 8px 8px 8px;
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.5;
+  text-align: center;
   white-space: nowrap;
 }
 
