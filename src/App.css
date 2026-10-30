@@ -820,6 +820,61 @@
   color: var(--text-secondary);
 }
 
+/* ===== 페이지 전환 로딩 (PageLoader) =====
+   두 멤버 점: 에피소드 DM의 멤버 색(.dm-member-name-member1/2)으로 서로 돌며 가까워졌다 멀어진다 */
+.page-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.duo-loader {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  animation: duo-spin 1.1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+.duo-loader i {
+  position: absolute;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+  border-radius: 50%;
+}
+
+.duo-loader i:first-child {
+  left: 0;
+  background: #0ea5e9;
+  animation: duo-near-a 1.1s ease-in-out infinite;
+}
+
+.duo-loader i:last-child {
+  right: 0;
+  background: #3b82f6;
+  animation: duo-near-b 1.1s ease-in-out infinite;
+}
+
+@keyframes duo-spin { to { transform: rotate(360deg); } }
+@keyframes duo-near-a { 50% { transform: translateX(5px) scale(0.8); } }
+@keyframes duo-near-b { 50% { transform: translateX(-5px) scale(0.8); } }
+
+/* 동작 줄이기: 돌지 않고 천천히 깜빡이기만 */
+@media (prefers-reduced-motion: reduce) {
+  .duo-loader,
+  .duo-loader i {
+    animation: none;
+  }
+
+  .duo-loader {
+    animation: duo-calm 1.6s ease-in-out infinite;
+  }
+
+  @keyframes duo-calm { 50% { opacity: 0.4; } }
+}
+
 /* ===== Loading State ===== */
 .loading {
   display: flex;
