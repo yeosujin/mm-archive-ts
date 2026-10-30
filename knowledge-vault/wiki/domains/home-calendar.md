@@ -21,7 +21,7 @@ updated: 2026-10-30
 
 | 요소 | 내용 |
 |---|---|
-| **그 해 오늘 카드** | `components/home/OnThisDayCards.tsx`. 연도가 아니라 **콘텐츠 하나당 카드 하나**(같은 영상의 모먼트·같은 묶음 사진·같은 포스트 미디어는 한 카드, `groupStoryContents`). 누르면 그 카드부터 스토리를 연다. 영상 미리보기는 2번 재생 후 썸네일로. 제목 옆 `캘린더 ›` → [[on-this-day]] |
+| **그 해 오늘 카드** | `components/home/OnThisDayCards.tsx`. 연도가 아니라 **콘텐츠 하나당 카드 하나**(같은 영상의 모먼트·같은 묶음 사진·같은 포스트 미디어는 한 카드, `groupStoryContents`). 누르면 그 카드부터 스토리를 연다. 영상 미리보기는 2번 재생 후 썸네일로. → [[on-this-day]] |
 | **새로 올라온 영상** | `latestVideos`(`created_at` 내림차순 9개). 누르면 영상 상세 모달(`?v=`) |
 | 문의 링크 | `궁금한 점이나 요청 남기러 가기 →` (`/ask`) |
 
@@ -34,7 +34,7 @@ updated: 2026-10-30
 
 ## Calendar (2.1.0~ 표지 달력)
 
-- 라우트: `/calendar`, 상단 탭 맨 끝 `캘린더` (2.1.0~, 전에는 헤더 아이콘). 홈 '그 해 오늘' 제목 옆 `캘린더 ›` 링크도 있다
+- 라우트: `/calendar`, 상단 탭 맨 끝 `캘린더` (2.1.0~, 전에는 헤더 아이콘).
 - 페이지: `src/pages/Calendar.tsx`, 날짜별 집계는 `src/lib/calendarDays.ts`, 스타일은 `src/styles/calendar.css`
 
 위에서 아래로:
