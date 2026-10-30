@@ -176,27 +176,31 @@ export default function Search() {
   const aiCutoff = Math.max(AI_SIM_FLOOR, topSim - AI_SIM_MARGIN);
   const strongHits = mode === 'ai' ? aiHits.filter(h => h.similarity >= aiCutoff) : [];
 
+  // 키워드(글자 일치): 최신순, 같은 날이면 영상 → 모먼트 → 포스트 → 에피소드
   let results: Result[] = [];
   if (loaded && trimmedQuery) {
+    const hit = (title: string | undefined, date: string) =>
+      !!title?.toLowerCase().includes(searchLower) || date.includes(trimmedQuery);
+    results = [
+      ...videos.filter(v => hit(v.title, v.date)).map(toResult.video),
+      ...moments.filter(m => hit(m.title, m.date)).map(toResult.moment),
+      ...posts.filter(p => hit(p.title, p.date)).map(toResult.post),
+      ...episodes.filter(e => hit(e.title, e.date)).map(toResult.episode),
+    ].sort((a, b) => b.date.localeCompare(a.date) || KINDS.indexOf(a.kind) - KINDS.indexOf(b.kind));
+
+    // AI 모드: 글자가 맞는 결과를 먼저, 그 뒤에 AI가 찾은 결과 중 겹치지 않는 것을 유사도 순으로.
+    // AI는 30개 상한·점수 컷 때문에 글자가 맞는 결과도 놓칠 수 있다
     if (mode === 'ai') {
-      // AI: 유사도 순 그대로. 캐시 데이터에서 못 찾으면 제외
-      results = strongHits.flatMap((h): Result[] => {
+      const seen = new Set(results.map(r => `${r.kind}:${r.entry.id}`));
+      const aiOnly = strongHits.flatMap((h): Result[] => {
+        if (seen.has(`${h.content_type}:${h.content_id}`)) return [];
         if (h.content_type === 'video') { const v = videos.find(x => x.id === h.content_id); return v ? [toResult.video(v)] : []; }
         if (h.content_type === 'moment') { const m = moments.find(x => x.id === h.content_id); return m ? [toResult.moment(m)] : []; }
         if (h.content_type === 'post') { const p = posts.find(x => x.id === h.content_id); return p ? [toResult.post(p)] : []; }
         if (h.content_type === 'episode') { const e = episodes.find(x => x.id === h.content_id); return e ? [toResult.episode(e)] : []; }
         return [];
       });
-    } else {
-      // 키워드(글자 일치): 최신순, 같은 날이면 영상 → 모먼트 → 포스트 → 에피소드
-      const hit = (title: string | undefined, date: string) =>
-        !!title?.toLowerCase().includes(searchLower) || date.includes(trimmedQuery);
-      results = [
-        ...videos.filter(v => hit(v.title, v.date)).map(toResult.video),
-        ...moments.filter(m => hit(m.title, m.date)).map(toResult.moment),
-        ...posts.filter(p => hit(p.title, p.date)).map(toResult.post),
-        ...episodes.filter(e => hit(e.title, e.date)).map(toResult.episode),
-      ].sort((a, b) => b.date.localeCompare(a.date) || KINDS.indexOf(a.kind) - KINDS.indexOf(b.kind));
+      results = [...results, ...aiOnly];
     }
   }
 
@@ -205,8 +209,8 @@ export default function Search() {
   const filter: FilterType = activeFilter !== 'all' && counts[activeFilter] ? activeFilter : 'all';
   const shown = filter === 'all' ? results : results.filter(r => r.kind === filter);
 
-  // 하이라이트는 키워드 모드에서만 (AI 모드는 의미 기반이라 정확한 일치 지점이 없음)
-  const kw = mode === 'keyword' ? trimmedQuery : '';
+  // 검색어 강조. AI만 찾은 결과는 글자가 없어 강조되지 않는다
+  const kw = trimmedQuery;
 
   // 뷰어: 영상에 딸린 모먼트는 그 영상의 모먼트 목록, 영상 없는 모먼트는 그 하나
   const momentViewer = useMemo(() => {
@@ -295,9 +299,9 @@ export default function Search() {
     body = failed
       ? <p className="mc-empty">검색할 기록을 불러오지 못했어요</p>
       : <div className="loading">불러오는 중</div>;
-  } else if (mode === 'ai' && aiLoading) {
+  } else if (mode === 'ai' && aiLoading && results.length === 0) {
     body = <div className="loading">비슷한 기억조각 모으는 중</div>;
-  } else if (mode === 'ai' && aiError) {
+  } else if (mode === 'ai' && aiError && results.length === 0) {
     body = <p className="mc-empty">AI 검색을 지금 사용할 수 없어요<br />잠시 후 다시 시도해 주세요</p>;
   } else if (results.length === 0) {
     body = (
@@ -357,6 +361,8 @@ export default function Search() {
             );
           })}
         </div>
+        {mode === 'ai' && aiLoading && <div className="loading sr-ai-more">비슷한 기억조각 더 모으는 중</div>}
+        {mode === 'ai' && aiError && <p className="sr-ai-note">AI 검색을 지금 쓸 수 없어 글자가 맞는 결과만 보여요</p>}
         {filter !== 'all' && (
           <Link to={KIND_TAB[filter].to} className="sr-tab-link">
             {KIND_TAB[filter].label}에서 전체 보기 ›

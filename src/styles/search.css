@@ -147,6 +147,18 @@
   from { opacity: 0; transform: translateX(8px); }
 }
 
+/* AI 모드: 글자가 맞는 결과 뒤에 AI 결과를 기다리는 동안 / AI를 못 쓸 때 */
+.sr-ai-more {
+  padding: 1.5rem 0 0.5rem;
+}
+
+.sr-ai-note {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 /* 칩으로 한 종류를 골랐을 때 결과 끝: 그 탭으로 */
 .sr-tab-link {
   display: flex;
