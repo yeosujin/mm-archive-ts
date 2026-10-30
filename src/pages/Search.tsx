@@ -277,7 +277,7 @@ export default function Search() {
           type="text"
           enterKeyHint="search"
           className="sr-input"
-          placeholder="제목이나 날짜(2025-05)로 검색"
+          placeholder="제목이나 날짜로 검색"
           value={inputValue}
           onChange={(e) => {
             setInputValue(e.target.value);
@@ -346,7 +346,7 @@ export default function Search() {
             </Link>
           ))}
         </div>
-        <p className="sr-browse-tip">제목이나 날짜(2025-05)로 찾을 수 있어요. AI가 켜져 있으면 정확한 단어가 아니어도 비슷한 기록을 함께 찾아요.</p>
+        <p className="sr-browse-tip">제목이나 날짜로 찾을 수 있어요. AI가 켜져 있으면 정확한 단어가 아니어도 비슷한 기록을 함께 찾아요.</p>
       </section>
     );
   } else if (!loaded) {
