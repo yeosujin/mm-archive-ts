@@ -158,7 +158,7 @@ export function dayCover(entries: CalendarEntry[]): DayCover {
 
 export interface StripMonth { year: number; month: number; days: number }
 
-/** 월 띠: 첫 기록이 있는 달부터 이번 달(또는 마지막 기록 달 중 늦은 쪽)까지, 달마다 기록 있는 날 수. month는 1~12 */
+/** 고를 수 있는 달: 첫 기록이 있는 달부터 이번 달(또는 마지막 기록 달 중 늦은 쪽)까지, 달마다 기록 있는 날 수. month는 1~12 */
 export function monthStrip(days: Map<string, CalendarEntry[]>, today: string): StripMonth[] {
   const counts = new Map<string, number>();
   let first = today.slice(0, 7);
