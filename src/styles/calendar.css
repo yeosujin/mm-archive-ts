@@ -380,31 +380,29 @@
   object-fit: cover;
 }
 
-/* 달력 칸: 글자 없이 말풍선 막대만. 색은 카드와 같은 규칙(작은 칸에서 보이게 이름 색 쪽으로 진하게) */
+/* 달력 칸: 에피소드 종류 알약. 색은 카드 말풍선과 같은 규칙 */
 .cal-cell-chat {
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: flex-start;
-  gap: 3px;
-  padding: 0 6px 7px;
+  align-items: flex-end;
+  padding: 0 5px 6px;
   box-sizing: border-box;
 }
 
-.cal-cell-chat i {
-  display: block;
-  height: 6px;
-  border-radius: 1px 3px 3px 3px;
+.cal-cell-tag {
+  padding: 1px 6px;
+  border-radius: 2px 7px 7px 7px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
-.cal-cell-chat.cal-chat-member1 i { background: rgba(14, 165, 233, 0.45); }
-.cal-cell-chat.cal-chat-member2 i { background: rgba(59, 130, 246, 0.45); }
-.cal-cell-chat.cal-chat-gray i { background: #353535; }
-[data-theme="dark"] .cal-cell-chat.cal-chat-gray i { background: #5a5a66; }
-
-.cal-cell-chat i:nth-child(1) { width: 70%; }
-.cal-cell-chat i:nth-child(2) { width: 45%; }
-.cal-cell-chat i:nth-child(3) { width: 58%; }
+.cal-cell-tag.cal-chat-member1 { background: #e0f4ff; color: #0284c7; }
+.cal-cell-tag.cal-chat-member2 { background: #dbeafe; color: #2563eb; }
+.cal-cell-tag.cal-chat-gray { background: #353535; color: #ffffff; }
+[data-theme="dark"] .cal-cell-tag.cal-chat-member1 { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; }
+[data-theme="dark"] .cal-cell-tag.cal-chat-member2 { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+[data-theme="dark"] .cal-cell-tag.cal-chat-gray { background: #4a4a55; }
 
 /* 에피소드 상세 팝업: 포스트 상세(.post-detail-content) 틀에 에피소드 본문 */
 .cal-episode {

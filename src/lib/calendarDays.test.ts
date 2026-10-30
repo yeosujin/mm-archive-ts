@@ -52,16 +52,16 @@ describe('dayCover', () => {
     expect(dayCover(alone.get('2026-10-14')!)).toEqual({ platform: 'weverse' });
   });
 
-  it('이미지가 없고 에피소드가 있으면 채팅 모양 — 댓글은 회색, DM은 보낸 멤버 색', () => {
+  it('이미지가 없고 에피소드가 있으면 그 종류 — 댓글은 회색, DM은 보낸 멤버 색', () => {
     const days = buildCalendarDays(data({
       episodes: [{ id: 'e1', date: '2026-10-26', episode_type: 'comment', sender: 'member2', comment_text: '보고 싶어' }],
       memberSettings: { member1_name: '모카', member2_name: '민주' },
     }));
     const entries = days.get('2026-10-26')!;
-    expect(dayCover(entries)).toEqual({ chat: 'gray' });
+    expect(dayCover(entries)).toEqual({ chat: 'gray', type: 'comment' });
     expect(entries[0]).toEqual(expect.objectContaining({ sender: '민주', lines: [{ type: 'text', content: '보고 싶어' }] }));
     const dm = buildCalendarDays(data({ episodes: [{ id: 'e2', date: '2026-10-27', episode_type: 'dm', sender: 'member2', messages: [] }] }));
-    expect(dayCover(dm.get('2026-10-27')!)).toEqual({ chat: 'member2' });
+    expect(dayCover(dm.get('2026-10-27')!)).toEqual({ chat: 'member2', type: 'dm' });
   });
 
   it('글만 있는 날은 표지 없음, 포스트 이미지는 표지', () => {

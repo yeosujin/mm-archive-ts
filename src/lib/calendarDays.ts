@@ -158,9 +158,9 @@ export function buildCalendarDays(data: CalendarData): Map<string, CalendarEntry
 
 /**
  * 칸 표지. 영상 표지 > 모먼트 > 사진 > 포스트 미디어. 이미지 없는 영상은 플랫폼 색 블록,
- * 그것도 없고 에피소드가 있으면 채팅 캡처 모양
+ * 그것도 없고 에피소드가 있으면 그 에피소드 종류 알약
  */
-export type DayCover = { src: string } | { platform: ReturnType<typeof detectVideoPlatform> } | { chat: ChatTone } | null;
+export type DayCover = { src: string } | { platform: ReturnType<typeof detectVideoPlatform> } | { chat: ChatTone; type: Episode['episode_type'] } | null;
 
 export function dayCover(entries: CalendarEntry[]): DayCover {
   const order: CalendarEntry['kind'][] = ['video', 'moment', 'photo', 'post'];
@@ -179,7 +179,7 @@ export function dayCover(entries: CalendarEntry[]): DayCover {
     }
   }
   const episode = entries.find(e => e.kind === 'episode');
-  return fallback ?? (episode ? { chat: episode.tone } : null);
+  return fallback ?? (episode ? { chat: episode.tone, type: episode.episode.episode_type } : null);
 }
 
 export interface StripMonth { year: number; month: number; days: number }

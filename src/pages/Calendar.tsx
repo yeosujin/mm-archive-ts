@@ -29,6 +29,9 @@ const ENTRY_BADGE: Record<Exclude<CalendarEntry['kind'], 'video'>, string> = {
   episode: '에피소드',
 };
 
+/** 에피소드만 있는 날 칸에 적는 종류 (칸이 좁아 짧게) */
+const CELL_EPISODE_LABEL = { dm: 'DM', comment: '댓글', listening_party: '리스닝' } as const;
+
 /** 에피소드 카드 표지: 에피소드 페이지 말풍선을 줄인 캡처 모양. DM은 보낸 멤버 색, 댓글·리스닝 파티는 회색 */
 function ChatCapture({ entry }: { entry: Extract<CalendarEntry, { kind: 'episode' }> }) {
   return (
@@ -301,7 +304,11 @@ export default function Calendar() {
                 ? <img className="cal-cell-cover" src={cover.src} alt="" loading="lazy" decoding="async" />
                 : 'platform' in cover
                   ? <span className={`cal-cell-cover vcover-${cover.platform}`} />
-                  : <span className={`cal-cell-cover cal-cell-chat cal-chat-${cover.chat}`}><i /><i /><i /></span>)}
+                  : (
+                    <span className="cal-cell-cover cal-cell-chat">
+                      <span className={`cal-cell-tag cal-chat-${cover.chat}`}>{CELL_EPISODE_LABEL[cover.type]}</span>
+                    </span>
+                  ))}
               <span className="cal-cell-num">{n}</span>
               {entries && entries.length > 1 && <span className="cal-cell-more">+{entries.length - 1}</span>}
             </button>
