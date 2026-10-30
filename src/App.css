@@ -5081,6 +5081,6 @@ color: white;
 }
 .home-ai-switch.on {
   border-color: transparent;
-  background: linear-gradient(135deg, #f078b3, #a97ff5);
+  background: linear-gradient(135deg, #70a4f9, #a78bfa); /* primary → 연보라 */
   color: #fff;
 }
