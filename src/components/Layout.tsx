@@ -1,8 +1,13 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
-import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, CloseIcon, ArrowUpIcon } from './Icons';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import { SearchIcon, ArrowUpIcon, AskIcon, HomeIcon } from './Icons';
 import { useData } from '../hooks/useData';
 import EntrySplash from './EntrySplash';
+
+/** 검색 화면은 헤더 첫 줄(로고·아이콘)을 비워 두고, 검색 화면이 자기 머리줄(‹ + 검색창)을 여기에 띄운다 */
+export interface LayoutContext {
+  headerSlot: HTMLDivElement | null;
+}
 
 // 상단 글자 탭
 const TABS = [
@@ -11,7 +16,19 @@ const TABS = [
   { to: '/posts', label: '포스트', end: false, preload: () => import('../pages/Posts') },
   { to: '/photos', label: '사진', end: false, preload: () => import('../pages/Photos') },
   { to: '/episodes', label: '에피소드', end: false, preload: () => import('../pages/Episodes') },
+  { to: '/calendar', label: '캘린더', end: false, preload: () => import('../pages/Calendar') },
 ];
+
+// 다크 모드는 기기 설정을 따른다
+const DARK_QUERY = '(prefers-color-scheme: dark)';
+const subscribeDark = (onChange: () => void) => {
+  const mq = window.matchMedia(DARK_QUERY);
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+};
+const getDark = () => window.matchMedia(DARK_QUERY).matches;
+
+const preloadSearch = () => import('../pages/Search');
 
 export default function Layout() {
   const { fetchMemberSettings } = useData();
@@ -19,20 +36,15 @@ export default function Layout() {
   useEffect(() => {
     fetchMemberSettings();
   }, [fetchMemberSettings]);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved === 'dark';
-  });
+  const isDarkMode = useSyncExternalStore(subscribeDark, getDark);
 
   useEffect(() => {
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
     document.documentElement.dataset.theme = isDarkMode ? 'dark' : 'light';
   }, [isDarkMode]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   const [headerHidden, setHeaderHidden] = useState(false);
+  const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLElement>(null);
 
   // 스크롤 한 곳에서: 맨 위로 버튼 + 아래로 내리면 헤더 숨김, 조금이라도 올리면 다시 보임
@@ -66,72 +78,61 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isAskPage = location.pathname === '/ask' || location.pathname.startsWith('/ask/');
+  const isSearchPage = location.pathname === '/search';
+  // 검색 화면은 로고 줄 대신 자기 머리줄. 검색·문의 화면은 어느 탭에도 속하지 않아 탭 줄이 없다
+  const ownHeader = isSearchPage;
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setShowSearch(false);
-    }
+  // 돋보기: 검색 화면으로. iOS는 화면이 바뀐 뒤의 focus()로는 키보드를 띄우지 않아서,
+  // 누르는 순간 숨은 입력칸에 먼저 focus해 키보드를 띄우고 검색 화면 입력창(autoFocus)이 이어받는다
+  const kbProxyRef = useRef<HTMLInputElement>(null);
+  const openSearch = () => {
+    kbProxyRef.current?.focus({ preventScroll: true });
+    navigate('/search');
   };
 
   return (
     <div className={`app ${isDarkMode ? 'dark' : 'light'}`}>
-      <header ref={headerRef} className={`header${headerHidden && !showSearch ? ' header--hidden' : ''}`}>
-        <div className="header-content">
-          <NavLink to="/" className="logo">
-            mmemory
-          </NavLink>
-
-          <div className="header-actions">
-            {!isAskPage && (
+      <header ref={headerRef} className={`header${headerHidden ? ' header--hidden' : ''}`}>
+        {ownHeader ? (
+          <div className="header-content page-head" ref={setHeaderSlot} />
+        ) : (
+          <div className="header-content header-content--center">
+            <span className="header-start">
+              {/* 문의(/ask): 어느 화면에서든 한 번에. 문의 화면에선 그 자리가 홈으로 (탭 줄이 없어서) */}
+              {isAskPage ? (
+                <NavLink to="/" className="header-icon-btn header-icon-btn--start" aria-label="홈">
+                  <HomeIcon size={17} />
+                </NavLink>
+              ) : (
+                <NavLink
+                  to="/ask"
+                  className="header-icon-btn header-icon-btn--start"
+                  aria-label="궁금한 점·요청 남기기"
+                  onMouseEnter={() => import('../pages/Ask')}
+                >
+                  <AskIcon size={17} />
+                </NavLink>
+              )}
+            </span>
+            <NavLink to="/" className="logo">
+              mmemory
+            </NavLink>
+            <span className="header-end">
               <button
-                className="search-toggle"
-                onClick={() => setShowSearch(!showSearch)}
+                type="button"
+                className="header-icon-btn"
+                onClick={openSearch}
+                onPointerDown={preloadSearch}
+                onMouseEnter={preloadSearch}
                 aria-label="검색"
               >
-                <SearchIcon size={18} />
+                <SearchIcon size={17} />
               </button>
-            )}
-
-            {!isAskPage && (
-              <NavLink
-                to="/calendar"
-                className={({ isActive }) => `search-toggle calendar-link ${isActive ? 'active' : ''}`}
-                aria-label="캘린더"
-                onMouseEnter={() => import('../pages/Calendar')}
-              >
-                <CalendarIcon size={18} />
-              </NavLink>
-            )}
-
-            <button
-              className="theme-toggle"
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              aria-label="테마 변경"
-            >
-              {isDarkMode ? <SunIcon size={18} /> : <MoonIcon size={18} />}
-            </button>
-
-            {showSearch && (
-              <form onSubmit={handleSearch} className="header-search">
-                <input
-                  type="text"
-                  className="header-search-input"
-                  placeholder="검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  autoFocus
-                />
-                <button type="button" className="search-close" onClick={() => setShowSearch(false)}>
-                  <CloseIcon size={16} />
-                </button>
-              </form>
-            )}
+            </span>
           </div>
-        </div>
+        )}
 
-        {!isAskPage && (
+        {!isSearchPage && !isAskPage && (
           <nav className="top-tabs" aria-label="메뉴">
             {TABS.map(tab => (
               <NavLink
@@ -149,7 +150,7 @@ export default function Layout() {
       </header>
 
       <main className="main">
-        <Outlet />
+        <Outlet context={{ headerSlot } satisfies LayoutContext} />
       </main>
 
       <footer className="footer">
@@ -163,6 +164,8 @@ export default function Layout() {
       >
         <ArrowUpIcon size={18} />
       </button>
+
+      <input ref={kbProxyRef} className="kb-proxy" type="text" tabIndex={-1} aria-hidden />
 
       <EntrySplash />
     </div>

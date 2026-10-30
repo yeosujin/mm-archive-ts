@@ -1,0 +1,314 @@
+/* ===== 검색 결과 (/search) — 헤더 안 검색창 + 칩 + 카드 그리드 ===== */
+
+.sr {
+  padding-bottom: 2rem;
+}
+
+
+.sr-bar {
+  flex: 1;
+  min-width: 0;
+  max-width: 640px;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 36px;
+  padding: 0 0.375rem 0 0.875rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--bg-card-hover);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sr-bar:focus-within {
+  border-color: var(--accent);
+  background: var(--bg-card);
+}
+
+.sr-bar.ai-mode {
+  border-color: #a5b4fc;
+}
+
+/* 보이는 크기는 탭 글자와 같은 15px. 16px 미만이면 iOS가 입력할 때 화면을 확대해서,
+   글자는 16px로 두고 15/16으로 줄여 보인다 (줄인 만큼 폭을 넓힌다) */
+.sr-input {
+  flex: 1;
+  min-width: 0;
+  margin-right: -6.67%;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+  transform: scale(0.9375);
+  transform-origin: left center;
+}
+
+.sr-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* 자동완성: 검색창 줄 바로 아래에 뜬다 */
+.sr-suggest {
+  position: absolute;
+  top: 100%;
+  left: var(--container-padding);
+  right: var(--container-padding);
+  z-index: 5;
+  max-width: 680px;
+  max-height: 60vh;
+  margin: 0;
+  padding: 0.25rem 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  box-shadow: var(--shadow);
+  animation: sr-fade 0.15s ease-out both;
+}
+
+.sr-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 0.875rem;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sr-suggest-item:active,
+.sr-suggest-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.sr-suggest-item > svg {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.sr-suggest-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sr-suggest-item small {
+  flex: none;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.sr-bar .home-ai-switch {
+  position: static;
+  flex: none;
+}
+
+.sr-count {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sr-chips {
+  margin-bottom: 1rem;
+}
+
+.sr-chips .mc-chip small {
+  font-size: 0.6875rem;
+  opacity: 0.7;
+}
+
+/* 모먼트 탭 카드(.mc-card)를 레일 대신 격자로 */
+.sr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 0.625rem;
+}
+
+.sr-grid .mc-card {
+  display: block;
+  width: auto;
+}
+
+/* 결과 카드: 검색할 때마다 차례로 올라온다 (앞 12장까지만 순서 차이) */
+.sr-cell {
+  min-width: 0;
+  animation: sr-rise 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 28ms);
+}
+
+@keyframes sr-rise {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+.sr-count,
+.sr .mc-empty {
+  animation: sr-fade 0.25s ease both;
+}
+
+@keyframes sr-fade {
+  from { opacity: 0; }
+}
+
+.sr-chips .mc-chip {
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+/* 검색 화면에 들어오면 헤더 검색창이 오른쪽(돋보기 자리)에서 왼쪽으로 펼쳐진다 */
+.sr-bar {
+  animation: sr-bar-open 0.2s ease-out both;
+}
+
+.sr-back {
+  animation: sr-fade 0.2s ease-out both;
+}
+
+/* 살짝만: 오른쪽 1/3쯤에서 펼쳐지며 나타난다 */
+@keyframes sr-bar-open {
+  from { opacity: 0; clip-path: inset(0 0 0 35% round 999px); }
+  to { opacity: 1; clip-path: inset(0 round 999px); }
+}
+
+/* AI 모드: 글자가 맞는 결과 뒤에 AI 결과를 기다리는 동안 / AI를 못 쓸 때 */
+.sr-ai-more {
+  padding: 1.5rem 0 0.5rem;
+}
+
+.sr-ai-note {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* 칩으로 한 종류를 골랐을 때 결과 끝: 그 탭으로 */
+.sr-tab-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  max-width: 360px;
+  margin: 1.5rem auto 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 검색어가 없을 때: 탭 바로가기 */
+.sr-browse {
+  padding-top: 0.25rem;
+  animation: sr-fade 0.25s ease both;
+}
+
+.sr-browse-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sr-browse-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.sr-browse-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: 56px;
+  padding: 0 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sr-browse-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--bg-card-hover);
+  color: var(--text-secondary);
+}
+
+.sr-browse-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sr-browse-text strong {
+  font-size: 0.875rem;
+}
+
+.sr-browse-text small {
+  overflow: hidden;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sr-browse-tip {
+  margin: 1rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.sr-empty-text {
+  margin: 0 0 1rem;
+}
+
+@media (min-width: 768px) {
+  .sr-grid,
+  .sr-browse-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .sr-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sr-cell,
+  .sr-count,
+    .sr .mc-empty,
+  .sr-browse,
+  .sr-suggest,
+  .sr-bar,
+  .sr-back {
+    animation: none;
+  }
+}

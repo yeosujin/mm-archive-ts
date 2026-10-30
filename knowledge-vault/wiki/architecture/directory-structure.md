@@ -3,7 +3,7 @@ type: architecture
 status: stable
 tags: [architecture, structure]
 created: 2026-07-24
-updated: 2026-10-28
+updated: 2026-10-30
 ---
 
 # 디렉토리 구조
@@ -78,7 +78,7 @@ DB 레이어를 뺀 나머지. → [[database-layer]]
 
 - 전부 `src/App.css` 단일 파일 (`src/styles/`도 존재)
 - CSS 변수 기반 테마 (`--text-primary`, `--bg-card`, `--border`, `--accent` …)
-- 다크/라이트 테마는 `localStorage`에 저장 (`Layout.tsx`). 어드민 비밀번호도 `localStorage`(`ADMIN_PASSWORD_STORAGE_KEY`, 1.22.0~ — 북마클릿이 여는 새 탭에서도 로그인 유지)
+- 다크/라이트는 기기 설정(`prefers-color-scheme`)을 따른다 (`Layout.tsx`, `index.html`의 첫 렌더 전 스크립트). 테마 버튼은 2.1.0에서 없앴다. 어드민 비밀번호는 `localStorage`(`ADMIN_PASSWORD_STORAGE_KEY`, 1.22.0~ — 북마클릿이 여는 새 탭에서도 로그인 유지)
 - 모바일 네비는 `position: fixed` 오버레이 (페이지 밀림 없음)
 
 ## 관련

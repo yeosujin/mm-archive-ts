@@ -9,6 +9,7 @@ import { useToast } from '../../hooks/useToast';
 import Toast from '../../components/Toast';
 import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import DuoLoader from '../../components/DuoLoader';
 
 // 무한 스크롤: 한 번에 렌더할 모먼트 개수 (스크롤 하단 도달 시 이만큼씩 추가)
 const BATCH_SIZE = 50;
@@ -593,7 +594,7 @@ export default function AdminMoments() {
               />
               {uploading && (
                 <div className="upload-progress-overlay" style={{ borderRadius: '8px' }}>
-                  <div className="spinner"></div>
+                  <DuoLoader label="업로드 중" />
                   <div className="progress-bar-container">
                     <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }}></div>
                   </div>

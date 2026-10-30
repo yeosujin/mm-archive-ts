@@ -139,6 +139,14 @@ export const StarIcon = memo(({ size = 18, className }: IconProps) => {
   );
 });
 
+export const HomeIcon = memo(({ size = 18, className }: IconProps) => {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/>
+    </svg>
+  );
+});
+
 export const AskIcon = memo(({ size = 18, className }: IconProps) => {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>

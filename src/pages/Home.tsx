@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { SearchIcon } from '../components/Icons';
+import { Link } from 'react-router-dom';
 import { useData } from '../hooks/useData';
 import { useViewerParam } from '../hooks/useViewerParam';
 import { getTodayString } from '../lib/dailyPick';
@@ -19,9 +18,6 @@ import VideoCard from '../components/moments/VideoCard';
 import VideoDetailModal from '../components/moments/VideoDetailModal';
 import { latestVideos, momentsByVideo } from '../lib/videoCatalog';
 import type { Moment } from '../lib/database/types';
-
-// AI 모드 placeholder 예시 (정확한 단어 없이도, 한국어/영어 모두 찾을 수 있음을 보여주기 위한 유도 문구)
-const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
 
 const NO_MOMENTS: Moment[] = [];
 
@@ -101,10 +97,6 @@ function primeVideo(el: HTMLVideoElement | null, url: string): HTMLVideoElement 
 }
 
 export default function Home() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchMode, setSearchMode] = useState<'keyword' | 'ai'>('ai');
-  const [aiExampleIdx, setAiExampleIdx] = useState(0);
-  const navigate = useNavigate();
   const {
     videos, moments, posts, episodes, photos,
     fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchPhotos, fetchMemberSettings,
@@ -268,15 +260,6 @@ export default function Home() {
     return () => { alive = false; };
   }, [fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchPhotos, fetchMemberSettings, today]);
 
-  // AI 모드일 때 placeholder 예시를 일정 주기로 회전
-  useEffect(() => {
-    if (searchMode !== 'ai') return;
-    const id = setInterval(() => {
-      setAiExampleIdx(i => (i + 1) % AI_EXAMPLES.length);
-    }, 2800);
-    return () => clearInterval(id);
-  }, [searchMode]);
-
   const discardPreload = useCallback(() => {
     const el = preloadRef.current;
     if (!el) return;
@@ -299,14 +282,6 @@ export default function Home() {
       ?? (tapped ? measureStoryCard(tapped.year, tapped.startIndex) : null);
   };
   useEffect(() => discardPreload, [discardPreload]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      const suffix = searchMode === 'ai' ? '&mode=ai' : '';
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}${suffix}`);
-    }
-  };
 
   const handleOpenContent = (year: number, frameIndex: number) => {
     setAutoYear(null);
@@ -338,34 +313,6 @@ export default function Home() {
         liftCard={liftCard}
         onOpen={handleOpenContent}
       />
-
-      <div className="home-search-row">
-        <form onSubmit={handleSearch} className={`home-search ${searchMode === 'ai' ? 'ai-mode' : ''}`}>
-          <input
-            type="text"
-            className="home-search-input"
-            placeholder={searchMode === 'ai' ? `예: ${AI_EXAMPLES[aiExampleIdx]}` : '검색...'}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button
-            type="button"
-            className={`home-ai-switch ${searchMode === 'ai' ? 'on' : ''}`}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setSearchMode(searchMode === 'ai' ? 'keyword' : 'ai')}
-            aria-pressed={searchMode === 'ai'}
-            title={searchMode === 'ai' ? 'AI 검색 켜짐 (끄려면 클릭)' : 'AI 검색으로 전환'}
-          >
-            ✨ AI
-          </button>
-          <button type="submit" className="home-search-btn" aria-label="검색">
-            <SearchIcon size={16} />
-          </button>
-        </form>
-        {searchMode === 'ai' && (
-          <p className="home-search-hint">정확한 단어를 몰라도 느낌·상황으로 찾아드려요</p>
-        )}
-      </div>
 
       <section className="hm-latest">
         <div className="hm-sec">

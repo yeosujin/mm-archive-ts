@@ -7,6 +7,9 @@ import './styles/moments.css';
 import './styles/story.css';
 import './styles/home.css';
 import './styles/splash.css';
+import './styles/calendar.css';
+import './styles/search.css';
+import './styles/ask.css';
 
 function App() {
   return <RouterProvider router={router} />;

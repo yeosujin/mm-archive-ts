@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { StoryContent, StoryFrame, StoryYear } from '../../lib/onThisDayStory';
 import { groupStoryContents } from '../../lib/onThisDayStory';
 import type { Episode, Post } from '../../lib/database/types';
@@ -79,9 +80,13 @@ function FrameImage({ frame, eager }: { frame: StoryFrame | undefined; eager: bo
   }
 }
 
-/** 보이는 카드의 음소거 반복 미리보기. 활성 카드에만 마운트된다 */
+/** 미리보기 재생 횟수. 다 돌면 썸네일로 돌아간다 */
+const PREVIEW_PLAYS = 2;
+
+/** 보이는 카드의 음소거 미리보기(2번 재생). 활성 카드에만 마운트된다 */
 function CardPreview({ src }: { src: string }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const playsRef = useRef(0);
   const [showing, setShowing] = useState(false);
 
   useEffect(() => {
@@ -102,11 +107,19 @@ function CardPreview({ src }: { src: string }) {
       ref={ref}
       className={`hm-card-video${showing ? ' is-on' : ''}`}
       muted
-      loop
       playsInline
       preload="none"
       aria-hidden
       onPlaying={() => setShowing(true)}
+      onEnded={(e) => {
+        playsRef.current += 1;
+        if (playsRef.current < PREVIEW_PLAYS) {
+          e.currentTarget.currentTime = 0;
+          e.currentTarget.play().catch(() => setShowing(false));
+        } else {
+          setShowing(false); // 영상이 흐려지며 썸네일이 다시 보인다
+        }
+      }}
     />
   );
 }
@@ -175,7 +188,10 @@ export default function OnThisDayCards({ years, label, paused, liftCard = null, 
 
   return (
     <section className="hm-otd" aria-label="그 해 오늘">
-      <p className="hm-otd-label">{label}</p>
+      <div className="hm-otd-head">
+        <p className="hm-otd-label">{label}</p>
+        <Link to="/calendar" className="hm-sec-more">캘린더 ›</Link>
+      </div>
       <div ref={railRef} className="hm-cards" onScroll={handleScroll}>
         {groups.map(({ year: y, contents }) => (
           <div key={y.year} className="hm-otd-year" role="group" aria-label={`${y.year}년`}>

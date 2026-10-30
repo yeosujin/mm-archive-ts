@@ -94,6 +94,34 @@
   pointer-events: auto;
 }
 
+.mv-top-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 영상 상세로 (캘린더·검색에서 연 뷰어) */
+.mv-video-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+  padding: 0 10px 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mv-video-link:active {
+  opacity: 0.6;
+}
+
 .mv-count {
   padding-right: 6px;
   font-size: 13px;

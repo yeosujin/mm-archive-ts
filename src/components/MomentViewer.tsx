@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { Moment } from '../lib/database/types';
-import { CloseIcon, VolumeOnIcon, VolumeOffIcon, ShareIcon, PlayIcon } from './Icons';
+import { CloseIcon, VolumeOnIcon, VolumeOffIcon, ShareIcon, PlayIcon, ArrowRightIcon } from './Icons';
 import { requestPlay, release } from '../lib/videoPlaybackCoordinator';
 import { shareOrDownloadVideo } from '../lib/shareVideo';
 import { getSessionSoundOn, setSessionSoundOn } from '../lib/viewerSound';
@@ -10,6 +10,8 @@ interface Props {
   moments: Moment[];
   startIndex: number;
   onClose: () => void;
+  /** 주면 보고 있는 모먼트의 영상 상세로 가는 버튼을 단다 (영상 상세 밖에서 연 캘린더·검색) */
+  onOpenVideo?: (videoId: string) => void;
 }
 
 function isSaveData(): boolean {
@@ -58,7 +60,7 @@ const Slide = memo(({ moment, index, paused, loading, registerVideo, onTap, onEn
   );
 });
 
-export default function MomentViewer({ moments, startIndex, onClose }: Props) {
+export default function MomentViewer({ moments, startIndex, onClose, onOpenVideo }: Props) {
   // 시작 위치는 마운트 시점 값으로 고정
   const [initialIndex] = useState(() => Math.min(Math.max(0, startIndex), Math.max(0, moments.length - 1)));
   const [active, setActive] = useState(initialIndex);
@@ -289,6 +291,8 @@ export default function MomentViewer({ moments, startIndex, onClose }: Props) {
     setDragLabel(null);
   };
 
+  const videoId = moments[active]?.video_id;
+
   return (
     <div className="mv" role="dialog" aria-modal="true" aria-label="모먼트 보기">
       <div className="mv-feed" ref={feedRef}>
@@ -314,7 +318,14 @@ export default function MomentViewer({ moments, startIndex, onClose }: Props) {
         <button type="button" className="mv-btn mv-close" onClick={close} aria-label="닫기">
           <CloseIcon size={24} />
         </button>
-        <span className="mv-count">{active + 1} / {moments.length}</span>
+        <span className="mv-top-end">
+          {onOpenVideo && videoId && (
+            <button type="button" className="mv-video-link" onClick={() => onOpenVideo(videoId)}>
+              영상 보기 <ArrowRightIcon size={14} />
+            </button>
+          )}
+          <span className="mv-count">{active + 1} / {moments.length}</span>
+        </span>
       </div>
 
       <div className="mv-side">
