@@ -8,10 +8,14 @@
 
 .cal-head {
   position: relative;
+  padding: 0.25rem 0 0.75rem;
+}
+
+/* 연월과 ‹ ›를 한 줄에 — 화살표는 아래 요약이 아니라 연월 글자 가운데에 맞춘다 */
+.cal-head-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.25rem 0 0.75rem;
 }
 
 .cal-title {
@@ -35,6 +39,9 @@
 }
 
 .cal-title-year {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-secondary);
@@ -43,7 +50,6 @@
 }
 
 .cal-title-chevron {
-  align-self: center;
   opacity: 0.6;
   transition: transform 0.15s;
 }
@@ -56,6 +62,11 @@
   margin: 0.25rem 0 0;
   font-size: 0.75rem;
   color: var(--text-secondary);
+}
+
+/* ‹ › 버튼(36px) 때문에 줄이 연월보다 높아서, 요약은 바로 붙인다 */
+.cal-head .cal-summary {
+  margin-top: 0;
 }
 
 .cal-nav {

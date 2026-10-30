@@ -166,7 +166,7 @@ export default function Calendar() {
   return (
     <div className="cal">
       <div className="cal-head">
-        <div>
+        <div className="cal-head-row">
           <button
             type="button"
             ref={titleRef}
@@ -176,23 +176,26 @@ export default function Calendar() {
             onClick={() => setPickerYear(p => (p === null ? year : null))}
           >
             <span className="cal-title-month">{month}월</span>
-            <span className="cal-title-year">{year}</span>
-            <svg className="cal-title-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M6 9l6 6 6-6" />
-            </svg>
+            {/* 해와 화살표를 한 덩어리로: 덩어리는 달 글자와 기준선을 맞추고, 화살표는 해 글자 가운데에 */}
+            <span className="cal-title-year">
+              {year}
+              <svg className="cal-title-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </span>
           </button>
-          <p className="cal-summary">
-            {recordDates.length ? `기록 있는 날 ${recordDates.length}일 · ${recordCount}개` : '이 달은 기록이 없어요'}
-          </p>
+          <div className="cal-nav">
+            <button type="button" className="cal-nav-btn" aria-label="이전 달" disabled={currentIndex <= 0} onClick={() => goMonth(currentIndex - 1)}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 18l-6-6 6-6" /></svg>
+            </button>
+            <button type="button" className="cal-nav-btn" aria-label="다음 달" disabled={currentIndex >= strip.length - 1} onClick={() => goMonth(currentIndex + 1)}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 18l6-6-6-6" /></svg>
+            </button>
+          </div>
         </div>
-        <div className="cal-nav">
-          <button type="button" className="cal-nav-btn" aria-label="이전 달" disabled={currentIndex <= 0} onClick={() => goMonth(currentIndex - 1)}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 18l-6-6 6-6" /></svg>
-          </button>
-          <button type="button" className="cal-nav-btn" aria-label="다음 달" disabled={currentIndex >= strip.length - 1} onClick={() => goMonth(currentIndex + 1)}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 18l6-6-6-6" /></svg>
-          </button>
-        </div>
+        <p className="cal-summary">
+          {recordDates.length ? `기록 있는 날 ${recordDates.length}일 · ${recordCount}개` : '이 달은 기록이 없어요'}
+        </p>
         {/* 연·월 선택: 연도 칩 + 12개월. 기록 범위 밖의 달은 못 고른다 */}
         {pickerOpen && (
           <div ref={pickerRef} className="cal-picker">
