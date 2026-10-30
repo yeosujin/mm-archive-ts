@@ -142,7 +142,8 @@ export default function Layout() {
           </div>
         )}
 
-        {!isAskPage && (
+        {/* 검색 화면은 어느 탭에도 속하지 않아 탭 줄을 숨긴다 (바로가기는 검색 화면 안에) */}
+        {!isAskPage && !isSearchPage && (
           <nav className="top-tabs" aria-label="메뉴">
             {TABS.map(tab => (
               <NavLink

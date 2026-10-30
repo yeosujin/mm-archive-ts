@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams, useNavigate, useLocation, useOutletContext } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate, useLocation, useOutletContext } from 'react-router-dom';
 import type { Video, Moment, Post, Episode } from '../lib/database';
 import type { CalendarEntry } from '../lib/calendarDays';
 import { episodeEntryBuilder, momentEntry, postEntry } from '../lib/calendarDays';
@@ -13,6 +13,7 @@ import VideoDetailModal from '../components/moments/VideoDetailModal';
 import EntryCard from '../components/EntryCard';
 import EntryDetail from '../components/calendar/EntryDetail';
 import MomentViewer from '../components/MomentViewer';
+import { VideoIcon, PostIcon, PhotoIcon, ChatIcon, CalendarIcon } from '../components/Icons';
 import type { LayoutContext } from '../components/Layout';
 
 type Kind = 'video' | 'moment' | 'post' | 'episode';
@@ -27,6 +28,23 @@ interface Result {
 
 const KINDS: Kind[] = ['video', 'moment', 'post', 'episode'];
 const KIND_LABEL: Record<Kind, string> = { video: '영상', moment: '모먼트', post: '포스트', episode: '에피소드' };
+
+// 검색 결과 끝 '○○ 탭에서 전체 보기'. 영상·모먼트는 둘 다 모먼트 탭(/videos)
+const KIND_TAB: Record<Kind, { to: string; label: string }> = {
+  video: { to: '/videos', label: '모먼트 탭' },
+  moment: { to: '/videos', label: '모먼트 탭' },
+  post: { to: '/posts', label: '포스트 탭' },
+  episode: { to: '/episodes', label: '에피소드 탭' },
+};
+
+// 검색어가 없을 때 보이는 바로가기 (검색 화면엔 탭 줄이 없다)
+const SHORTCUTS = [
+  { to: '/videos', label: '모먼트', desc: '영상과 모먼트', Icon: VideoIcon },
+  { to: '/posts', label: '포스트', desc: 'SNS 게시물', Icon: PostIcon },
+  { to: '/photos', label: '사진', desc: '사진 묶음', Icon: PhotoIcon },
+  { to: '/episodes', label: '에피소드', desc: 'DM · 댓글 · 리스닝', Icon: ChatIcon },
+  { to: '/calendar', label: '캘린더', desc: '날짜로 보기', Icon: CalendarIcon },
+];
 
 // AI 모드 placeholder 예시 (정확한 단어 없이도, 한국어/영어 모두 찾을 수 있음을 보여주기 위한 유도 문구)
 const AI_EXAMPLES = ['비 오는 날 사진', 'smiling on stage', '데뷔 초 포스트', 'winter vibes'];
@@ -254,8 +272,25 @@ export default function Search() {
   );
 
   let body: React.ReactNode;
-  if (!trimmedQuery) {
-    body = <p className="mc-empty">검색어를 입력해 주세요</p>;
+  // 검색어가 없거나 입력창을 비우면 바로가기
+  if (!trimmedQuery || !inputValue.trim()) {
+    body = (
+      <section className="sr-browse">
+        <h2 className="sr-browse-title">둘러보기</h2>
+        <div className="sr-browse-grid">
+          {SHORTCUTS.map(({ to, label, desc, Icon }) => (
+            <Link key={to} to={to} className="sr-browse-item">
+              <span className="sr-browse-icon"><Icon size={20} /></span>
+              <span className="sr-browse-text">
+                <strong>{label}</strong>
+                <small>{desc}</small>
+              </span>
+            </Link>
+          ))}
+        </div>
+        <p className="sr-browse-tip">제목이나 날짜(2025-05)로 찾을 수 있어요. 정확한 단어가 떠오르지 않으면 AI를 켜 보세요.</p>
+      </section>
+    );
   } else if (!loaded) {
     body = failed
       ? <p className="mc-empty">검색할 기록을 불러오지 못했어요</p>
@@ -322,6 +357,11 @@ export default function Search() {
             );
           })}
         </div>
+        {filter !== 'all' && (
+          <Link to={KIND_TAB[filter].to} className="sr-tab-link">
+            {KIND_TAB[filter].label}에서 전체 보기 ›
+          </Link>
+        )}
       </>
     );
   }
