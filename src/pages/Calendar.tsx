@@ -60,6 +60,8 @@ export default function Calendar() {
   const [story, setStory] = useState<{ id: number; year: StoryYear; closing: boolean } | null>(null);
   const [failed, setFailed] = useState(false);
   const touchRef = useRef<{ x: number; y: number } | null>(null);
+  const titleRef = useRef<HTMLButtonElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     Promise.all([fetchVideos(), fetchMoments(), fetchPosts(), fetchEpisodes(), fetchPhotos(), fetchMemberSettings()])
@@ -115,6 +117,28 @@ export default function Calendar() {
     setPickerYear(null);
   };
 
+  // 연·월 선택: 바깥을 누르거나 Esc면 닫는다
+  const pickerOpen = pickerYear !== null;
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const inside = (target: EventTarget | null) =>
+      target instanceof Node && (titleRef.current?.contains(target) || pickerRef.current?.contains(target));
+    const onPointerDown = (e: PointerEvent) => {
+      if (!inside(e.target)) setPickerYear(null);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setPickerYear(null);
+      titleRef.current?.focus();
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [pickerOpen]);
+
   const momentViewer = useMemo(() => {
     if (!momentParam || !moments) return null;
     const videoId = moments.find(m => m.id === momentParam)?.video_id;
@@ -145,8 +169,9 @@ export default function Calendar() {
         <div>
           <button
             type="button"
+            ref={titleRef}
             className="cal-title"
-            aria-expanded={pickerYear !== null}
+            aria-expanded={pickerOpen}
             aria-label={`${year}년 ${month}월, 다른 달 고르기`}
             onClick={() => setPickerYear(p => (p === null ? year : null))}
           >
@@ -168,32 +193,31 @@ export default function Calendar() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 18l6-6-6-6" /></svg>
           </button>
         </div>
-      </div>
-
-      {/* 연·월 선택: 연도 칩 + 12개월. 기록 범위 밖의 달은 못 고른다 */}
-      {pickerYear !== null && (
-        <div className="cal-picker">
-          <div className="cal-picker-years">
-            {years.map(y => (
-              <button key={y} type="button" className={`mc-chip ${y === pickerYear ? 'active' : ''}`} onClick={() => setPickerYear(y)}>
-                {y}
-              </button>
-            ))}
-          </div>
-          <div className="cal-picker-months">
-            {Array.from({ length: 12 }, (_, i) => {
-              const index = strip.findIndex(s => s.year === pickerYear && s.month === i + 1);
-              const target = strip[index];
-              const classes = ['cal-picker-month', index === currentIndex && 'active', target && !target.days && 'empty'].filter(Boolean).join(' ');
-              return (
-                <button key={i} type="button" className={classes} disabled={index < 0} onClick={() => goMonth(index)}>
-                  {i + 1}월
+        {/* 연·월 선택: 연도 칩 + 12개월. 기록 범위 밖의 달은 못 고른다 */}
+        {pickerOpen && (
+          <div ref={pickerRef} className="cal-picker">
+            <div className="cal-picker-years">
+              {years.map(y => (
+                <button key={y} type="button" className={`mc-chip ${y === pickerYear ? 'active' : ''}`} onClick={() => setPickerYear(y)}>
+                  {y}
                 </button>
-              );
-            })}
+              ))}
+            </div>
+            <div className="cal-picker-months">
+              {Array.from({ length: 12 }, (_, i) => {
+                const index = strip.findIndex(s => s.year === pickerYear && s.month === i + 1);
+                const target = strip[index];
+                const classes = ['cal-picker-month', index === currentIndex && 'active', target && !target.days && 'empty'].filter(Boolean).join(' ');
+                return (
+                  <button key={i} type="button" className={classes} disabled={index < 0} onClick={() => goMonth(index)}>
+                    {i + 1}월
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div
         className="cal-grid"
