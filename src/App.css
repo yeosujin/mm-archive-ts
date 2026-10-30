@@ -799,14 +799,6 @@
   transform: translateY(-1px);
 }
 
-/* AI 모드 검색창 설명 힌트 */
-.home-search-hint {
-  margin: 0.5rem 0 0;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
 /* ===== Responsive - Mobile First ===== */
 
 /* Extra Small (< 480px) */

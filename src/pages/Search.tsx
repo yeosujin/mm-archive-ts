@@ -69,7 +69,8 @@ export default function Search() {
   const location = useLocation();
   const { searchSlot } = useOutletContext<LayoutContext>();
   const query = searchParams.get('q') || '';
-  const mode: SearchMode = searchParams.get('mode') === 'ai' ? 'ai' : 'keyword';
+  // 기본은 AI (글자가 맞는 결과 + 비슷한 결과). `?mode=keyword`면 글자가 맞는 것만
+  const mode: SearchMode = searchParams.get('mode') === 'keyword' ? 'keyword' : 'ai';
 
   const {
     videos, moments, posts, episodes, memberSettings,
@@ -114,7 +115,7 @@ export default function Search() {
 
   const setMode = (m: SearchMode) => {
     const params = new URLSearchParams(searchParams);
-    if (m === 'ai') params.set('mode', 'ai');
+    if (m === 'keyword') params.set('mode', 'keyword');
     else params.delete('mode');
     navigate(`/search?${params.toString()}`, { replace: true });
   };
@@ -123,7 +124,7 @@ export default function Search() {
     e.preventDefault();
     const trimmed = inputValue.trim();
     if (!trimmed) return;
-    const suffix = mode === 'ai' ? '&mode=ai' : '';
+    const suffix = mode === 'keyword' ? '&mode=keyword' : '';
     navigate(`/search?q=${encodeURIComponent(trimmed)}${suffix}`);
   };
 
@@ -292,7 +293,7 @@ export default function Search() {
             </Link>
           ))}
         </div>
-        <p className="sr-browse-tip">제목이나 날짜(2025-05)로 찾을 수 있어요. 정확한 단어가 떠오르지 않으면 AI를 켜 보세요.</p>
+        <p className="sr-browse-tip">제목이나 날짜(2025-05)로 찾을 수 있어요. AI가 켜져 있으면 정확한 단어가 아니어도 비슷한 기록을 함께 찾아요.</p>
       </section>
     );
   } else if (!loaded) {
@@ -375,7 +376,6 @@ export default function Search() {
   return (
     <div className="sr">
       {searchSlot && createPortal(searchBar, searchSlot)}
-      {mode === 'ai' && <p className="home-search-hint sr-hint">정확한 단어를 몰라도 느낌·상황으로 찾아드려요</p>}
       {body}
 
       {/* 뷰어(1000)는 모달(900) 위. 모달 본문의 미리 받기 정리가 뷰어 effect 뒤에 돌도록 모달보다 앞에 둔다 */}

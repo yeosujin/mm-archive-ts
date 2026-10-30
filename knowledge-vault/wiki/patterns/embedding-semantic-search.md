@@ -4,7 +4,7 @@ status: stable
 enforcement: should
 tags: [pattern, search, ai]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-30
 ---
 
 # 임베딩 의미 검색
@@ -50,7 +50,7 @@ const aiCutoff = Math.max(AI_SIM_FLOOR, topSim - AI_SIM_MARGIN);
 
 ## 쿼터 절약
 
-임베딩 호출은 [[google-gemini]] 쿼터를 소모한다. **AI 모드를 명시적으로 켰을 때만** Edge Function을 호출하고, 기본 키워드 모드는 캐시된 데이터를 클라이언트에서 매칭할 뿐 네트워크를 타지 않는다.
+임베딩 호출은 [[google-gemini]] 쿼터를 소모한다. 2.2.0부터 검색 화면은 **AI 모드가 기본**이라 검색할 때마다 Edge Function을 한 번 호출한다. 사용자가 AI 스위치를 끄면(`?mode=keyword`) 캐시된 데이터를 클라이언트에서 매칭할 뿐 네트워크를 타지 않는다. 같은 검색어를 다시 보면(뒤로가기 등) 결과를 다시 받지 않도록 하는 캐시는 아직 없다.
 
 ## 주의
 

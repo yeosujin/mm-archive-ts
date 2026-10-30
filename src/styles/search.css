@@ -74,10 +74,6 @@
   flex: none;
 }
 
-.sr-hint {
-  margin: 0 0 0.75rem;
-}
-
 .sr-count {
   margin: 0 0 0.5rem;
   font-size: 0.75rem;
@@ -117,7 +113,6 @@
 }
 
 .sr-count,
-.sr-hint,
 .sr .mc-empty {
   animation: sr-fade 0.25s ease both;
 }
@@ -267,8 +262,7 @@
 @media (prefers-reduced-motion: reduce) {
   .sr-cell,
   .sr-count,
-  .sr-hint,
-  .sr .mc-empty,
+    .sr .mc-empty,
   .sr-browse,
   .sr-bar,
   .sr-back {
