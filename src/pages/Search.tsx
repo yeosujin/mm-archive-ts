@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { useSearchParams, useNavigate, useLocation, useOutletContext } from 'react-router-dom';
 import type { Video, Moment, Post, Episode } from '../lib/database';
 import type { CalendarEntry } from '../lib/calendarDays';
 import { episodeEntryBuilder, momentEntry, postEntry } from '../lib/calendarDays';
 import { formatDotDate, momentsByVideo } from '../lib/videoCatalog';
-import { SearchIcon } from '../components/Icons';
 import { useData } from '../hooks/useData';
 import { useViewerParam } from '../hooks/useViewerParam';
 import { semanticSearch, type SemanticHit } from '../lib/semanticSearch';
@@ -13,6 +13,7 @@ import VideoDetailModal from '../components/moments/VideoDetailModal';
 import EntryCard from '../components/EntryCard';
 import EntryDetail from '../components/calendar/EntryDetail';
 import MomentViewer from '../components/MomentViewer';
+import type { LayoutContext } from '../components/Layout';
 
 type Kind = 'video' | 'moment' | 'post' | 'episode';
 type FilterType = 'all' | Kind;
@@ -47,6 +48,8 @@ function highlightText(text: string, query: string): React.ReactNode {
 export default function Search() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { searchSlot } = useOutletContext<LayoutContext>();
   const query = searchParams.get('q') || '';
   const mode: SearchMode = searchParams.get('mode') === 'ai' ? 'ai' : 'keyword';
 
@@ -216,13 +219,21 @@ export default function Search() {
     return video ? { video, list: momentMap.get(video.id) ?? [] } : null;
   }, [detailParam, videos, momentMap]);
 
-  const searchForm = (
-    <div className="home-search-row">
-      <form onSubmit={handleSubmit} className={`home-search ${mode === 'ai' ? 'ai-mode' : ''}`}>
+  // 앱 안에서 왔으면 뒤로, 링크로 바로 들어왔으면 홈으로
+  const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/'));
+
+  // 헤더 첫 줄에 띄우는 검색창 (Layout의 searchSlot)
+  const searchBar = (
+    <>
+      <button type="button" className="sr-back" onClick={goBack} aria-label="뒤로">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+      </button>
+      <form onSubmit={handleSubmit} className={`sr-bar${mode === 'ai' ? ' ai-mode' : ''}`}>
         <input
           type="text"
-          className="home-search-input"
-          placeholder={mode === 'ai' ? `예: ${AI_EXAMPLES[aiExampleIdx]}` : '검색...'}
+          enterKeyHint="search"
+          className="sr-input"
+          placeholder={mode === 'ai' ? `예: ${AI_EXAMPLES[aiExampleIdx]}` : '검색어를 입력하세요'}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           aria-label="검색어"
@@ -238,14 +249,8 @@ export default function Search() {
         >
           ✨ AI
         </button>
-        <button type="submit" className="home-search-btn" aria-label="검색">
-          <SearchIcon size={16} />
-        </button>
       </form>
-      {mode === 'ai' && (
-        <p className="home-search-hint">정확한 단어를 몰라도 느낌·상황으로 찾아드려요</p>
-      )}
-    </div>
+    </>
   );
 
   let body: React.ReactNode;
@@ -319,7 +324,8 @@ export default function Search() {
 
   return (
     <div className="sr">
-      {searchForm}
+      {searchSlot && createPortal(searchBar, searchSlot)}
+      {mode === 'ai' && <p className="home-search-hint sr-hint">정확한 단어를 몰라도 느낌·상황으로 찾아드려요</p>}
       {body}
 
       {/* 뷰어(1000)는 모달(900) 위. 모달 본문의 미리 받기 정리가 뷰어 effect 뒤에 돌도록 모달보다 앞에 둔다 */}

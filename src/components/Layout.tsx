@@ -4,6 +4,11 @@ import { SearchIcon, CalendarIcon, SunIcon, MoonIcon, CloseIcon, ArrowUpIcon } f
 import { useData } from '../hooks/useData';
 import EntrySplash from './EntrySplash';
 
+/** 검색 화면은 헤더 첫 줄(로고·아이콘)을 비워 두고, 검색 화면이 자기 검색창을 여기에 띄운다 */
+export interface LayoutContext {
+  searchSlot: HTMLDivElement | null;
+}
+
 // 상단 글자 탭
 const TABS = [
   { to: '/', label: '홈', end: true, preload: undefined },
@@ -33,6 +38,7 @@ export default function Layout() {
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   const [headerHidden, setHeaderHidden] = useState(false);
+  const [searchSlot, setSearchSlot] = useState<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLElement>(null);
 
   // 스크롤 한 곳에서: 맨 위로 버튼 + 아래로 내리면 헤더 숨김, 조금이라도 올리면 다시 보임
@@ -66,6 +72,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isAskPage = location.pathname === '/ask' || location.pathname.startsWith('/ask/');
+  const isSearchPage = location.pathname === '/search';
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,58 +85,62 @@ export default function Layout() {
   return (
     <div className={`app ${isDarkMode ? 'dark' : 'light'}`}>
       <header ref={headerRef} className={`header${headerHidden && !showSearch ? ' header--hidden' : ''}`}>
-        <div className="header-content">
-          <NavLink to="/" className="logo">
-            mmemory
-          </NavLink>
+        {isSearchPage ? (
+          <div className="header-content sr-head" ref={setSearchSlot} />
+        ) : (
+          <div className="header-content">
+            <NavLink to="/" className="logo">
+              mmemory
+            </NavLink>
 
-          <div className="header-actions">
-            {!isAskPage && (
-              <button
-                className="search-toggle"
-                onClick={() => setShowSearch(!showSearch)}
-                aria-label="검색"
-              >
-                <SearchIcon size={18} />
-              </button>
-            )}
-
-            {!isAskPage && (
-              <NavLink
-                to="/calendar"
-                className={({ isActive }) => `search-toggle calendar-link ${isActive ? 'active' : ''}`}
-                aria-label="캘린더"
-                onMouseEnter={() => import('../pages/Calendar')}
-              >
-                <CalendarIcon size={18} />
-              </NavLink>
-            )}
-
-            <button
-              className="theme-toggle"
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              aria-label="테마 변경"
-            >
-              {isDarkMode ? <SunIcon size={18} /> : <MoonIcon size={18} />}
-            </button>
-
-            {showSearch && (
-              <form onSubmit={handleSearch} className="header-search">
-                <input
-                  type="text"
-                  className="header-search-input"
-                  placeholder="검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  autoFocus
-                />
-                <button type="button" className="search-close" onClick={() => setShowSearch(false)}>
-                  <CloseIcon size={16} />
+            <div className="header-actions">
+              {!isAskPage && (
+                <button
+                  className="search-toggle"
+                  onClick={() => setShowSearch(!showSearch)}
+                  aria-label="검색"
+                >
+                  <SearchIcon size={18} />
                 </button>
-              </form>
-            )}
+              )}
+
+              {!isAskPage && (
+                <NavLink
+                  to="/calendar"
+                  className={({ isActive }) => `search-toggle calendar-link ${isActive ? 'active' : ''}`}
+                  aria-label="캘린더"
+                  onMouseEnter={() => import('../pages/Calendar')}
+                >
+                  <CalendarIcon size={18} />
+                </NavLink>
+              )}
+
+              <button
+                className="theme-toggle"
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                aria-label="테마 변경"
+              >
+                {isDarkMode ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+              </button>
+
+              {showSearch && (
+                <form onSubmit={handleSearch} className="header-search">
+                  <input
+                    type="text"
+                    className="header-search-input"
+                    placeholder="검색..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoFocus
+                  />
+                  <button type="button" className="search-close" onClick={() => setShowSearch(false)}>
+                    <CloseIcon size={16} />
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {!isAskPage && (
           <nav className="top-tabs" aria-label="메뉴">
@@ -149,7 +160,7 @@ export default function Layout() {
       </header>
 
       <main className="main">
-        <Outlet />
+        <Outlet context={{ searchSlot } satisfies LayoutContext} />
       </main>
 
       <footer className="footer">
