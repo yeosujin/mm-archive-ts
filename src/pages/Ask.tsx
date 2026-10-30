@@ -3,8 +3,15 @@ import { Link } from 'react-router-dom';
 import { useData } from '../hooks/useData';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
+import { PhotoIcon, SearchIcon } from '../components/Icons';
 import { createAsk } from '../lib/database';
 import { uploadAskImages } from '../lib/askStorage';
+import { formatDotDate } from '../lib/videoCatalog';
+import AskBubbles from '../components/AskBubbles';
+
+const MAX_IMAGES = 3;
+const MAX_LENGTH = 500;
+const PAGE_SIZE = 10;
 
 export default function Ask() {
   const { asks, fetchAsks } = useData();
@@ -15,7 +22,7 @@ export default function Ask() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [displayCount, setDisplayCount] = useState(10);
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async () => {
@@ -31,8 +38,6 @@ export default function Ask() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  const MAX_IMAGES = 3;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -88,26 +93,66 @@ export default function Ask() {
     }
   };
 
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = asks?.filter(a =>
+    !q || a.content.toLowerCase().includes(q) || a.answer?.toLowerCase().includes(q)
+  ) ?? [];
+  const visible = filtered.slice(0, displayCount);
+
+  let list: React.ReactNode;
+  if (loading) {
+    list = <div className="loading">불러오는 중</div>;
+  } else if (filtered.length === 0) {
+    list = <p className="mc-empty">{q ? '찾는 질문이 없어요' : '아직 답변된 질문이 없어요'}</p>;
+  } else {
+    list = (
+      <div className="ask-list">
+        {visible.map(ask => (
+          <Link key={ask.id} to={`/ask/${ask.id}`} className="ask-card">
+            <AskBubbles ask={ask} />
+            <time className="ask-date">{formatDotDate(ask.answered_at ?? ask.created_at)}</time>
+          </Link>
+        ))}
+        {filtered.length > displayCount && (
+          <button type="button" className="ask-more-btn" onClick={() => setDisplayCount(n => n + PAGE_SIZE)}>
+            더보기
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <>
-    <Toast toasts={toasts} onRemove={removeToast} />
-    <div className="page ask-page">
-      <section className="ask-form-section">
-        <h1 className="ask-title">Ask</h1>
-        <p className="ask-subtitle">궁금한 점이나 요청 사항을 남겨주세요</p>
-
-        <form onSubmit={handleSubmit} className="ask-form">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="입력하세요..."
-            maxLength={500}
-            rows={4}
-            required
-            className="ask-textarea"
-          />
-          <div className="ask-form-footer">
-            <div className="ask-image-area">
+      <Toast toasts={toasts} onRemove={removeToast} />
+      <div className="ask">
+        <section className="ask-compose">
+          <h1 className="ask-title">궁금한 점·요청</h1>
+          <p className="ask-intro">
+            궁금한 점이나 바라는 점을 남겨 주세요. <b>이름 없이</b> 전달되고, 답변이 달리면 아래 목록에 함께 올라와요.
+          </p>
+          <form onSubmit={handleSubmit} className="ask-box">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="예: 이 장면이 나온 영상이 뭔가요?"
+              maxLength={MAX_LENGTH}
+              rows={3}
+              required
+              aria-label="질문"
+              className="ask-input"
+            />
+            {imagePreviews.length > 0 && (
+              <div className="ask-previews">
+                {imagePreviews.map((preview, i) => (
+                  <div key={preview} className="ask-preview">
+                    <img src={preview} alt={`첨부 사진 ${i + 1}`} />
+                    <button type="button" onClick={() => handleRemoveImage(i)} className="ask-preview-remove" aria-label={`사진 ${i + 1} 빼기`}>&times;</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="ask-box-bar">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -116,85 +161,47 @@ export default function Ask() {
                 onChange={handleImageSelect}
                 className="file-input-hidden"
                 id="ask-image-input"
+                disabled={imageFiles.length >= MAX_IMAGES}
               />
-              {imageFiles.length < MAX_IMAGES && (
-                <label htmlFor="ask-image-input" className="ask-image-btn">
-                  이미지 첨부 ({imageFiles.length}/{MAX_IMAGES})
-                </label>
-              )}
-              {imagePreviews.length > 0 && (
-                <div className="ask-image-previews">
-                  {imagePreviews.map((preview, i) => (
-                    <div key={i} className="ask-image-preview">
-                      <img src={preview} alt={`첨부 이미지 ${i + 1}`} />
-                      <button type="button" onClick={() => handleRemoveImage(i)} className="ask-image-remove">&times;</button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <label
+                htmlFor="ask-image-input"
+                className={`ask-photo-btn${imageFiles.length >= MAX_IMAGES ? ' is-full' : ''}`}
+                aria-label="사진 첨부"
+              >
+                <PhotoIcon size={18} />
+              </label>
+              <span className="ask-hint">{imageFiles.length ? `사진 ${imageFiles.length}/${MAX_IMAGES}` : `사진 ${MAX_IMAGES}장까지`}</span>
+              <span className="ask-count">{content.length}/{MAX_LENGTH}</span>
+              <button type="submit" className="ask-send-btn" disabled={submitting || !content.trim()}>
+                {submitting ? '보내는 중' : '보내기'}
+              </button>
             </div>
-            <span className="ask-char-count">{content.length}/500</span>
-          </div>
-          <button type="submit" className="ask-submit-btn" disabled={submitting || !content.trim()}>
-            {submitting ? '보내는 중...' : '질문 보내기'}
-          </button>
-        </form>
-      </section>
+          </form>
+        </section>
 
-      <section className="ask-feed-section">
-        <h2 className="ask-feed-title">Q&A</h2>
-        {asks && asks.length > 0 && (
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Q&A 검색..."
-            className="ask-search-input"
-          />
-        )}
-        {(() => {
-          const q = searchQuery.toLowerCase();
-          const filtered = asks?.filter(a =>
-            !q || a.content.toLowerCase().includes(q) || a.answer?.toLowerCase().includes(q)
-          );
-          if (loading) return <div className="loading">로딩 중...</div>;
-          if (!filtered || filtered.length === 0) {
-            return (
-              <div className="empty-state">
-                <p>{searchQuery ? '검색 결과가 없어요' : '아직 답변된 질문이 없어요'}</p>
-              </div>
-            );
-          }
-          const visible = filtered.slice(0, displayCount);
-          const hasMore = filtered.length > displayCount;
-          return (
-            <div className="ask-feed">
-              {visible.map((ask) => (
-                <Link key={ask.id} to={`/ask/${ask.id}`} className="ask-card">
-                  <div className="ask-card-question">
-                    <span className="ask-card-q">Q.</span>
-                    <p>{ask.content}</p>
-                  </div>
-                  <div className="ask-card-answer">
-                    <span className="ask-card-a">A.</span>
-                    <p>{ask.answer}</p>
-                  </div>
-                </Link>
-              ))}
-              {hasMore && (
-                <button
-                  type="button"
-                  className="ask-load-more-btn"
-                  onClick={() => setDisplayCount(prev => prev + 10)}
-                >
-                  더보기
-                </button>
-              )}
+        <section className="ask-feed">
+          <h2 className="mc-month-title">
+            답변 모음 {asks && <small>{asks.length}개</small>}
+          </h2>
+          {asks && asks.length > 0 && (
+            <div className="mc-search ask-search">
+              <SearchIcon size={15} />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setDisplayCount(PAGE_SIZE);
+                }}
+                placeholder="질문·답변에서 찾기"
+                aria-label="질문·답변에서 찾기"
+                className="mc-search-input"
+              />
             </div>
-          );
-        })()}
-      </section>
-    </div>
+          )}
+          {list}
+        </section>
+      </div>
     </>
   );
 }

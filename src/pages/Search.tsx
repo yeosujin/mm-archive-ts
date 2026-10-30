@@ -67,7 +67,7 @@ export default function Search() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { searchSlot } = useOutletContext<LayoutContext>();
+  const { headerSlot } = useOutletContext<LayoutContext>();
   const query = searchParams.get('q') || '';
   // 기본은 AI (글자가 맞는 결과 + 비슷한 결과). `?mode=keyword`면 글자가 맞는 것만
   const mode: SearchMode = searchParams.get('mode') === 'keyword' ? 'keyword' : 'ai';
@@ -242,7 +242,7 @@ export default function Search() {
   // 앱 안에서 왔으면 뒤로, 링크로 바로 들어왔으면 홈으로
   const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/'));
 
-  // 헤더 첫 줄에 띄우는 검색창 (Layout의 searchSlot)
+  // 헤더 첫 줄에 띄우는 검색창 (Layout의 headerSlot)
   // 자동완성: 입력한 글자가 든 제목. 제목이 그 글자로 시작하는 것 먼저 → 같으면 영상·포스트·에피소드가 모먼트보다 먼저
   // (모먼트는 수가 많아 목록을 다 차지한다) → 최신순. 같은 제목은 하나만
   const typed = inputValue.trim().toLowerCase();
@@ -271,7 +271,7 @@ export default function Search() {
 
   const searchBar = (
     <>
-      <button type="button" className="sr-back" onClick={goBack} aria-label="뒤로">
+      <button type="button" className="page-head-back sr-back" onClick={goBack} aria-label="뒤로">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
       </button>
       <form onSubmit={handleSubmit} className={`sr-bar${mode === 'ai' ? ' ai-mode' : ''}`}>
@@ -430,7 +430,7 @@ export default function Search() {
 
   return (
     <div className="sr">
-      {searchSlot && createPortal(searchBar, searchSlot)}
+      {headerSlot && createPortal(searchBar, headerSlot)}
       {body}
 
       {/* 뷰어(1000)는 모달(900) 위. 모달 본문의 미리 받기 정리가 뷰어 effect 뒤에 돌도록 모달보다 앞에 둔다 */}

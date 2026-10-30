@@ -1,12 +1,12 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
-import { SearchIcon, ArrowUpIcon, AskIcon } from './Icons';
+import { SearchIcon, ArrowUpIcon, AskIcon, HomeIcon } from './Icons';
 import { useData } from '../hooks/useData';
 import EntrySplash from './EntrySplash';
 
-/** 검색 화면은 헤더 첫 줄(로고·아이콘)을 비워 두고, 검색 화면이 자기 검색창을 여기에 띄운다 */
+/** 검색 화면은 헤더 첫 줄(로고·아이콘)을 비워 두고, 검색 화면이 자기 머리줄(‹ + 검색창)을 여기에 띄운다 */
 export interface LayoutContext {
-  searchSlot: HTMLDivElement | null;
+  headerSlot: HTMLDivElement | null;
 }
 
 // 상단 글자 탭
@@ -44,7 +44,7 @@ export default function Layout() {
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   const [headerHidden, setHeaderHidden] = useState(false);
-  const [searchSlot, setSearchSlot] = useState<HTMLDivElement | null>(null);
+  const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLElement>(null);
 
   // 스크롤 한 곳에서: 맨 위로 버튼 + 아래로 내리면 헤더 숨김, 조금이라도 올리면 다시 보임
@@ -79,6 +79,8 @@ export default function Layout() {
   const location = useLocation();
   const isAskPage = location.pathname === '/ask' || location.pathname.startsWith('/ask/');
   const isSearchPage = location.pathname === '/search';
+  // 검색 화면은 로고 줄 대신 자기 머리줄. 검색·문의 화면은 어느 탭에도 속하지 않아 탭 줄이 없다
+  const ownHeader = isSearchPage;
 
   // 돋보기: 검색 화면으로. iOS는 화면이 바뀐 뒤의 focus()로는 키보드를 띄우지 않아서,
   // 누르는 순간 숨은 입력칸에 먼저 focus해 키보드를 띄우고 검색 화면 입력창(autoFocus)이 이어받는다
@@ -91,13 +93,17 @@ export default function Layout() {
   return (
     <div className={`app ${isDarkMode ? 'dark' : 'light'}`}>
       <header ref={headerRef} className={`header${headerHidden ? ' header--hidden' : ''}`}>
-        {isSearchPage ? (
-          <div className="header-content sr-head" ref={setSearchSlot} />
+        {ownHeader ? (
+          <div className="header-content page-head" ref={setHeaderSlot} />
         ) : (
           <div className="header-content header-content--center">
             <span className="header-start">
-              {/* 문의(/ask): 어느 화면에서든 한 번에. 문의 화면에선 숨긴다 */}
-              {!isAskPage && (
+              {/* 문의(/ask): 어느 화면에서든 한 번에. 문의 화면에선 그 자리가 홈으로 (탭 줄이 없어서) */}
+              {isAskPage ? (
+                <NavLink to="/" className="header-icon-btn header-icon-btn--start" aria-label="홈">
+                  <HomeIcon size={17} />
+                </NavLink>
+              ) : (
                 <NavLink
                   to="/ask"
                   className="header-icon-btn header-icon-btn--start"
@@ -112,24 +118,21 @@ export default function Layout() {
               mmemory
             </NavLink>
             <span className="header-end">
-              {!isAskPage && (
-                <button
-                  type="button"
-                  className="header-icon-btn"
-                  onClick={openSearch}
-                  onPointerDown={preloadSearch}
-                  onMouseEnter={preloadSearch}
-                  aria-label="검색"
-                >
-                  <SearchIcon size={17} />
-                </button>
-              )}
+              <button
+                type="button"
+                className="header-icon-btn"
+                onClick={openSearch}
+                onPointerDown={preloadSearch}
+                onMouseEnter={preloadSearch}
+                aria-label="검색"
+              >
+                <SearchIcon size={17} />
+              </button>
             </span>
           </div>
         )}
 
-        {/* 검색 화면은 어느 탭에도 속하지 않아 탭 줄을 숨긴다 (바로가기는 검색 화면 안에) */}
-        {!isAskPage && !isSearchPage && (
+        {!isSearchPage && !isAskPage && (
           <nav className="top-tabs" aria-label="메뉴">
             {TABS.map(tab => (
               <NavLink
@@ -147,7 +150,7 @@ export default function Layout() {
       </header>
 
       <main className="main">
-        <Outlet context={{ searchSlot } satisfies LayoutContext} />
+        <Outlet context={{ headerSlot } satisfies LayoutContext} />
       </main>
 
       <footer className="footer">

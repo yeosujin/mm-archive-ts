@@ -4,30 +4,6 @@
   padding-bottom: 2rem;
 }
 
-/* 헤더 첫 줄(Layout의 .sr-head)에 띄우는 ← + 검색창. 로고·아이콘 줄과 같은 높이 */
-.header-content.sr-head {
-  position: relative;
-  justify-content: flex-start;
-  gap: 0.25rem;
-  padding-block: 0.5rem; /* 로고 줄과 같은 52px */
-}
-
-.sr-back {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  margin-left: -0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--text-primary);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
 
 .sr-bar {
   flex: 1;

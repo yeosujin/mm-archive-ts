@@ -1,0 +1,286 @@
+/* ===== 문의 (/ask, /ask/:id) — 입력 상자 + 대화형 답변 모음 ===== */
+
+.ask {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ask-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ask-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.ask-intro {
+  margin: 0 0 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.ask-intro b {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 입력 상자: 글 + 사진 미리보기 + 아래 줄(사진·글자 수·보내기) */
+.ask-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.75rem 0.625rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-card);
+  transition: border-color 0.15s;
+}
+
+.ask-box:focus-within {
+  border-color: var(--accent);
+}
+
+/* 16px 미만이면 iOS가 입력할 때 화면을 확대한다 */
+.ask-input {
+  padding: 0;
+  border: none;
+  outline: none;
+  resize: none;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.ask-input::placeholder {
+  color: var(--text-muted);
+}
+
+.ask-previews {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ask-preview {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ask-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ask-preview-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.ask-box-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ask-photo-btn {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bg-card-hover);
+  color: var(--text-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ask-photo-btn.is-full {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ask-hint,
+.ask-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ask-count {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.ask-send-btn {
+  flex: none;
+  height: 36px;
+  padding: 0 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ask-send-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 답변 모음 */
+.ask-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ask-feed .mc-month-title {
+  margin: 0;
+}
+
+.ask-search {
+  flex: none;
+  height: 40px;
+}
+
+.ask-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.ask-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 말풍선: 질문(보낸 사람)은 오른쪽 하늘색, 답변은 왼쪽 회색 — 에피소드 DM 말풍선과 같은 색감 */
+.ask-row {
+  display: flex;
+}
+
+.ask-row-q {
+  justify-content: flex-end;
+}
+
+.ask-bubble {
+  max-width: 82%;
+  margin: 0;
+  padding: 0.5625rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ask-bubble-q {
+  border-radius: 16px 4px 16px 16px;
+  background: linear-gradient(135deg, #e0f4ff 0%, #dbeafe 100%);
+}
+
+.ask-bubble-a {
+  border-radius: 4px 16px 16px 16px;
+  background: var(--bg-card-hover);
+}
+
+[data-theme="dark"] .ask-bubble-q {
+  background: rgba(59, 130, 246, 0.22);
+}
+
+.ask-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ask-more-btn,
+.ask-outline-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 상세 (/ask/:id) */
+.ask-detail {
+  gap: 0.875rem;
+  padding-top: 0.25rem;
+}
+
+.ask-card-detail .ask-bubble {
+  font-size: 0.9375rem;
+}
+
+.ask-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ask-detail-actions > * {
+  flex: 1;
+}
+
+.ask-detail-ask {
+  height: 44px;
+  font-size: 0.875rem;
+}
+
+.ask-detail-more {
+  align-self: center;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
