@@ -9,7 +9,13 @@ export type CalendarEntry =
   | { kind: 'moment'; id: string; title: string; path: string; cover: string | null }
   | { kind: 'post'; id: string; title: string; path: string; cover: string | null }
   | { kind: 'photo'; id: string; title: string; path: string; cover: string; count: number }
-  | { kind: 'episode'; id: string; title: string; path: string };
+  | { kind: 'episode'; id: string; title: string; path: string; sender: string; lines: ChatLine[] };
+
+/** 에피소드 카드에 캡처처럼 보일 메시지 줄 */
+export interface ChatLine { type: 'text' | 'image'; content: string }
+
+/** 카드에 보일 메시지 수 */
+const CHAT_PREVIEW = 3;
 
 export interface CalendarData {
   videos: Video[];
@@ -123,19 +129,28 @@ export function buildCalendarDays(data: CalendarData): Map<string, CalendarEntry
     } else {
       title = e.title || EPISODE_TYPE_NAMES[e.episode_type] || e.episode_type;
     }
+    // 메시지가 없는 댓글은 댓글 본문 한 줄 (스토리 채팅 화면과 같은 규칙)
+    const messages = e.messages?.length
+      ? e.messages
+      : e.comment_text ? [{ type: 'text' as const, content: e.comment_text }] : [];
     push(e.date, {
       kind: 'episode',
       id: e.id,
       title,
       path: `/episodes?tab=${e.episode_type}&highlight=${encodeURIComponent(e.id)}`,
+      sender: memberName(e.sender),
+      lines: messages.slice(0, CHAT_PREVIEW).map(m => ({ type: m.type, content: m.content })),
     });
   });
 
   return byDate;
 }
 
-/** 칸 표지. 영상 표지 > 모먼트 > 사진 > 포스트 미디어. 이미지 없는 영상은 플랫폼 색 블록 */
-export type DayCover = { src: string } | { platform: ReturnType<typeof detectVideoPlatform> } | null;
+/**
+ * 칸 표지. 영상 표지 > 모먼트 > 사진 > 포스트 미디어. 이미지 없는 영상은 플랫폼 색 블록,
+ * 그것도 없고 에피소드가 있으면 채팅 캡처 모양
+ */
+export type DayCover = { src: string } | { platform: ReturnType<typeof detectVideoPlatform> } | { chat: true } | null;
 
 export function dayCover(entries: CalendarEntry[]): DayCover {
   const order: CalendarEntry['kind'][] = ['video', 'moment', 'photo', 'post'];
@@ -153,7 +168,7 @@ export function dayCover(entries: CalendarEntry[]): DayCover {
       }
     }
   }
-  return fallback;
+  return fallback ?? (entries.some(e => e.kind === 'episode') ? { chat: true } : null);
 }
 
 export interface StripMonth { year: number; month: number; days: number }

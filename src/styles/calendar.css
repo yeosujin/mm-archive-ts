@@ -314,3 +314,76 @@
   font-size: 0.75rem;
   font-weight: 600;
 }
+
+/* 에피소드: 스토리 채팅 화면(.st-chat)을 줄인 캡처 모양. 같은 바탕·말풍선 색 */
+.cal-chat {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: linear-gradient(180deg, #1b1630, #0d0d10);
+  color: #f0f0f5;
+}
+
+.cal-chat-who {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+}
+
+.cal-chat-av {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #b565a7;
+}
+
+.cal-chat-bub {
+  max-width: 85%;
+  padding: 3px 7px;
+  border-radius: 8px 8px 8px 2px;
+  background: #2c2c36;
+  font-size: 0.5625rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-chat-img {
+  max-width: 40%;
+  max-height: 34px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+/* 달력 칸: 글자 없이 말풍선 막대만 */
+.cal-cell-chat {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 0 6px 7px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #1b1630, #0d0d10);
+}
+
+.cal-cell-chat i {
+  display: block;
+  height: 6px;
+  border-radius: 3px 3px 3px 1px;
+  background: #3a3a48;
+}
+
+.cal-cell-chat i:nth-child(1) { width: 70%; }
+.cal-cell-chat i:nth-child(2) { width: 45%; }
+.cal-cell-chat i:nth-child(3) { width: 58%; }

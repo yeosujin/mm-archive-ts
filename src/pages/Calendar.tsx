@@ -29,15 +29,30 @@ const ENTRY_BADGE: Record<Exclude<CalendarEntry['kind'], 'video'>, string> = {
 };
 
 /** 영상이 아닌 기록 카드. 영상 카드(VideoCard)와 같은 모양 */
+/** 에피소드 카드 표지: 스토리 채팅 화면을 줄인 캡처 모양 */
+function ChatCapture({ entry }: { entry: Extract<CalendarEntry, { kind: 'episode' }> }) {
+  return (
+    <span className="cal-chat" aria-hidden>
+      <span className="cal-chat-who"><span className="cal-chat-av" />{entry.sender}</span>
+      {entry.lines.map((line, i) => (line.type === 'image'
+        ? <img key={i} className="cal-chat-img" src={line.content} alt="" loading="lazy" decoding="async" />
+        : <span key={i} className="cal-chat-bub">{line.content}</span>))}
+    </span>
+  );
+}
+
 function EntryCard({ entry }: { entry: Exclude<CalendarEntry, { kind: 'video' }> }) {
   const cover = entry.kind === 'episode' ? null : entry.cover;
   const badge = entry.kind === 'photo' && entry.count > 1 ? `사진 ${entry.count}장` : ENTRY_BADGE[entry.kind];
   return (
     <Link to={entry.path} className="mc-card">
       <span className="mc-card-thumb">
-        {cover
-          ? <img className="vcover" src={cover} alt="" loading="lazy" decoding="async" />
-          : <span className="cal-card-blank">{ENTRY_BADGE[entry.kind]}</span>}
+        {entry.kind === 'episode'
+          ? <ChatCapture entry={entry} />
+          : cover
+            ? <img className="vcover" src={cover} alt="" loading="lazy" decoding="async" />
+            : <span className="cal-card-blank">{ENTRY_BADGE[entry.kind]}</span>}
+        {/* 에피소드는 캡처 모양이 곧 표시라 배지를 달지 않는다(마지막 말풍선을 가린다) */}
         {cover && <span className="mc-badge">{badge}</span>}
       </span>
       <span className="mc-card-title">{entry.title}</span>
@@ -260,7 +275,9 @@ export default function Calendar() {
             >
               {cover && ('src' in cover
                 ? <img className="cal-cell-cover" src={cover.src} alt="" loading="lazy" decoding="async" />
-                : <span className={`cal-cell-cover vcover-${cover.platform}`} />)}
+                : 'platform' in cover
+                  ? <span className={`cal-cell-cover vcover-${cover.platform}`} />
+                  : <span className="cal-cell-cover cal-cell-chat"><i /><i /><i /></span>)}
               <span className="cal-cell-num">{n}</span>
               {entries && entries.length > 1 && <span className="cal-cell-more">+{entries.length - 1}</span>}
             </button>
