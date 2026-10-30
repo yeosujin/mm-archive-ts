@@ -320,7 +320,6 @@ export default function Calendar() {
           moments={momentViewer.list}
           startIndex={momentViewer.startIndex}
           onClose={closeMoment}
-          onOpenVideo={id => openDetail(id, ['m'])}
         />
       )}
 

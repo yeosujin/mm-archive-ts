@@ -10,7 +10,7 @@ interface Props {
   moments: Moment[];
   startIndex: number;
   onClose: () => void;
-  /** 주면 보고 있는 모먼트의 영상 상세로 가는 버튼을 단다 (영상 상세 밖에서 연 캘린더·검색) */
+  /** 주면 보고 있는 모먼트의 영상 상세로 가는 버튼을 단다 (영상 상세 밖에서 연 검색) */
   onOpenVideo?: (videoId: string) => void;
 }
 
