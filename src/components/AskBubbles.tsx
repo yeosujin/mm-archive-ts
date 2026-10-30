@@ -1,6 +1,6 @@
 import type { Ask } from '../lib/database';
 
-/** 질문(오른쪽, 보낸 사람)과 답변(왼쪽) 말풍선. 문의 목록과 상세가 같이 쓴다 */
+/** 질문(왼쪽)과 답변(오른쪽) 말풍선. 문의 목록과 상세가 같이 쓴다 */
 export default function AskBubbles({ ask }: { ask: Ask }) {
   return (
     <>

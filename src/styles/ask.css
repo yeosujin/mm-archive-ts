@@ -29,11 +29,6 @@
   color: var(--text-secondary);
 }
 
-.ask-intro b {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
 /* 입력 상자: 글 + 사진 미리보기 + 아래 줄(사진·글자 수·보내기) */
 .ask-box {
   display: flex;
@@ -65,6 +60,7 @@
 
 .ask-input::placeholder {
   color: var(--text-muted);
+  font-size: 0.875rem; /* 말풍선 글자와 같은 14px. 입력한 글자는 iOS 확대 때문에 16px */
 }
 
 .ask-previews {
@@ -197,12 +193,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 말풍선: 질문(보낸 사람)은 오른쪽 하늘색, 답변은 왼쪽 회색 — 에피소드 DM 말풍선과 같은 색감 */
+/* 말풍선: 질문은 왼쪽 회색, 답변은 오른쪽 하늘색 — 에피소드 DM 말풍선과 같은 색감 */
 .ask-row {
   display: flex;
 }
 
-.ask-row-q {
+.ask-row-a {
   justify-content: flex-end;
 }
 
@@ -217,16 +213,16 @@
 }
 
 .ask-bubble-q {
-  border-radius: 16px 4px 16px 16px;
-  background: linear-gradient(135deg, #e0f4ff 0%, #dbeafe 100%);
-}
-
-.ask-bubble-a {
   border-radius: 4px 16px 16px 16px;
   background: var(--bg-card-hover);
 }
 
-[data-theme="dark"] .ask-bubble-q {
+.ask-bubble-a {
+  border-radius: 16px 4px 16px 16px;
+  background: linear-gradient(135deg, #e0f4ff 0%, #dbeafe 100%);
+}
+
+[data-theme="dark"] .ask-bubble-a {
   background: rgba(59, 130, 246, 0.22);
 }
 

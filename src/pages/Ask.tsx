@@ -129,7 +129,7 @@ export default function Ask() {
         <section className="ask-compose">
           <h1 className="ask-title">궁금한 점·요청</h1>
           <p className="ask-intro">
-            궁금한 점이나 바라는 점을 남겨 주세요. <b>이름 없이</b> 전달되고, 답변이 달리면 아래 목록에 함께 올라와요.
+            궁금한 점이나 바라는 점을 남겨 주세요. 답변이 달리면 아래 목록에 함께 올라와요. 비공개로 남기시면 공개되지 않아요.
           </p>
           <form onSubmit={handleSubmit} className="ask-box">
             <textarea
