@@ -160,6 +160,7 @@
   right: 0;
   top: 50%;
   transform: translateY(-50%);
+  animation: header-search-open 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -168,6 +169,16 @@
   border-radius: 8px;
   padding: 0.25rem 0.5rem;
   z-index: 10;
+}
+
+/* 돋보기 자리에서 왼쪽으로 펼쳐진다 */
+@keyframes header-search-open {
+  from { opacity: 0; clip-path: inset(0 0 0 70% round 8px); }
+  to { opacity: 1; clip-path: inset(0 round 8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-search { animation: none; }
 }
 
 .header-search-input {

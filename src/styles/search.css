@@ -100,7 +100,51 @@
 }
 
 .sr-grid .mc-card {
+  display: block;
   width: auto;
+}
+
+/* 결과 카드: 검색할 때마다 차례로 올라온다 (앞 12장까지만 순서 차이) */
+.sr-cell {
+  min-width: 0;
+  animation: sr-rise 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 28ms);
+}
+
+@keyframes sr-rise {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+.sr-count,
+.sr-hint,
+.sr .mc-empty {
+  animation: sr-fade 0.25s ease both;
+}
+
+@keyframes sr-fade {
+  from { opacity: 0; }
+}
+
+.sr-chips .mc-chip {
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+/* 검색 화면에 들어오면 헤더 검색창이 오른쪽(돋보기 자리)에서 왼쪽으로 펼쳐진다 */
+.sr-bar {
+  animation: sr-bar-open 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.sr-back {
+  animation: sr-back-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes sr-bar-open {
+  from { opacity: 0; clip-path: inset(0 0 0 72% round 999px); }
+  to { opacity: 1; clip-path: inset(0 round 999px); }
+}
+
+@keyframes sr-back-in {
+  from { opacity: 0; transform: translateX(8px); }
 }
 
 .sr-empty-text {
@@ -116,5 +160,16 @@
 @media (min-width: 1024px) {
   .sr-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sr-cell,
+  .sr-count,
+  .sr-hint,
+  .sr .mc-empty,
+  .sr-bar,
+  .sr-back {
+    animation: none;
   }
 }

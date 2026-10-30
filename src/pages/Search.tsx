@@ -294,12 +294,12 @@ export default function Search() {
               </button>
             ))}
         </div>
-        <div className="sr-grid">
-          {shown.map(({ kind, date, entry }) => {
+        {/* 검색어·모드·칩이 바뀔 때마다 새로 그려 카드가 차례로 올라오게 */}
+        <div className="sr-grid" key={`${trimmedQuery}|${mode}|${filter}`}>
+          {shown.map(({ kind, date, entry }, i) => {
             const meta = `${KIND_LABEL[kind]} · ${formatDotDate(date)}`;
-            return entry.kind === 'video' ? (
+            const card = entry.kind === 'video' ? (
               <VideoCard
-                key={`video:${entry.id}`}
                 video={entry.video}
                 moments={entry.moments}
                 onOpen={openDetail}
@@ -308,13 +308,17 @@ export default function Search() {
               />
             ) : (
               <EntryCard
-                key={`${entry.kind}:${entry.id}`}
                 entry={entry}
                 onOpen={() => (entry.kind === 'moment' ? openMoment(entry.id) : openEntry(`${entry.kind}:${entry.id}`))}
                 title={highlightText(entry.title, kw)}
                 meta={meta}
                 badge={false}
               />
+            );
+            return (
+              <div key={`${entry.kind}:${entry.id}`} className="sr-cell" style={{ '--i': Math.min(i, 12) } as React.CSSProperties}>
+                {card}
+              </div>
             );
           })}
         </div>
