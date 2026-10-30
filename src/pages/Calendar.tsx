@@ -1,410 +1,301 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getVideos, getMoments, getPosts, getEpisodes, getMemberSettings, getPhotos } from '../lib/database';
-import type { Video, Moment, Post, Episode, Photo } from '../lib/database';
-import { CalendarIcon, ArrowRightIcon, PostIcon, ChatIcon, VideoIcon, PhotoIcon } from '../components/Icons';
-
-interface ArchiveItem {
-    id: string;
-    type: 'video' | 'moment' | 'post' | 'photo' | 'episode';
-    title: string;
-    path: string;
-    icon?: string;
-}
+import { useData } from '../hooks/useData';
+import { buildCalendarDays, dayCover, monthStrip } from '../lib/calendarDays';
+import type { CalendarEntry } from '../lib/calendarDays';
+import { buildStoryForDate, fallbackLabel } from '../lib/onThisDayStory';
+import type { StoryYear } from '../lib/onThisDayStory';
+import { getTodayString } from '../lib/dailyPick';
+import { momentsByVideo } from '../lib/videoCatalog';
+import { useViewerParam } from '../hooks/useViewerParam';
+import { PlayIcon } from '../components/Icons';
+import VideoCard from '../components/moments/VideoCard';
+import VideoDetailModal from '../components/moments/VideoDetailModal';
+import MomentViewer from '../components/MomentViewer';
+import StoryViewer from '../components/StoryViewer';
+import Skeleton from '../components/Skeleton';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
-const MONTHS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+/** 이만큼 옆으로 밀면 달을 넘긴다 */
+const SWIPE_PX = 50;
 
-const WEVERSE_MEMBERS = [
-  { icon: '🤍', name: '둘만', tag: 'both' },
-  { icon: '💙', name: '모카', tag: 'moka' },
-  { icon: '🩵', name: '민주', tag: 'minju' },
-  { icon: '🖤', name: '여러명', tag: 'group' },
-] as const;
+const pad = (n: number) => String(n).padStart(2, '0');
 
-const EPISODE_TYPE_NAMES: Record<string, string> = {
-  dm: 'DM',
-  comment: '댓글',
-  listening_party: '리스닝 파티',
+const ENTRY_BADGE: Record<Exclude<CalendarEntry['kind'], 'video'>, string> = {
+  moment: '모먼트',
+  photo: '사진',
+  post: '포스트',
+  episode: '에피소드',
 };
 
-const LP_PLATFORM_NAMES: Record<string, string> = {
-  melon: '멜론',
-  spotify: 'Spotify',
-  apple_music: 'Apple Music',
-  weverse: 'Weverse',
-};
-
-const TypeIcon = ({ type }: { type: string }) => {
-  switch (type) {
-    case 'video': return <VideoIcon size={16} />;
-    case 'moment': return <VideoIcon size={16} />;
-    case 'post': return <PostIcon size={16} />;
-    case 'photo': return <PhotoIcon size={16} />;
-    case 'episode': return <ChatIcon size={16} />;
-    default: return null;
-  }
-};
-
-// 연도 범위 생성 (2020년 ~ 현재 + 1년)
-const currentYear = new Date().getFullYear();
-const YEARS = Array.from({ length: currentYear - 2020 + 2 }, (_, i) => 2020 + i);
+/** 영상이 아닌 기록 카드. 영상 카드(VideoCard)와 같은 모양 */
+function EntryCard({ entry }: { entry: Exclude<CalendarEntry, { kind: 'video' }> }) {
+  const cover = entry.kind === 'episode' ? null : entry.cover;
+  const badge = entry.kind === 'photo' && entry.count > 1 ? `사진 ${entry.count}장` : ENTRY_BADGE[entry.kind];
+  return (
+    <Link to={entry.path} className="mc-card">
+      <span className="mc-card-thumb">
+        {cover
+          ? <img className="vcover" src={cover} alt="" loading="lazy" decoding="async" />
+          : <span className="cal-card-blank">{ENTRY_BADGE[entry.kind]}</span>}
+        {cover && <span className="mc-badge">{badge}</span>}
+      </span>
+      <span className="mc-card-title">{entry.title}</span>
+    </Link>
+  );
+}
 
 export default function Calendar() {
+  const {
+    videos, moments, posts, episodes, photos, memberSettings,
+    fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchPhotos, fetchMemberSettings,
+  } = useData();
   const [searchParams, setSearchParams] = useSearchParams();
-
-  // URL 파라미터에서 연도/월 가져오기
-  const getInitialDate = () => {
-    const yearParam = searchParams.get('year');
-    const monthParam = searchParams.get('month');
-    if (yearParam && monthParam) {
-      return new Date(parseInt(yearParam), parseInt(monthParam) - 1, 1);
-    }
-    return new Date();
-  };
-
-  const [currentDate, setCurrentDate] = useState(getInitialDate);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [archives, setArchives] = useState<Record<string, ArchiveItem[]>>({});
-  const [loading, setLoading] = useState(true);
-  const [showPicker, setShowPicker] = useState(false);
-
-  // 날짜 변경 시 URL 파라미터 업데이트
-  const updateDateParams = (date: Date) => {
-    setSearchParams({
-      year: String(date.getFullYear()),
-      month: String(date.getMonth() + 1)
-    });
-  };
+  const [today] = useState(getTodayString);
+  const { value: momentParam, open: openMoment, close: closeMoment } = useViewerParam('m');
+  const { value: detailParam, open: openDetail, close: closeDetail } = useViewerParam('v');
+  const [picked, setPicked] = useState<string | null>(null);
+  const [stripOpen, setStripOpen] = useState(false);
+  const [story, setStory] = useState<{ id: number; year: StoryYear; closing: boolean } | null>(null);
+  const [failed, setFailed] = useState(false);
+  const touchRef = useRef<{ x: number; y: number } | null>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    loadAllData();
-  }, []);
+    Promise.all([fetchVideos(), fetchMoments(), fetchPosts(), fetchEpisodes(), fetchPhotos(), fetchMemberSettings()])
+      .catch((error) => {
+        console.error('Error loading data:', error);
+        setFailed(true);
+      });
+  }, [fetchVideos, fetchMoments, fetchPosts, fetchEpisodes, fetchPhotos, fetchMemberSettings]);
 
-  // 피커 외부 클릭 시 닫기
+  const loaded = !!(videos && moments && posts && episodes && photos);
+  const days = useMemo(
+    () => (loaded ? buildCalendarDays({ videos, moments, posts, episodes, photos, memberSettings }) : new Map<string, CalendarEntry[]>()),
+    [loaded, videos, moments, posts, episodes, photos, memberSettings],
+  );
+  const strip = useMemo(() => monthStrip(days, today), [days, today]);
+  const momentMap = useMemo(() => momentsByVideo(moments ?? []), [moments]);
+
+  // 보는 달은 URL(?year=&month=)에 둔다. 없거나 범위 밖이면 이번 달
+  const yearParam = Number(searchParams.get('year'));
+  const monthParam = Number(searchParams.get('month'));
+  const stripIndex = strip.findIndex(s => s.year === yearParam && s.month === monthParam);
+  const current = stripIndex >= 0 ? strip[stripIndex] : strip[strip.length - 1];
+  const currentIndex = stripIndex >= 0 ? stripIndex : strip.length - 1;
+  const { year, month } = current;
+  const ym = `${year}-${pad(month)}`;
+
+  const firstWeekday = new Date(year, month - 1, 1).getDay();
+  const lastDate = new Date(year, month, 0).getDate();
+  const monthDates = Array.from({ length: lastDate }, (_, i) => `${ym}-${pad(i + 1)}`);
+  const recordDates = monthDates.filter(d => days.has(d));
+  const recordCount = recordDates.reduce((sum, d) => sum + (days.get(d)?.length ?? 0), 0);
+
+  // 고른 날이 이 달이 아니면: 오늘(기록 있을 때) → 오늘 이전 마지막 기록 날 → 이 달 첫 기록 날
+  const fallbackDate = recordDates.includes(today)
+    ? today
+    : [...recordDates].reverse().find(d => d <= today) ?? recordDates[0] ?? null;
+  const selected = picked?.startsWith(ym) && days.has(picked) ? picked : fallbackDate;
+  const selectedEntries = selected ? days.get(selected) ?? [] : [];
+  const builtStory = selected && loaded ? buildStoryForDate({ videos, moments, posts, episodes, photos }, selected) : null;
+  // 뷰어 위 이름을 '그 해 오늘' 대신 그 날짜로
+  const selectedStory = builtStory && selected ? { ...builtStory, label: fallbackLabel(selected, today) } : null;
+
+  const goMonth = (index: number) => {
+    const target = strip[index];
+    if (!target) return;
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('year', String(target.year));
+      next.set('month', String(target.month));
+      return next;
+    }, { replace: true });
+    setPicked(null);
+    setStripOpen(false);
+  };
+
+  // 월 띠를 펼치면 지금 달이 보이게
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.cal-picker-wrapper')) {
-        setShowPicker(false);
-      }
-    };
-    
-    if (showPicker) {
-      document.addEventListener('click', handleClickOutside);
-    }
-    
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [showPicker]);
+    if (!stripOpen) return;
+    stripRef.current?.querySelector('.active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [stripOpen]);
 
-  const loadAllData = async () => {
-    try {
-      const [videos, moments, posts, photos, episodes, memberSettings] = await Promise.all([
-        getVideos(),
-        getMoments(),
-        getPosts(),
-        getPhotos(),
-        getEpisodes(),
-        getMemberSettings(),
-      ]);
+  const momentViewer = useMemo(() => {
+    if (!momentParam || !moments) return null;
+    const videoId = moments.find(m => m.id === momentParam)?.video_id;
+    const list = videoId ? momentMap.get(videoId) : undefined;
+    const startIndex = list?.findIndex(m => m.id === momentParam) ?? -1;
+    return list && startIndex >= 0 ? { list, startIndex } : null;
+  }, [momentParam, moments, momentMap]);
 
-      // 멤버 이름 (댓글 쓴 사람)
-      const getMemberName = (sender?: 'member1' | 'member2') => {
-        return sender === 'member2' ? memberSettings.member2_name : memberSettings.member1_name;
-      };
+  const detail = useMemo(() => {
+    const video = detailParam ? videos?.find(v => v.id === detailParam) : undefined;
+    return video ? { video, list: momentMap.get(video.id) ?? [] } : null;
+  }, [detailParam, videos, momentMap]);
 
-      const archivesByDate: Record<string, ArchiveItem[]> = {};
-
-      videos.forEach((v: Video) => {
-        if (!archivesByDate[v.date]) archivesByDate[v.date] = [];
-        archivesByDate[v.date].push({ id: v.id, type: 'video', title: v.title, path: `/videos/${v.id}`, icon: v.icon });
-      });
-
-      // 상위 영상과 날짜가 같은 모먼트는 영상 항목으로 이미 표시되므로 제외.
-      // 날짜가 다르면(독립 모먼트 포함) 자기 날짜에 별도 표시 — '그 해 오늘' 판정 규칙과 일치시킴
-      moments.forEach((m: Moment) => {
-        const parentVideo = m.video_id ? videos.find(v => v.id === m.video_id) : undefined;
-        if (parentVideo && parentVideo.date === m.date) return;
-        if (!archivesByDate[m.date]) archivesByDate[m.date] = [];
-        archivesByDate[m.date].push({ id: m.id, type: 'moment', title: m.title, path: '/moments' });
-      });
-
-      posts.forEach((p: Post) => {
-        if (!archivesByDate[p.date]) archivesByDate[p.date] = [];
-        archivesByDate[p.date].push({ id: p.id, type: 'post', title: p.title || p.platform, path: '/posts' });
-      });
-
-      // 사진은 같은 날 같은 제목(끝의 -1, -2 번호 제외)을 한 묶음으로. 누르면 첫 장이 라이트박스로 열린다
-      const photoGroups = new Map<string, Photo[]>();
-      photos.forEach((ph: Photo) => {
-        const key = `${ph.date}|${ph.title.replace(/-\d+$/, '')}`;
-        photoGroups.set(key, [...(photoGroups.get(key) ?? []), ph]);
-      });
-      photoGroups.forEach((group, key) => {
-        const [date, title] = key.split('|');
-        if (!archivesByDate[date]) archivesByDate[date] = [];
-        const count = group.length > 1 ? ` (${group.length}장)` : '';
-        archivesByDate[date].push({ id: group[0].id, type: 'photo', title: `${title}${count}`, path: '/photos' });
-      });
-
-      // 연결된 콘텐츠 제목 가져오기
-      const getLinkedContentTitle = (ep: Episode) => {
-        if (ep.linked_content_type === 'video' && ep.linked_content_id) {
-          const video = videos.find(v => v.id === ep.linked_content_id);
-          return video?.title || '영상';
-        }
-        if (ep.linked_content_type === 'moment' && ep.linked_content_id) {
-          const moment = moments.find(m => m.id === ep.linked_content_id);
-          return moment?.title || '모먼트';
-        }
-        if (ep.linked_content_type === 'post' && ep.linked_content_id) {
-          const post = posts.find(p => p.id === ep.linked_content_id);
-          return post?.title || post?.platform || '포스트';
-        }
-        return '콘텐츠';
-      };
-
-      episodes.forEach((e: Episode) => {
-        if (!archivesByDate[e.date]) archivesByDate[e.date] = [];
-        let episodeTitle = '';
-
-        if (e.episode_type === 'dm') {
-          // DM: 항상 발신자 + DM 표시
-          const firstMsg = e.messages?.[0];
-          const msgPreview = e.title || (firstMsg?.type === 'text' ? firstMsg.content : '📷');
-          episodeTitle = `${getMemberName(e.sender)} DM: ${msgPreview}`;
-        } else if (e.episode_type === 'comment') {
-          // 댓글: 발신자 + 연결 콘텐츠
-          if (e.linked_content_id) {
-            episodeTitle = `${getMemberName(e.sender)} → "${getLinkedContentTitle(e)}" 댓글`;
-          } else {
-            episodeTitle = e.title || `${getMemberName(e.sender)} 댓글`;
-          }
-        } else if (e.episode_type === 'listening_party') {
-          const content = e.title || e.messages?.[0]?.content || '';
-          const platformName = e.platform ? LP_PLATFORM_NAMES[e.platform] : '';
-          episodeTitle = content
-            ? `${content} ${platformName || ''} 리스닝 파티`.replaceAll(/\s+/g, ' ').trim()
-            : `${platformName || ''} 리스닝 파티`.trim();
-        } else {
-          episodeTitle = e.title || EPISODE_TYPE_NAMES[e.episode_type] || e.episode_type;
-        }
-
-        const episodePath = `/episodes?tab=${e.episode_type}`;
-        archivesByDate[e.date].push({ id: e.id, type: 'episode', title: episodeTitle, path: episodePath });
-      });
-
-      setArchives(archivesByDate);
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-
-  // 해당 월의 첫째 날과 마지막 날
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  
-  // 캘린더 그리드 생성
-  const days: (number | null)[] = [];
-  
-  // 첫째 날 이전의 빈 칸
-  for (let i = 0; i < firstDay.getDay(); i++) {
-    days.push(null);
+  if (!loaded && !failed) {
+    return <Skeleton variant="list" count={6} />;
   }
-  
-  // 날짜들
-  for (let i = 1; i <= lastDay.getDate(); i++) {
-    days.push(i);
+  if (!loaded) {
+    return <p className="mc-empty">캘린더를 불러오지 못했어요</p>;
   }
 
-  const prevMonth = () => {
-    const newDate = new Date(year, month - 1, 1);
-    setCurrentDate(newDate);
-    updateDateParams(newDate);
-    setSelectedDate(null);
-  };
-
-  const nextMonth = () => {
-    const newDate = new Date(year, month + 1, 1);
-    setCurrentDate(newDate);
-    updateDateParams(newDate);
-    setSelectedDate(null);
-  };
-
-  const handleYearChange = (newYear: number) => {
-    const newDate = new Date(newYear, month, 1);
-    setCurrentDate(newDate);
-    updateDateParams(newDate);
-    setSelectedDate(null);
-  };
-
-  const handleMonthChange = (newMonth: number) => {
-    const newDate = new Date(year, newMonth, 1);
-    setCurrentDate(newDate);
-    updateDateParams(newDate);
-    setSelectedDate(null);
-    setShowPicker(false);
-  };
-
-  const goToToday = () => {
-    const newDate = new Date();
-    setCurrentDate(newDate);
-    updateDateParams(newDate);
-    setSelectedDate(null);
-    setShowPicker(false);
-  };
-
-  const formatDate = (day: number) => {
-    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  };
-
-  const handleDateClick = (day: number) => {
-    const dateStr = formatDate(day);
-    setSelectedDate(selectedDate === dateStr ? null : dateStr);
-  };
-
-  const selectedArchives = selectedDate ? archives[selectedDate] : null;
-
-  if (loading) {
-    return (
-      <div className="page calendar-page">
-        <div className="loading">로딩 중...</div>
-      </div>
-    );
-  }
+  const maxDays = Math.max(1, ...strip.map(s => s.days));
+  const [, selMonth, selDay] = (selected ?? '').split('-').map(Number);
+  const selWeekday = selected ? WEEKDAYS[new Date(year, month - 1, selDay).getDay()] : '';
 
   return (
-    <div className="page calendar-page">
-      <div className="page-header">
-        <h1>캘린더</h1>
-        <p className="page-desc">날짜별 아카이브 보기</p>
+    <div className="cal">
+      <div className="cal-head">
+        <div>
+          <button
+            type="button"
+            className="cal-title"
+            aria-expanded={stripOpen}
+            aria-label={`${year}년 ${month}월, 다른 달 고르기`}
+            onClick={() => setStripOpen(o => !o)}
+          >
+            <span className="cal-title-month">{month}월</span>
+            <span className="cal-title-year">{year}</span>
+            <svg className="cal-title-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          <p className="cal-summary">
+            {recordDates.length ? `기록 있는 날 ${recordDates.length}일 · ${recordCount}개` : '이 달은 기록이 없어요'}
+          </p>
+        </div>
+        <div className="cal-nav">
+          <button type="button" className="cal-nav-btn" aria-label="이전 달" disabled={currentIndex <= 0} onClick={() => goMonth(currentIndex - 1)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <button type="button" className="cal-nav-btn" aria-label="다음 달" disabled={currentIndex >= strip.length - 1} onClick={() => goMonth(currentIndex + 1)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 18l6-6-6-6" /></svg>
+          </button>
+        </div>
       </div>
 
-      <div className="calendar-container">
-        <div className="calendar-nav">
-          <button onClick={prevMonth} className="cal-nav-btn">◀</button>
-
-          <div className="cal-picker-wrapper">
+      {/* 월 띠: 달마다 막대 하나, 높이는 기록 있는 날 수 */}
+      {stripOpen && (
+        <div className="cal-strip" ref={stripRef}>
+          {strip.map((s, i) => (
             <button
-              className="cal-title-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowPicker(!showPicker);
-              }}
+              key={`${s.year}-${s.month}`}
+              type="button"
+              className={`cal-strip-month ${i === currentIndex ? 'active' : ''}`}
+              aria-label={`${s.year}년 ${s.month}월, 기록 있는 날 ${s.days}일`}
+              onClick={() => goMonth(i)}
             >
-              {year}년 {month + 1}월
-              <span className="cal-title-arrow">{showPicker ? '▲' : '▼'}</span>
+              <span className="cal-strip-year">{s.month === 1 || i === 0 || i === strip.length - 1 ? s.year : ''}</span>
+              <span className="cal-strip-track">
+                <span className="cal-strip-bar" style={{ height: `${Math.max(3, Math.round((s.days / maxDays) * 30))}px` }} />
+              </span>
+              <span className="cal-strip-label">{s.month}월</span>
             </button>
+          ))}
+        </div>
+      )}
 
-            {showPicker && (
-              <div className="cal-picker-dropdown">
-                <div className="cal-picker-header">
-                  <select
-                    value={year}
-                    onChange={(e) => handleYearChange(Number(e.target.value))}
-                    className="cal-year-select"
-                  >
-                    {YEARS.map((y) => (
-                      <option key={y} value={y}>{y}년</option>
-                    ))}
-                  </select>
-                  <button className="cal-today-btn" onClick={goToToday}>
-                    오늘
-                  </button>
-                </div>
-                <div className="cal-month-grid">
-                  {MONTHS.map((m, idx) => (
-                    <button
-                      key={m}
-                      className={`cal-month-btn ${idx === month ? 'active' : ''}`}
-                      onClick={() => handleMonthChange(idx)}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
+      <div
+        className="cal-grid"
+        onTouchStart={(e) => { touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+        onTouchEnd={(e) => {
+          const start = touchRef.current;
+          touchRef.current = null;
+          if (!start) return;
+          const dx = e.changedTouches[0].clientX - start.x;
+          const dy = e.changedTouches[0].clientY - start.y;
+          if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy)) return;
+          goMonth(currentIndex + (dx < 0 ? 1 : -1));
+        }}
+      >
+        {WEEKDAYS.map(w => <div key={w} className="cal-weekday">{w}</div>)}
+        {Array.from({ length: firstWeekday }, (_, i) => <span key={`blank-${i}`} />)}
+        {monthDates.map((date, i) => {
+          const entries = days.get(date);
+          const cover = entries ? dayCover(entries) : null;
+          const n = i + 1;
+          const classes = [
+            'cal-cell',
+            entries && 'has',
+            cover && 'covered',
+            date === today && 'today',
+            date === selected && 'selected',
+          ].filter(Boolean).join(' ');
+          return (
+            <button
+              key={date}
+              type="button"
+              className={classes}
+              disabled={!entries}
+              aria-pressed={entries ? date === selected : undefined}
+              aria-label={`${month}월 ${n}일${entries ? `, 기록 ${entries.length}개` : ''}`}
+              onClick={() => setPicked(date)}
+            >
+              {cover && ('src' in cover
+                ? <img className="cal-cell-cover" src={cover.src} alt="" loading="lazy" decoding="async" />
+                : <span className={`cal-cell-cover vcover-${cover.platform}`} />)}
+              <span className="cal-cell-num">{n}</span>
+              {entries && entries.length > 1 && <span className="cal-cell-more">+{entries.length - 1}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {selected && (
+        <section className="cal-day" aria-label={`${selMonth}월 ${selDay}일 기록`}>
+          <div className="cal-day-head">
+            <div>
+              <h2 className="cal-day-title">{selMonth}월 {selDay}일 {selWeekday}요일</h2>
+              <p className="cal-summary">기록 {selectedEntries.length}개</p>
+            </div>
+            {selectedStory && (
+              <button
+                type="button"
+                className="cal-story-btn"
+                onClick={() => setStory(s => ({ id: (s?.id ?? 0) + 1, year: selectedStory, closing: false }))}
+              >
+                <PlayIcon size={11} /> 스토리
+              </button>
             )}
           </div>
-          
-          <button onClick={nextMonth} className="cal-nav-btn">▶</button>
-        </div>
-
-        <div className="calendar-grid">
-          {/* 요일 헤더 */}
-          {WEEKDAYS.map((day) => (
-            <div key={day} className="cal-weekday">{day}</div>
-          ))}
-
-          {/* 날짜들 */}
-          {days.map((day, index) => {
-            if (day === null) {
-              return <div key={`empty-${index}`} className="cal-day empty"></div>;
-            }
-
-            const dateStr = formatDate(day);
-            const hasArchive = archives[dateStr] && archives[dateStr].length > 0;
-            const isSelected = selectedDate === dateStr;
-            const isToday = new Date().toISOString().split('T')[0] === dateStr;
-
-            return (
-              <button
-                key={day}
-                className={`cal-day ${hasArchive ? 'has-archive' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
-                onClick={() => hasArchive && handleDateClick(day)}
-                disabled={!hasArchive}
-              >
-                <span className="day-number">{day}</span>
-                {hasArchive && (
-                  <div className="day-dots">
-                    {archives[dateStr].slice(0, 3).map((a) => (
-                      <span key={`${a.type}-${a.id}`} className={`day-dot ${a.type}`} title={a.title}></span>
-                    ))}
-                    {archives[dateStr].length > 3 && (
-                      <span className="day-more">+{archives[dateStr].length - 3}</span>
-                    )}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 선택된 날짜의 아카이브 목록 */}
-        {selectedArchives && (
-          <div className="calendar-details">
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CalendarIcon size={18} /> {selectedDate}</h3>
-            <div className="archive-list">
-              {selectedArchives.map((archive) => (
-                <Link
-                  key={`${archive.type}-${archive.id}`}
-                  to={`${archive.path}${archive.path.includes('?') ? '&' : '?'}highlight=${archive.id}`}
-                  className="archive-item"
-                >
-                  <span className="archive-icon"><TypeIcon type={archive.type} /></span>
-                  <span className="archive-title">
-                    {archive.title}
-                    {archive.icon && (() => {
-                      const member = WEVERSE_MEMBERS.find(m => m.icon === archive.icon);
-                      return member ? (
-                        <span className={`member-tag member-tag-${member.tag}`}>
-                          {member.name}
-                        </span>
-                      ) : null;
-                    })()}
-                  </span>
-                  <span className="archive-arrow"><ArrowRightIcon size={14} /></span>
-                </Link>
-              ))}
-            </div>
+          <div className="mc-rail">
+            {selectedEntries.map(entry => (entry.kind === 'video'
+              ? <VideoCard key={`video-${entry.id}`} video={entry.video} moments={entry.moments} onOpen={openDetail} />
+              : <EntryCard key={`${entry.kind}-${entry.id}`} entry={entry} />))}
           </div>
-        )}
-      </div>
+        </section>
+      )}
+
+      {story && (
+        <StoryViewer
+          key={story.id}
+          years={[story.year]}
+          startYear={story.year.year}
+          autoStarted={false}
+          originFor={() => null}
+          closing={story.closing}
+          onClose={() => setStory(s => (s ? { ...s, closing: true } : s))}
+          onExited={() => setStory(s => (s?.id === story.id ? null : s))}
+        />
+      )}
+
+      {/* 뷰어(1000)는 모달(900) 위. 모달 본문의 미리 받기 정리가 뷰어 effect 뒤에 돌도록 모달보다 앞에 둔다 */}
+      {momentViewer && (
+        <MomentViewer key={momentParam} moments={momentViewer.list} startIndex={momentViewer.startIndex} onClose={closeMoment} />
+      )}
+
+      {detail && (
+        <VideoDetailModal
+          key={detail.video.id}
+          video={detail.video}
+          moments={detail.list}
+          viewerOpen={!!momentParam}
+          onOpenMoment={openMoment}
+          onClose={closeDetail}
+        />
+      )}
     </div>
   );
 }

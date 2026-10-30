@@ -1,0 +1,183 @@
+import type { Episode, MemberSettings, Moment, Photo, Post, Video } from './database/types';
+import { getVideoCover } from './videoCover';
+import { detectVideoPlatform } from './platformUtils';
+import { momentsByVideo } from './videoCatalog';
+
+/** 캘린더 하루 칸에 들어가는 기록 하나 */
+export type CalendarEntry =
+  | { kind: 'video'; id: string; video: Video; moments: Moment[] }
+  | { kind: 'moment'; id: string; title: string; path: string; cover: string | null }
+  | { kind: 'post'; id: string; title: string; path: string; cover: string | null }
+  | { kind: 'photo'; id: string; title: string; path: string; cover: string; count: number }
+  | { kind: 'episode'; id: string; title: string; path: string };
+
+export interface CalendarData {
+  videos: Video[];
+  moments: Moment[];
+  posts: Post[];
+  photos: Photo[];
+  episodes: Episode[];
+  memberSettings: MemberSettings | null;
+}
+
+const EPISODE_TYPE_NAMES: Record<string, string> = {
+  dm: 'DM',
+  comment: '댓글',
+  listening_party: '리스닝 파티',
+};
+
+const LP_PLATFORM_NAMES: Record<string, string> = {
+  melon: '멜론',
+  spotify: 'Spotify',
+  apple_music: 'Apple Music',
+  weverse: 'Weverse',
+};
+
+function postCover(post: Post): string | null {
+  const first = post.media?.[0];
+  if (!first) return null;
+  return first.thumbnail ?? (first.type === 'image' ? first.url : null);
+}
+
+/** 날짜(YYYY-MM-DD)별 기록. 같은 날 안에서는 영상 → 모먼트 → 사진 → 포스트 → 에피소드 순 */
+export function buildCalendarDays(data: CalendarData): Map<string, CalendarEntry[]> {
+  const { videos, moments, posts, photos, episodes, memberSettings } = data;
+  const byDate = new Map<string, CalendarEntry[]>();
+  const push = (date: string, entry: CalendarEntry) => {
+    const key = date.slice(0, 10);
+    byDate.set(key, [...(byDate.get(key) ?? []), entry]);
+  };
+  const videoById = new Map(videos.map(v => [v.id, v]));
+  const momentMap = momentsByVideo(moments);
+
+  videos.forEach(v => push(v.date, { kind: 'video', id: v.id, video: v, moments: momentMap.get(v.id) ?? [] }));
+
+  // 상위 영상과 날짜가 같은 모먼트는 영상 항목으로 이미 표시되므로 제외.
+  // 날짜가 다르면(독립 모먼트 포함) 자기 날짜에 별도 표시 — '그 해 오늘' 판정 규칙과 일치시킴
+  moments.forEach(m => {
+    const parent = m.video_id ? videoById.get(m.video_id) : undefined;
+    if (parent && parent.date === m.date) return;
+    const path = parent
+      ? `/videos/${encodeURIComponent(parent.id)}?m=${encodeURIComponent(m.id)}`
+      : `/moments?highlight=${encodeURIComponent(m.id)}`;
+    push(m.date, { kind: 'moment', id: m.id, title: m.title, path, cover: m.thumbnail_url ?? null });
+  });
+
+  // 사진은 같은 날 같은 제목(끝의 -1, -2 번호 제외)을 한 묶음으로. 누르면 첫 장이 라이트박스로 열린다
+  const photoGroups = new Map<string, Photo[]>();
+  photos.forEach(ph => {
+    const key = `${ph.date}|${ph.title.replace(/-\d+$/, '')}`;
+    photoGroups.set(key, [...(photoGroups.get(key) ?? []), ph]);
+  });
+  photoGroups.forEach((group, key) => {
+    const [date, title] = key.split('|');
+    const first = group[0];
+    push(date, {
+      kind: 'photo',
+      id: first.id,
+      title,
+      path: `/photos?highlight=${encodeURIComponent(first.id)}`,
+      cover: first.thumbnail_url || first.image_url,
+      count: group.length,
+    });
+  });
+
+  posts.forEach(p => push(p.date, {
+    kind: 'post',
+    id: p.id,
+    title: p.title || p.platform,
+    path: `/posts?highlight=${encodeURIComponent(p.id)}`,
+    cover: postCover(p),
+  }));
+
+  const memberName = (sender?: 'member1' | 'member2') =>
+    (sender === 'member2' ? memberSettings?.member2_name : memberSettings?.member1_name) ?? '';
+
+  // 연결된 콘텐츠 제목
+  const linkedTitle = (ep: Episode) => {
+    if (ep.linked_content_type === 'video') return videoById.get(ep.linked_content_id ?? '')?.title || '영상';
+    if (ep.linked_content_type === 'moment') return moments.find(m => m.id === ep.linked_content_id)?.title || '모먼트';
+    if (ep.linked_content_type === 'post') {
+      const post = posts.find(p => p.id === ep.linked_content_id);
+      return post?.title || post?.platform || '포스트';
+    }
+    return '콘텐츠';
+  };
+
+  episodes.forEach(e => {
+    let title: string;
+    if (e.episode_type === 'dm') {
+      // DM: 항상 발신자 + DM 표시
+      const firstMsg = e.messages?.[0];
+      const preview = e.title || (firstMsg?.type === 'text' ? firstMsg.content : '📷');
+      title = `${memberName(e.sender)} DM: ${preview}`;
+    } else if (e.episode_type === 'comment') {
+      // 댓글: 발신자 + 연결 콘텐츠
+      title = e.linked_content_id
+        ? `${memberName(e.sender)} → "${linkedTitle(e)}" 댓글`
+        : e.title || `${memberName(e.sender)} 댓글`;
+    } else if (e.episode_type === 'listening_party') {
+      const content = e.title || e.messages?.[0]?.content || '';
+      const platformName = e.platform ? LP_PLATFORM_NAMES[e.platform] : '';
+      title = `${content} ${platformName || ''} 리스닝 파티`.replaceAll(/\s+/g, ' ').trim();
+    } else {
+      title = e.title || EPISODE_TYPE_NAMES[e.episode_type] || e.episode_type;
+    }
+    push(e.date, {
+      kind: 'episode',
+      id: e.id,
+      title,
+      path: `/episodes?tab=${e.episode_type}&highlight=${encodeURIComponent(e.id)}`,
+    });
+  });
+
+  return byDate;
+}
+
+/** 칸 표지. 영상 표지 > 모먼트 > 사진 > 포스트 미디어. 이미지 없는 영상은 플랫폼 색 블록 */
+export type DayCover = { src: string } | { platform: ReturnType<typeof detectVideoPlatform> } | null;
+
+export function dayCover(entries: CalendarEntry[]): DayCover {
+  const order: CalendarEntry['kind'][] = ['video', 'moment', 'photo', 'post'];
+  let fallback: DayCover = null;
+  for (const kind of order) {
+    for (const e of entries) {
+      if (e.kind !== kind) continue;
+      if (e.kind === 'video') {
+        // 유튜브 hqdefault는 4:3에 위아래 검은 띠가 있어 작은 칸에선 띠가 보인다 — 16:9인 mqdefault로 바꾼다
+        const src = getVideoCover(e.video, e.moments)?.replace(/\/hqdefault\.jpg$/, '/mqdefault.jpg');
+        if (src) return { src };
+        fallback ??= { platform: detectVideoPlatform(e.video.url) };
+      } else if (e.kind !== 'episode' && e.cover) {
+        return { src: e.cover };
+      }
+    }
+  }
+  return fallback;
+}
+
+export interface StripMonth { year: number; month: number; days: number }
+
+/** 월 띠: 첫 기록이 있는 달부터 이번 달(또는 마지막 기록 달 중 늦은 쪽)까지, 달마다 기록 있는 날 수. month는 1~12 */
+export function monthStrip(days: Map<string, CalendarEntry[]>, today: string): StripMonth[] {
+  const counts = new Map<string, number>();
+  let first = today.slice(0, 7);
+  let last = today.slice(0, 7);
+  for (const date of days.keys()) {
+    const ym = date.slice(0, 7);
+    counts.set(ym, (counts.get(ym) ?? 0) + 1);
+    if (ym < first) first = ym;
+    if (ym > last) last = ym;
+  }
+  const result: StripMonth[] = [];
+  let y = Number(first.slice(0, 4));
+  let m = Number(first.slice(5, 7));
+  const endY = Number(last.slice(0, 4));
+  const endM = Number(last.slice(5, 7));
+  while (y < endY || (y === endY && m <= endM)) {
+    result.push({ year: y, month: m, days: counts.get(`${y}-${String(m).padStart(2, '0')}`) ?? 0 });
+    m += 1;
+    if (m > 12) { m = 1; y += 1; }
+  }
+  return result;
+}
