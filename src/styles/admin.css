@@ -1414,20 +1414,6 @@
   transition: width 0.3s ease;
 }
 
-.spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #2196F3;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 /* ===== Searchable Select ===== */
 .searchable-select {
   position: relative;
