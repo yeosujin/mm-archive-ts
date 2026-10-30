@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="mmemory" />
     <title>mmemory</title>
     <!-- 앱이 뜨기 전 빈 화면도 저장된 테마 배경으로 (다크 모드에서 흰 화면이 번쩍이지 않게). Layout이 이어서 같은 값을 둔다 -->
-    <script>try { if (localStorage.getItem('theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}</script>
+    <script>try { if (matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark'; } catch (e) {}</script>
     <style>html[data-theme="dark"] { background: #0a0a0f; }</style>
     
     <!-- 외부 임베드 스크립트 미리 연결 -->

@@ -34,7 +34,7 @@ updated: 2026-10-30
 
 ## Calendar (2.1.0~ 표지 달력)
 
-- 라우트: `/calendar`, 헤더의 캘린더 아이콘
+- 라우트: `/calendar`, 상단 탭 맨 끝 `캘린더` (2.2.0~, 전에는 헤더 아이콘). 홈 '그 해 오늘' 제목 옆 `캘린더 ›` 링크도 있다
 - 페이지: `src/pages/Calendar.tsx`, 날짜별 집계는 `src/lib/calendarDays.ts`, 스타일은 `src/styles/calendar.css`
 
 위에서 아래로:

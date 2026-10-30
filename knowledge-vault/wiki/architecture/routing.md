@@ -3,7 +3,7 @@ type: architecture
 status: stable
 tags: [architecture, routing]
 created: 2026-07-24
-updated: 2026-10-28
+updated: 2026-10-30
 ---
 
 # 라우팅
@@ -19,9 +19,9 @@ RootLayout  (errorElement: ErrorFallback)
 │   ├── moments ...... Moments       (네비 숨김)
 │   ├── posts ........ Posts
 │   ├── photos ....... Photos
-│   ├── search ....... Search        (헤더 아이콘)
+│   ├── search ....... Search        (헤더 돋보기)
 │   ├── episodes ..... Episodes
-│   ├── calendar ..... Calendar      (헤더 아이콘)
+│   ├── calendar ..... Calendar      (상단 탭)
 │   ├── ask .......... Ask           (네비 숨김)
 │   └── ask/:id ...... AskDetail     (네비 숨김)
 │

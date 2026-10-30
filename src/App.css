@@ -104,98 +104,51 @@
   background-clip: text;
 }
 
-.theme-toggle {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  padding: 0.5rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+/* 로고 가운데: 양옆 칸(40px)은 비우거나 돋보기 */
+.header-content--center {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  grid-template-rows: 40px; /* 돋보기가 없는 홈도 같은 높이 */
+  padding-block: 0.5rem;
+}
+
+.header-content--center .logo {
+  justify-self: center;
+}
+
+.header-end {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.header-icon-btn {
+  width: 40px;
+  height: 40px;
+  margin-right: -0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent);
-}
-
-.theme-toggle:hover {
-  background: var(--bg-card-hover);
-  transform: scale(1.08);
-}
-
-/* ===== Header Actions ===== */
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  position: relative;
-}
-
-.search-toggle {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  padding: 0.5rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent);
-}
-
-.search-toggle:hover {
-  background: var(--bg-card-hover);
-  transform: scale(1.08);
-}
-
-.header-search {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  animation: header-search-open 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--bg-card);
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  padding: 0.25rem 0.5rem;
-  z-index: 10;
-}
-
-/* 돋보기 자리에서 왼쪽으로 펼쳐진다 */
-@keyframes header-search-open {
-  from { opacity: 0; clip-path: inset(0 0 0 70% round 8px); }
-  to { opacity: 1; clip-path: inset(0 round 8px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .header-search { animation: none; }
-}
-
-.header-search-input {
-  background: transparent;
+  padding: 0;
   border: none;
+  border-radius: 50%;
+  background: none;
   color: var(--text-primary);
-  font-size: 0.9rem;
-  width: 180px;
-  padding: 0.25rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.header-search-input:focus {
-  outline: none;
-}
-
-.header-search-input::placeholder {
-  color: var(--text-muted);
+/* 돋보기를 누를 때 키보드를 먼저 띄우는 숨은 입력칸 (Layout). 16px 미만이면 iOS가 확대한다 */
+.kb-proxy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font-size: 16px;
+  pointer-events: none;
 }
 
 /* ===== 상단 글자 탭 ===== */
@@ -236,27 +189,6 @@
   border-bottom-color: var(--text-primary);
 }
 
-/* 캘린더는 검색 버튼과 같은 원형 버튼. 캘린더 화면에서는 강조 */
-.calendar-link {
-  text-decoration: none;
-}
-
-.calendar-link.active {
-  background: var(--accent-soft);
-}
-
-.search-close {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.25rem;
-  font-size: 0.8rem;
-}
-
-.search-close:hover {
-  color: var(--text-primary);
-}
 
 /* ===== Main ===== */
 .main {

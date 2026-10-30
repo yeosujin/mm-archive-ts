@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { StoryContent, StoryFrame, StoryYear } from '../../lib/onThisDayStory';
 import { groupStoryContents } from '../../lib/onThisDayStory';
 import type { Episode, Post } from '../../lib/database/types';
@@ -187,7 +188,10 @@ export default function OnThisDayCards({ years, label, paused, liftCard = null, 
 
   return (
     <section className="hm-otd" aria-label="그 해 오늘">
-      <p className="hm-otd-label">{label}</p>
+      <div className="hm-otd-head">
+        <p className="hm-otd-label">{label}</p>
+        <Link to="/calendar" className="hm-sec-more">캘린더 ›</Link>
+      </div>
       <div ref={railRef} className="hm-cards" onScroll={handleScroll}>
         {groups.map(({ year: y, contents }) => (
           <div key={y.year} className="hm-otd-year" role="group" aria-label={`${y.year}년`}>

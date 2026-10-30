@@ -4,7 +4,13 @@
   padding-bottom: 2rem;
 }
 
-/* 그 해 오늘 — 맨 위 문구 */
+/* 그 해 오늘 — 맨 위 문구 + 캘린더 링크 */
+.hm-otd-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
 .hm-otd-label {
   margin: 0 0 0.375rem;
   /* '새로 올라온 영상'(.hm-sec-title)와 같은 크기 */
