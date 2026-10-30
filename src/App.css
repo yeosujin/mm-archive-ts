@@ -132,7 +132,7 @@
   border: none;
   border-radius: 50%;
   background: none;
-  color: var(--text-primary);
+  color: var(--accent); /* 로고 그라데이션(하늘→보라)의 가운데 색 */
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }

@@ -109,7 +109,7 @@ export default function Layout() {
                   onMouseEnter={preloadSearch}
                   aria-label="검색"
                 >
-                  <SearchIcon size={20} />
+                  <SearchIcon size={17} />
                 </button>
               )}
             </span>

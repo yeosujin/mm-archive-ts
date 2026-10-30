@@ -131,20 +131,17 @@
 
 /* 검색 화면에 들어오면 헤더 검색창이 오른쪽(돋보기 자리)에서 왼쪽으로 펼쳐진다 */
 .sr-bar {
-  animation: sr-bar-open 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: sr-bar-open 0.2s ease-out both;
 }
 
 .sr-back {
-  animation: sr-back-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: sr-fade 0.2s ease-out both;
 }
 
+/* 살짝만: 오른쪽 1/3쯤에서 펼쳐지며 나타난다 */
 @keyframes sr-bar-open {
-  from { opacity: 0; clip-path: inset(0 0 0 72% round 999px); }
+  from { opacity: 0; clip-path: inset(0 0 0 35% round 999px); }
   to { opacity: 1; clip-path: inset(0 round 999px); }
-}
-
-@keyframes sr-back-in {
-  from { opacity: 0; transform: translateX(8px); }
 }
 
 /* AI 모드: 글자가 맞는 결과 뒤에 AI 결과를 기다리는 동안 / AI를 못 쓸 때 */
