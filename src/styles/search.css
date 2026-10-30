@@ -278,8 +278,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--bg-card-hover);
+  color: var(--text-secondary);
 }
 
 .sr-browse-text {
