@@ -48,9 +48,82 @@ function postCover(post: Post): string | null {
   return first.thumbnail ?? (first.type === 'image' ? first.url : null);
 }
 
+/** 모먼트 항목. 상위 영상이 있으면 그 영상 페이지의 모먼트로 연결 */
+export function momentEntry(m: Moment, parent?: Video): Extract<CalendarEntry, { kind: 'moment' }> {
+  const path = parent
+    ? `/videos/${encodeURIComponent(parent.id)}?m=${encodeURIComponent(m.id)}`
+    : `/moments?highlight=${encodeURIComponent(m.id)}`;
+  return { kind: 'moment', id: m.id, title: m.title, path, cover: m.thumbnail_url ?? null };
+}
+
+export function postEntry(p: Post): Extract<CalendarEntry, { kind: 'post' }> {
+  return {
+    kind: 'post',
+    id: p.id,
+    title: p.title || p.platform,
+    path: `/posts?highlight=${encodeURIComponent(p.id)}`,
+    cover: postCover(p),
+    post: p,
+  };
+}
+
+/** 에피소드 항목 만들기. 제목에 멤버 이름·연결 콘텐츠 제목이 들어가서 데이터를 미리 받아 둔다 */
+export function episodeEntryBuilder(data: Pick<CalendarData, 'videos' | 'moments' | 'posts' | 'memberSettings'>) {
+  const { videos, moments, posts, memberSettings } = data;
+  const videoById = new Map(videos.map(v => [v.id, v]));
+  const memberName = (sender?: 'member1' | 'member2') =>
+    (sender === 'member2' ? memberSettings?.member2_name : memberSettings?.member1_name) ?? '';
+
+  // 연결된 콘텐츠 제목
+  const linkedTitle = (ep: Episode) => {
+    if (ep.linked_content_type === 'video') return videoById.get(ep.linked_content_id ?? '')?.title || '영상';
+    if (ep.linked_content_type === 'moment') return moments.find(m => m.id === ep.linked_content_id)?.title || '모먼트';
+    if (ep.linked_content_type === 'post') {
+      const post = posts.find(p => p.id === ep.linked_content_id);
+      return post?.title || post?.platform || '포스트';
+    }
+    return '콘텐츠';
+  };
+
+  return (e: Episode): Extract<CalendarEntry, { kind: 'episode' }> => {
+    let title: string;
+    if (e.episode_type === 'dm') {
+      // DM: 항상 발신자 + DM 표시
+      const firstMsg = e.messages?.[0];
+      const preview = e.title || (firstMsg?.type === 'text' ? firstMsg.content : '📷');
+      title = `${memberName(e.sender)} DM: ${preview}`;
+    } else if (e.episode_type === 'comment') {
+      // 댓글: 발신자 + 연결 콘텐츠
+      title = e.linked_content_id
+        ? `${memberName(e.sender)} → "${linkedTitle(e)}" 댓글`
+        : e.title || `${memberName(e.sender)} 댓글`;
+    } else if (e.episode_type === 'listening_party') {
+      const content = e.title || e.messages?.[0]?.content || '';
+      const platformName = e.platform ? LP_PLATFORM_NAMES[e.platform] : '';
+      title = `${content} ${platformName || ''} 리스닝 파티`.replaceAll(/\s+/g, ' ').trim();
+    } else {
+      title = e.title || EPISODE_TYPE_NAMES[e.episode_type] || e.episode_type;
+    }
+    // 메시지가 없는 댓글은 댓글 본문 한 줄 (스토리 채팅 화면과 같은 규칙)
+    const messages = e.messages?.length
+      ? e.messages
+      : e.comment_text ? [{ type: 'text' as const, content: e.comment_text }] : [];
+    return {
+      kind: 'episode',
+      id: e.id,
+      title,
+      path: `/episodes?tab=${e.episode_type}&highlight=${encodeURIComponent(e.id)}`,
+      sender: memberName(e.sender),
+      tone: e.episode_type === 'dm' ? (e.sender === 'member2' ? 'member2' : 'member1') : 'gray',
+      episode: e,
+      lines: messages.slice(0, CHAT_PREVIEW).map(m => ({ type: m.type, content: m.content })),
+    };
+  };
+}
+
 /** 날짜(YYYY-MM-DD)별 기록. 같은 날 안에서는 영상 → 모먼트 → 사진 → 포스트 → 에피소드 순 */
 export function buildCalendarDays(data: CalendarData): Map<string, CalendarEntry[]> {
-  const { videos, moments, posts, photos, episodes, memberSettings } = data;
+  const { videos, moments, posts, photos, episodes } = data;
   const byDate = new Map<string, CalendarEntry[]>();
   const push = (date: string, entry: CalendarEntry) => {
     const key = date.slice(0, 10);
@@ -66,10 +139,7 @@ export function buildCalendarDays(data: CalendarData): Map<string, CalendarEntry
   moments.forEach(m => {
     const parent = m.video_id ? videoById.get(m.video_id) : undefined;
     if (parent && parent.date === m.date) return;
-    const path = parent
-      ? `/videos/${encodeURIComponent(parent.id)}?m=${encodeURIComponent(m.id)}`
-      : `/moments?highlight=${encodeURIComponent(m.id)}`;
-    push(m.date, { kind: 'moment', id: m.id, title: m.title, path, cover: m.thumbnail_url ?? null });
+    push(m.date, momentEntry(m, parent));
   });
 
   // 사진은 같은 날 같은 제목(끝의 -1, -2 번호 제외)을 한 묶음으로. 누르면 첫 장이 라이트박스로 열린다
@@ -95,63 +165,10 @@ export function buildCalendarDays(data: CalendarData): Map<string, CalendarEntry
     });
   });
 
-  posts.forEach(p => push(p.date, {
-    kind: 'post',
-    id: p.id,
-    title: p.title || p.platform,
-    path: `/posts?highlight=${encodeURIComponent(p.id)}`,
-    cover: postCover(p),
-    post: p,
-  }));
+  posts.forEach(p => push(p.date, postEntry(p)));
 
-  const memberName = (sender?: 'member1' | 'member2') =>
-    (sender === 'member2' ? memberSettings?.member2_name : memberSettings?.member1_name) ?? '';
-
-  // 연결된 콘텐츠 제목
-  const linkedTitle = (ep: Episode) => {
-    if (ep.linked_content_type === 'video') return videoById.get(ep.linked_content_id ?? '')?.title || '영상';
-    if (ep.linked_content_type === 'moment') return moments.find(m => m.id === ep.linked_content_id)?.title || '모먼트';
-    if (ep.linked_content_type === 'post') {
-      const post = posts.find(p => p.id === ep.linked_content_id);
-      return post?.title || post?.platform || '포스트';
-    }
-    return '콘텐츠';
-  };
-
-  episodes.forEach(e => {
-    let title: string;
-    if (e.episode_type === 'dm') {
-      // DM: 항상 발신자 + DM 표시
-      const firstMsg = e.messages?.[0];
-      const preview = e.title || (firstMsg?.type === 'text' ? firstMsg.content : '📷');
-      title = `${memberName(e.sender)} DM: ${preview}`;
-    } else if (e.episode_type === 'comment') {
-      // 댓글: 발신자 + 연결 콘텐츠
-      title = e.linked_content_id
-        ? `${memberName(e.sender)} → "${linkedTitle(e)}" 댓글`
-        : e.title || `${memberName(e.sender)} 댓글`;
-    } else if (e.episode_type === 'listening_party') {
-      const content = e.title || e.messages?.[0]?.content || '';
-      const platformName = e.platform ? LP_PLATFORM_NAMES[e.platform] : '';
-      title = `${content} ${platformName || ''} 리스닝 파티`.replaceAll(/\s+/g, ' ').trim();
-    } else {
-      title = e.title || EPISODE_TYPE_NAMES[e.episode_type] || e.episode_type;
-    }
-    // 메시지가 없는 댓글은 댓글 본문 한 줄 (스토리 채팅 화면과 같은 규칙)
-    const messages = e.messages?.length
-      ? e.messages
-      : e.comment_text ? [{ type: 'text' as const, content: e.comment_text }] : [];
-    push(e.date, {
-      kind: 'episode',
-      id: e.id,
-      title,
-      path: `/episodes?tab=${e.episode_type}&highlight=${encodeURIComponent(e.id)}`,
-      sender: memberName(e.sender),
-      tone: e.episode_type === 'dm' ? (e.sender === 'member2' ? 'member2' : 'member1') : 'gray',
-      episode: e,
-      lines: messages.slice(0, CHAT_PREVIEW).map(m => ({ type: m.type, content: m.content })),
-    });
-  });
+  const toEpisode = episodeEntryBuilder(data);
+  episodes.forEach(e => push(e.date, toEpisode(e)));
 
   return byDate;
 }

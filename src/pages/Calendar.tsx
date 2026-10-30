@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useData } from '../hooks/useData';
 import { buildCalendarDays, dayCover, monthStrip } from '../lib/calendarDays';
 import type { CalendarEntry } from '../lib/calendarDays';
@@ -9,6 +9,7 @@ import { getTodayString } from '../lib/dailyPick';
 import { momentsByVideo } from '../lib/videoCatalog';
 import { useViewerParam } from '../hooks/useViewerParam';
 import { PlayIcon } from '../components/Icons';
+import EntryCard from '../components/EntryCard';
 import VideoCard from '../components/moments/VideoCard';
 import VideoDetailModal from '../components/moments/VideoDetailModal';
 import MomentViewer from '../components/MomentViewer';
@@ -22,56 +23,8 @@ const SWIPE_PX = 50;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-const ENTRY_BADGE: Record<Exclude<CalendarEntry['kind'], 'video'>, string> = {
-  moment: '모먼트',
-  photo: '사진',
-  post: '포스트',
-  episode: '에피소드',
-};
-
 /** 에피소드만 있는 날 칸에 적는 종류 (칸이 좁아 짧게) */
 const CELL_EPISODE_LABEL = { dm: 'DM', comment: '댓글', listening_party: '리스닝' } as const;
-
-/** 에피소드 카드 표지: 에피소드 페이지 말풍선을 줄인 캡처 모양. DM은 보낸 멤버 색, 댓글·리스닝 파티는 회색 */
-function ChatCapture({ entry }: { entry: Extract<CalendarEntry, { kind: 'episode' }> }) {
-  return (
-    <span className={`cal-chat cal-chat-${entry.tone}`} aria-hidden>
-      <span className="cal-chat-who"><span className="cal-chat-av" />{entry.sender}</span>
-      {entry.lines.map((line, i) => (line.type === 'image'
-        ? <img key={i} className="cal-chat-img" src={line.content} alt="" loading="lazy" decoding="async" />
-        : <span key={i} className="cal-chat-bub">{line.content}</span>))}
-    </span>
-  );
-}
-
-/** 영상이 아닌 기록 카드. 영상 카드(VideoCard)와 같은 모양. 누르면 캘린더 위에 상세를 띄운다 */
-function EntryCard({ entry, onOpen }: { entry: Exclude<CalendarEntry, { kind: 'video' }>; onOpen: () => void }) {
-  const cover = entry.kind === 'episode' ? null : entry.cover;
-  const badge = entry.kind === 'photo' && entry.count > 1 ? `사진 ${entry.count}장` : ENTRY_BADGE[entry.kind];
-  return (
-    <Link
-      to={entry.path}
-      className="mc-card"
-      onClick={(e) => {
-        // 새 탭·새 창으로 여는 클릭은 링크(각 페이지) 그대로
-        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-        e.preventDefault();
-        onOpen();
-      }}
-    >
-      <span className="mc-card-thumb">
-        {entry.kind === 'episode'
-          ? <ChatCapture entry={entry} />
-          : cover
-            ? <img className="vcover" src={cover} alt="" loading="lazy" decoding="async" />
-            : <span className="cal-card-blank">{ENTRY_BADGE[entry.kind]}</span>}
-        {/* 에피소드는 캡처 모양이 곧 표시라 배지를 달지 않는다(마지막 말풍선을 가린다) */}
-        {cover && <span className="mc-badge">{badge}</span>}
-      </span>
-      <span className="mc-card-title">{entry.title}</span>
-    </Link>
-  );
-}
 
 export default function Calendar() {
   const {

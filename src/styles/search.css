@@ -1,0 +1,58 @@
+/* ===== 검색 결과 (/search) — 홈 검색창 + 칩 + 카드 그리드 ===== */
+
+.sr {
+  padding-bottom: 2rem;
+}
+
+/* 홈 검색창을 전체 폭으로 (home.css의 .hm과 같게) */
+.sr .home-search-row {
+  display: block;
+}
+
+.sr .home-search {
+  width: 100%;
+  max-width: none;
+  height: 2.75rem;
+}
+
+.sr-count {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sr-chips {
+  margin-bottom: 1rem;
+}
+
+.sr-chips .mc-chip small {
+  font-size: 0.6875rem;
+  opacity: 0.7;
+}
+
+/* 모먼트 탭 카드(.mc-card)를 레일 대신 격자로 */
+.sr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 0.625rem;
+}
+
+.sr-grid .mc-card {
+  width: auto;
+}
+
+.sr-empty-text {
+  margin: 0 0 1rem;
+}
+
+@media (min-width: 768px) {
+  .sr-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .sr-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

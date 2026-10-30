@@ -3,7 +3,7 @@ type: domain
 status: stable
 tags: [domain, search, ai]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-30
 ---
 
 # Search (검색)
@@ -29,6 +29,15 @@ updated: 2026-07-24
 | 비용 | 0 | [[google-gemini]] 임베딩 쿼터 소모 |
 
 AI 모드는 **명시적으로 켰을 때만** 호출한다. 기본 모드에서 쿼터를 쓰지 않기 위한 설계다 → [[embedding-semantic-search]]
+
+## 화면 (2.2.0)
+
+- 맨 위는 홈과 같은 검색창(`home-search`, ✨AI 스위치 + 검색 버튼), 아래 `‘검색어’ N건`
+- 종류 칩(`mc-chip`): 전체 · 영상 · 모먼트 · 포스트 · 에피소드, 결과 있는 종류만, 옆에 개수
+- 결과는 **한 그리드에 섞어서** 보여 준다 (모바일 2열, 768px 3열, 1024px 4열). 카드는 캘린더와 같은 `VideoCard` / `EntryCard`, 아래 줄에 `종류 · 날짜`
+- 순서: 키워드 모드는 최신순(같은 날은 영상 → 모먼트 → 포스트 → 에피소드), AI 모드는 유사도 순
+- 누르면 그 자리 팝업: 영상 `?v=`, 모먼트 `?m=`, 포스트·에피소드 `?d=kind:id` (캘린더와 같음). 새 탭 클릭은 각 페이지로
+- 카드 항목은 `calendarDays.ts`의 `momentEntry` · `postEntry` · `episodeEntryBuilder`로 만든다
 
 ## 유도 장치
 
