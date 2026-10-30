@@ -4,12 +4,14 @@ status: stable
 enforcement: must
 tags: [tooling, deploy]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-10-30
 ---
 
 # 배포
 
 **`main` 브랜치 푸시 = [[vercel]] 자동 배포.** blast radius가 크다. 작업은 `develop`에서 하고 배포할 때만 머지한다 → [[git-and-version]]
+
+`develop` 푸시는 Vercel preview 배포가 되고 `preview.mmemory.cloud`가 이를 따라간다(대시보드 Domains에서 develop에 연결). 머지 전 확인은 여기서 한다.
 
 ## 절차
 

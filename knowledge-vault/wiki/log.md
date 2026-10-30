@@ -12,6 +12,10 @@ append-only. **새 항목은 최상단.**
 
 ---
 
+## 2026-10-30 — develop preview 배포
+
+- `vercel.json`의 develop 배포 끄기 제거. develop 푸시 → `preview.mmemory.cloud` → [[deploy]]
+
 ## 2026-10-30 — 캘린더 표지 달력 (2.1.0)
 
 - 점 달력 → 표지 달력: 칸이 그날 표지, 고른 날 카드 레일, 그 날짜 스토리, 연·월 선택(연도 칩 + 12개월)·스와이프 달 이동. 종류별 점 색(`--color-*`)과 드롭다운 연월 선택 제거 → [[home-calendar]]
