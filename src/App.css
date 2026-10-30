@@ -105,11 +105,12 @@
 }
 
 /* 로고 가운데: 양옆 칸(40px)은 비우거나 돋보기 */
-.header-content--center {
+/* 두 클래스로 써서 모바일의 .header-content 여백(0.75rem)보다 앞선다 — 로고 줄 44px */
+.header-content.header-content--center {
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
-  grid-template-rows: 40px; /* 돋보기가 없는 홈도 같은 높이 */
-  padding-block: 0.5rem;
+  grid-template-columns: 36px 1fr 36px;
+  grid-template-rows: 36px;
+  padding-block: 0.25rem;
 }
 
 .header-content--center .logo {
@@ -122,8 +123,8 @@
 }
 
 .header-icon-btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   margin-right: -0.5rem;
   display: flex;
   align-items: center;
