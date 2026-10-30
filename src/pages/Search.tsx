@@ -243,7 +243,8 @@ export default function Search() {
   const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/'));
 
   // 헤더 첫 줄에 띄우는 검색창 (Layout의 searchSlot)
-  // 자동완성: 입력한 글자가 든 제목. 제목이 그 글자로 시작하는 것 먼저, 그다음 최신순. 같은 제목은 하나만
+  // 자동완성: 입력한 글자가 든 제목. 제목이 그 글자로 시작하는 것 먼저 → 같으면 영상·포스트·에피소드가 모먼트보다 먼저
+  // (모먼트는 수가 많아 목록을 다 차지한다) → 최신순. 같은 제목은 하나만
   const typed = inputValue.trim().toLowerCase();
   const suggestions: { title: string; kind: Kind }[] = [];
   if (suggestOpen && typed && loaded) {
@@ -258,6 +259,7 @@ export default function Search() {
       .filter(x => x.title.toLowerCase().includes(typed))
       .sort((a, b) =>
         Number(b.title.toLowerCase().startsWith(typed)) - Number(a.title.toLowerCase().startsWith(typed))
+        || Number(a.kind === 'moment') - Number(b.kind === 'moment')
         || b.date.localeCompare(a.date))
       .forEach(x => {
         const key = x.title.trim().toLowerCase();
