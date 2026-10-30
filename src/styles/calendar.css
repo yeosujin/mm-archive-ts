@@ -315,7 +315,8 @@
   font-weight: 600;
 }
 
-/* 에피소드: 스토리 채팅 화면(.st-chat)을 줄인 캡처 모양. 같은 바탕·말풍선 색 */
+/* 에피소드: 에피소드 페이지 말풍선을 줄인 캡처 모양.
+   DM은 보낸 멤버 색(.dm-bubble-left/right, .dm-member-name-*), 댓글·리스닝 파티는 회색(.comment-bubble) */
 .cal-chat {
   position: absolute;
   inset: 0;
@@ -326,8 +327,10 @@
   padding: 8px;
   box-sizing: border-box;
   overflow: hidden;
-  background: linear-gradient(180deg, #1b1630, #0d0d10);
-  color: #f0f0f5;
+  border: 1px solid var(--border);
+  border-radius: inherit;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .cal-chat-who {
@@ -336,6 +339,7 @@
   gap: 4px;
   font-size: 0.5625rem;
   font-weight: 700;
+  color: var(--text-secondary);
 }
 
 .cal-chat-av {
@@ -343,20 +347,31 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #b565a7;
+  background: var(--text-muted);
 }
+
+.cal-chat-member1 .cal-chat-who { color: #0ea5e9; }
+.cal-chat-member1 .cal-chat-av { background: #0ea5e9; }
+.cal-chat-member2 .cal-chat-who { color: #3b82f6; }
+.cal-chat-member2 .cal-chat-av { background: #3b82f6; }
 
 .cal-chat-bub {
   max-width: 85%;
   padding: 3px 7px;
-  border-radius: 8px 8px 8px 2px;
-  background: #2c2c36;
+  border-radius: 2px 8px 8px 8px;
   font-size: 0.5625rem;
   line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.cal-chat-member1 .cal-chat-bub { background: linear-gradient(135deg, #e0f4ff 0%, #d4f0ff 100%); }
+.cal-chat-member2 .cal-chat-bub { background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%); }
+.cal-chat-gray .cal-chat-bub { background: #353535; color: #ffffff; }
+
+[data-theme="dark"] .cal-chat-member1 .cal-chat-bub { background: rgba(56, 189, 248, 0.2); }
+[data-theme="dark"] .cal-chat-member2 .cal-chat-bub { background: rgba(59, 130, 246, 0.2); }
 
 .cal-chat-img {
   max-width: 40%;
@@ -365,7 +380,7 @@
   object-fit: cover;
 }
 
-/* 달력 칸: 글자 없이 말풍선 막대만 */
+/* 달력 칸: 글자 없이 말풍선 막대만. 색은 카드와 같은 규칙(작은 칸에서 보이게 이름 색 쪽으로 진하게) */
 .cal-cell-chat {
   display: flex;
   flex-direction: column;
@@ -374,16 +389,36 @@
   gap: 3px;
   padding: 0 6px 7px;
   box-sizing: border-box;
-  background: linear-gradient(180deg, #1b1630, #0d0d10);
 }
 
 .cal-cell-chat i {
   display: block;
   height: 6px;
-  border-radius: 3px 3px 3px 1px;
-  background: #3a3a48;
+  border-radius: 1px 3px 3px 3px;
 }
+
+.cal-cell-chat.cal-chat-member1 i { background: rgba(14, 165, 233, 0.45); }
+.cal-cell-chat.cal-chat-member2 i { background: rgba(59, 130, 246, 0.45); }
+.cal-cell-chat.cal-chat-gray i { background: #353535; }
+[data-theme="dark"] .cal-cell-chat.cal-chat-gray i { background: #5a5a66; }
 
 .cal-cell-chat i:nth-child(1) { width: 70%; }
 .cal-cell-chat i:nth-child(2) { width: 45%; }
 .cal-cell-chat i:nth-child(3) { width: 58%; }
+
+/* 에피소드 상세 팝업: 포스트 상세(.post-detail-content) 틀에 에피소드 본문 */
+.cal-episode {
+  overflow-y: auto;
+}
+
+.cal-episode-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 3.5rem 0.5rem 1rem;
+}
+
+.cal-episode-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

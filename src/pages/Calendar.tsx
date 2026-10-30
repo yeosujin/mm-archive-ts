@@ -12,6 +12,7 @@ import { PlayIcon } from '../components/Icons';
 import VideoCard from '../components/moments/VideoCard';
 import VideoDetailModal from '../components/moments/VideoDetailModal';
 import MomentViewer from '../components/MomentViewer';
+import EntryDetail from '../components/calendar/EntryDetail';
 import StoryViewer from '../components/StoryViewer';
 import Skeleton from '../components/Skeleton';
 
@@ -28,11 +29,10 @@ const ENTRY_BADGE: Record<Exclude<CalendarEntry['kind'], 'video'>, string> = {
   episode: '에피소드',
 };
 
-/** 영상이 아닌 기록 카드. 영상 카드(VideoCard)와 같은 모양 */
-/** 에피소드 카드 표지: 스토리 채팅 화면을 줄인 캡처 모양 */
+/** 에피소드 카드 표지: 에피소드 페이지 말풍선을 줄인 캡처 모양. DM은 보낸 멤버 색, 댓글·리스닝 파티는 회색 */
 function ChatCapture({ entry }: { entry: Extract<CalendarEntry, { kind: 'episode' }> }) {
   return (
-    <span className="cal-chat" aria-hidden>
+    <span className={`cal-chat cal-chat-${entry.tone}`} aria-hidden>
       <span className="cal-chat-who"><span className="cal-chat-av" />{entry.sender}</span>
       {entry.lines.map((line, i) => (line.type === 'image'
         ? <img key={i} className="cal-chat-img" src={line.content} alt="" loading="lazy" decoding="async" />
@@ -41,11 +41,21 @@ function ChatCapture({ entry }: { entry: Extract<CalendarEntry, { kind: 'episode
   );
 }
 
-function EntryCard({ entry }: { entry: Exclude<CalendarEntry, { kind: 'video' }> }) {
+/** 영상이 아닌 기록 카드. 영상 카드(VideoCard)와 같은 모양. 누르면 캘린더 위에 상세를 띄운다 */
+function EntryCard({ entry, onOpen }: { entry: Exclude<CalendarEntry, { kind: 'video' }>; onOpen: () => void }) {
   const cover = entry.kind === 'episode' ? null : entry.cover;
   const badge = entry.kind === 'photo' && entry.count > 1 ? `사진 ${entry.count}장` : ENTRY_BADGE[entry.kind];
   return (
-    <Link to={entry.path} className="mc-card">
+    <Link
+      to={entry.path}
+      className="mc-card"
+      onClick={(e) => {
+        // 새 탭·새 창으로 여는 클릭은 링크(각 페이지) 그대로
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        onOpen();
+      }}
+    >
       <span className="mc-card-thumb">
         {entry.kind === 'episode'
           ? <ChatCapture entry={entry} />
@@ -69,6 +79,8 @@ export default function Calendar() {
   const [today] = useState(getTodayString);
   const { value: momentParam, open: openMoment, close: closeMoment } = useViewerParam('m');
   const { value: detailParam, open: openDetail, close: closeDetail } = useViewerParam('v');
+  // 사진·포스트·에피소드 상세 `?d=kind:id`
+  const { value: entryParam, open: openEntry, close: closeEntry } = useViewerParam('d');
   const [picked, setPicked] = useState<string | null>(null);
   // 연·월 선택이 펼쳐져 있으면 거기서 보고 있는 해, 닫혀 있으면 null
   const [pickerYear, setPickerYear] = useState<number | null>(null);
@@ -154,13 +166,24 @@ export default function Calendar() {
     };
   }, [pickerOpen]);
 
+  // 뷰어: 영상에 딸린 모먼트는 그 영상의 모먼트 목록, 영상 없는 모먼트는 그 하나
   const momentViewer = useMemo(() => {
     if (!momentParam || !moments) return null;
-    const videoId = moments.find(m => m.id === momentParam)?.video_id;
-    const list = videoId ? momentMap.get(videoId) : undefined;
-    const startIndex = list?.findIndex(m => m.id === momentParam) ?? -1;
-    return list && startIndex >= 0 ? { list, startIndex } : null;
+    const moment = moments.find(m => m.id === momentParam);
+    if (!moment) return null;
+    const list = moment.video_id ? momentMap.get(moment.video_id) ?? [moment] : [moment];
+    const startIndex = list.findIndex(m => m.id === momentParam);
+    return startIndex >= 0 ? { list, startIndex } : null;
   }, [momentParam, moments, momentMap]);
+
+  const entryDetail = useMemo(() => {
+    if (!entryParam) return null;
+    for (const list of days.values()) {
+      const found = list.find(e => `${e.kind}:${e.id}` === entryParam);
+      if (found && (found.kind === 'post' || found.kind === 'photo' || found.kind === 'episode')) return found;
+    }
+    return null;
+  }, [entryParam, days]);
 
   const detail = useMemo(() => {
     const video = detailParam ? videos?.find(v => v.id === detailParam) : undefined;
@@ -259,7 +282,8 @@ export default function Calendar() {
           const classes = [
             'cal-cell',
             entries && 'has',
-            cover && 'covered',
+            // 채팅 모양은 밝은 카드 바탕이라 이미지 표지(흰 숫자 + 어둡게)로 다루지 않는다
+            cover && !('chat' in cover) && 'covered',
             date === today && 'today',
             date === selected && 'selected',
           ].filter(Boolean).join(' ');
@@ -277,7 +301,7 @@ export default function Calendar() {
                 ? <img className="cal-cell-cover" src={cover.src} alt="" loading="lazy" decoding="async" />
                 : 'platform' in cover
                   ? <span className={`cal-cell-cover vcover-${cover.platform}`} />
-                  : <span className="cal-cell-cover cal-cell-chat"><i /><i /><i /></span>)}
+                  : <span className={`cal-cell-cover cal-cell-chat cal-chat-${cover.chat}`}><i /><i /><i /></span>)}
               <span className="cal-cell-num">{n}</span>
               {entries && entries.length > 1 && <span className="cal-cell-more">+{entries.length - 1}</span>}
             </button>
@@ -305,7 +329,13 @@ export default function Calendar() {
           <div className="mc-rail">
             {selectedEntries.map(entry => (entry.kind === 'video'
               ? <VideoCard key={`video-${entry.id}`} video={entry.video} moments={entry.moments} onOpen={openDetail} />
-              : <EntryCard key={`${entry.kind}-${entry.id}`} entry={entry} />))}
+              : (
+                <EntryCard
+                  key={`${entry.kind}-${entry.id}`}
+                  entry={entry}
+                  onOpen={() => (entry.kind === 'moment' ? openMoment(entry.id) : openEntry(`${entry.kind}:${entry.id}`))}
+                />
+              )))}
           </div>
         </section>
       )}
@@ -326,6 +356,18 @@ export default function Calendar() {
       {/* 뷰어(1000)는 모달(900) 위. 모달 본문의 미리 받기 정리가 뷰어 effect 뒤에 돌도록 모달보다 앞에 둔다 */}
       {momentViewer && (
         <MomentViewer key={momentParam} moments={momentViewer.list} startIndex={momentViewer.startIndex} onClose={closeMoment} />
+      )}
+
+      {entryDetail && (
+        <EntryDetail
+          key={entryParam}
+          entry={entryDetail}
+          videos={videos ?? []}
+          moments={moments ?? []}
+          posts={posts ?? []}
+          memberSettings={memberSettings}
+          onClose={closeEntry}
+        />
       )}
 
       {detail && (

@@ -7,9 +7,12 @@ import { momentsByVideo } from './videoCatalog';
 export type CalendarEntry =
   | { kind: 'video'; id: string; video: Video; moments: Moment[] }
   | { kind: 'moment'; id: string; title: string; path: string; cover: string | null }
-  | { kind: 'post'; id: string; title: string; path: string; cover: string | null }
-  | { kind: 'photo'; id: string; title: string; path: string; cover: string; count: number }
-  | { kind: 'episode'; id: string; title: string; path: string; sender: string; lines: ChatLine[] };
+  | { kind: 'post'; id: string; title: string; path: string; cover: string | null; post: Post }
+  | { kind: 'photo'; id: string; title: string; path: string; cover: string; count: number; photos: Photo[] }
+  | { kind: 'episode'; id: string; title: string; path: string; sender: string; tone: ChatTone; lines: ChatLine[]; episode: Episode };
+
+/** 말풍선 색: DM은 보낸 멤버 색, 댓글·리스닝 파티는 회색 (에피소드 페이지와 같은 규칙) */
+export type ChatTone = 'member1' | 'member2' | 'gray';
 
 /** 에피소드 카드에 캡처처럼 보일 메시지 줄 */
 export interface ChatLine { type: 'text' | 'image'; content: string }
@@ -75,8 +78,11 @@ export function buildCalendarDays(data: CalendarData): Map<string, CalendarEntry
     const key = `${ph.date}|${ph.title.replace(/-\d+$/, '')}`;
     photoGroups.set(key, [...(photoGroups.get(key) ?? []), ph]);
   });
-  photoGroups.forEach((group, key) => {
+  // 묶음 안은 끝 번호순(-1, -2 …) — 사진 페이지와 같은 순서
+  const suffix = (t: string) => Number(/-(\d+)$/.exec(t)?.[1] ?? 0);
+  photoGroups.forEach((unsorted, key) => {
     const [date, title] = key.split('|');
+    const group = [...unsorted].sort((a, b) => suffix(a.title) - suffix(b.title));
     const first = group[0];
     push(date, {
       kind: 'photo',
@@ -85,6 +91,7 @@ export function buildCalendarDays(data: CalendarData): Map<string, CalendarEntry
       path: `/photos?highlight=${encodeURIComponent(first.id)}`,
       cover: first.thumbnail_url || first.image_url,
       count: group.length,
+      photos: group,
     });
   });
 
@@ -94,6 +101,7 @@ export function buildCalendarDays(data: CalendarData): Map<string, CalendarEntry
     title: p.title || p.platform,
     path: `/posts?highlight=${encodeURIComponent(p.id)}`,
     cover: postCover(p),
+    post: p,
   }));
 
   const memberName = (sender?: 'member1' | 'member2') =>
@@ -139,6 +147,8 @@ export function buildCalendarDays(data: CalendarData): Map<string, CalendarEntry
       title,
       path: `/episodes?tab=${e.episode_type}&highlight=${encodeURIComponent(e.id)}`,
       sender: memberName(e.sender),
+      tone: e.episode_type === 'dm' ? (e.sender === 'member2' ? 'member2' : 'member1') : 'gray',
+      episode: e,
       lines: messages.slice(0, CHAT_PREVIEW).map(m => ({ type: m.type, content: m.content })),
     });
   });
@@ -150,7 +160,7 @@ export function buildCalendarDays(data: CalendarData): Map<string, CalendarEntry
  * 칸 표지. 영상 표지 > 모먼트 > 사진 > 포스트 미디어. 이미지 없는 영상은 플랫폼 색 블록,
  * 그것도 없고 에피소드가 있으면 채팅 캡처 모양
  */
-export type DayCover = { src: string } | { platform: ReturnType<typeof detectVideoPlatform> } | { chat: true } | null;
+export type DayCover = { src: string } | { platform: ReturnType<typeof detectVideoPlatform> } | { chat: ChatTone } | null;
 
 export function dayCover(entries: CalendarEntry[]): DayCover {
   const order: CalendarEntry['kind'][] = ['video', 'moment', 'photo', 'post'];
@@ -168,7 +178,8 @@ export function dayCover(entries: CalendarEntry[]): DayCover {
       }
     }
   }
-  return fallback ?? (entries.some(e => e.kind === 'episode') ? { chat: true } : null);
+  const episode = entries.find(e => e.kind === 'episode');
+  return fallback ?? (episode ? { chat: episode.tone } : null);
 }
 
 export interface StripMonth { year: number; month: number; days: number }
