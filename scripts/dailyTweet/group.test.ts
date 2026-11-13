@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { planTweets } from './group';
+import { planTweets, MAX_MEDIA_PER_TWEET } from './group';
 import type { MediaItem } from './normalize';
 
 function img(url: string, key: string, date: string, text: string): MediaItem {
@@ -10,14 +10,30 @@ function vid(url: string, key: string, date: string, text: string): MediaItem {
 }
 
 describe('planTweets', () => {
-  it('같은 그룹은 종류 상관없이 4개씩 묶는다', () => {
+  it('미디어 5개는 더 이상 쪼개지 않고 한 트윗에 들어간다 (상한 20)', () => {
     const items: MediaItem[] = ['a', 'b', 'c', 'd', 'e'].map(u =>
       img(u, 'g1', '2022-07-14', '220714 생일'));
     const tweets = planTweets(items);
-    expect(tweets).toHaveLength(2);
-    expect(tweets[0].mediaUrls).toEqual(['a', 'b', 'c', 'd']);
-    expect(tweets[1].mediaUrls).toEqual(['e']);
+    expect(tweets).toHaveLength(1);
+    expect(tweets[0].mediaUrls).toEqual(['a', 'b', 'c', 'd', 'e']);
     expect(tweets[0].text).toBe('220714 생일\n\n#그해오늘');
+  });
+
+  it('상한을 넘으면 그때 나눈다 (21개 → 20 + 1)', () => {
+    const urls = Array.from({ length: 21 }, (_, i) => `u${i}`);
+    const items: MediaItem[] = urls.map(u => img(u, 'g1', '2022-07-14', '220714 생일'));
+    const tweets = planTweets(items);
+    expect(tweets).toHaveLength(2);
+    expect(tweets[0].mediaUrls).toHaveLength(MAX_MEDIA_PER_TWEET);
+    expect(tweets[1].mediaUrls).toEqual(['u20']);
+    // 나뉘어도 같은 그룹이라 스레드로 이어진다
+    expect(tweets[0].groupKey).toBe(tweets[1].groupKey);
+  });
+
+  it('maxMedia를 넘기면 그 값으로 나눈다', () => {
+    const items: MediaItem[] = ['a', 'b', 'c'].map(u => img(u, 'g1', '2022-07-14', '220714 생일'));
+    const tweets = planTweets(items, 2);
+    expect(tweets.map(t => t.mediaUrls)).toEqual([['a', 'b'], ['c']]);
   });
 
   it('영상 4개도 한 트윗에 들어간다', () => {

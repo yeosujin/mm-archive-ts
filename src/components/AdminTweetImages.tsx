@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { uploadPhotoToR2 } from '../lib/r2Upload';
 
-/** 트윗 1개에 들어가는 미디어 상한(X API)과 같다. 넘겨봐야 게시되지 않는다. */
-export const MAX_TWEET_IMAGES = 4;
+/** 트윗 1개에 들어가는 미디어 상한(X가 2026-11-12에 4개 → 20개로 올렸다). */
+export const MAX_TWEET_IMAGES = 20;
 
 interface Props {
   urls: string[];

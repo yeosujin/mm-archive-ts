@@ -168,9 +168,10 @@ async function main() {
 
   const { ids: posted, failures } = await postThread(x, prepared);
   console.log(`[bot] ${posted.length}개 트윗 게시 완료`);
-  // 계획 대비 실제 게시 수가 다르면 로그와 디스코드 양쪽에 남긴다.
-  if (posted.length !== prepared.length) {
-    console.warn(`[bot] ⚠️ 계획 ${prepared.length}개 중 ${posted.length}개만 게시됨`);
+  // 실패가 하나라도 있으면 로그와 디스코드 양쪽에 남긴다.
+  // (게시 수로 판정하지 않는다 — 미디어 분할 재시도가 걸리면 계획보다 트윗이 늘어난다)
+  if (failures.length > 0) {
+    console.warn(`[bot] ⚠️ 계획 ${prepared.length}개 중 ${failures.length}건 실패`);
     await notifyDiscordAlert(
       buildFailureSummary(runDate, prepared.length, posted.length, [
         ...failures,
