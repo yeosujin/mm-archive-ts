@@ -23,7 +23,7 @@ updated: 2026-09-18
 | `date.ts` | `getKstDateString`, `msUntilKstMidnight` |
 | `fetch.ts` | `fetchAllRows` — Supabase 기본 1000행 제한을 페이지네이션으로 회피 |
 | `normalize.ts` | 콘텐츠 → `MediaItem` 정규화, `isR2Url` |
-| `group.ts` | `planTweets` — `groupKey`별로 묶어 트윗당 미디어 최대 4개 |
+| `group.ts` | `planTweets` — `groupKey`별로 묶어 트윗당 미디어 최대 20개 (`MAX_MEDIA_PER_TWEET`) |
 | `text.ts` | 캡션 규칙 + `#그해오늘` 해시태그 |
 | `platform.ts` | 상위 영상 플랫폼 → 한글 라벨 |
 | `r2.ts` | R2 다운로드, `urlToKey` |
@@ -54,6 +54,16 @@ updated: 2026-09-18
 `groupKey`는 **id 기준**이다 — `moment|상위영상id(없으면 solo:모먼트id)|날짜`, `post|포스트id|날짜`,
 `episode|에피소드id|날짜`. 제목으로 묶던 시절엔 제목만 같으면 다른 영상이 한 트윗에 합쳐졌다.
 사진만 예외로 `photo|제목(subfix 제거)|날짜` — '생일-1', '생일-2'를 한 트윗에 묶기 위해서다.
+
+## 트윗당 미디어 개수
+
+X가 **2026-11-12에 게시물당 미디어 상한을 4개 → 20개**로 올렸다(사진·영상 합산). `group.ts`의
+`MAX_MEDIA_PER_TWEET = 20`이 그 값이고, 넘치면 스레드로 이어진다.
+
+다만 docs.x.com은 아직 "4 photos, 1 GIF, 1 video"로 남아 있어 API가 정말 20개를 받는지는
+문서로 확인되지 않았다. 그래서 `postThread`가 **4개 이상 보냈는데 4xx(400·403·422)가 오면
+`MEDIA_FALLBACK_CHUNK = 4`개씩 쪼개 스레드로 다시 올린다.** 업로드된 `media_id`를 그대로
+재사용하므로 다시 올릴 필요는 없다. 4개 이하 실패와 5xx·401은 쪼개도 안 풀리므로 재시도하지 않는다.
 
 ## 스케줄
 

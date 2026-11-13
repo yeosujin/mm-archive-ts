@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { postThread, describeError } from './x';
-import type { TwitterApi } from 'twitter-api-v2';
+import { postThread, describeError } from './x';import type { TwitterApi } from 'twitter-api-v2';
 
 interface TweetPayload {
   media?: { media_ids: string[] };
@@ -71,6 +70,93 @@ describe('postThread', () => {
     ]);
     expect(calls[0].payload.reply).toBeUndefined();
     expect(calls[1].payload.reply?.in_reply_to_tweet_id).toBe('id1'); // 이어짐
+  });
+});
+
+describe('postThread - 미디어 개수 초과 시 분할 재시도', () => {
+  // media_ids가 maxMedia를 넘으면 400을 던지는 가짜 클라이언트
+  function limitedClient(maxMedia: number) {
+    const calls: { text: string; payload: TweetPayload }[] = [];
+    let counter = 0;
+    const client = {
+      v2: {
+        tweet: async (text: string, payload: TweetPayload) => {
+          const n = payload.media?.media_ids.length ?? 0;
+          if (n > maxMedia) {
+            throw { code: 400, data: { status: 400, detail: 'Too many media' } };
+          }
+          calls.push({ text, payload });
+          counter += 1;
+          return { data: { id: `id${counter}` } };
+        },
+      },
+    } as unknown as TwitterApi;
+    return { client, calls };
+  }
+
+  it('20개가 거절되면 4개씩 쪼개 스레드로 이어 게시한다', async () => {
+    const { client, calls } = limitedClient(4);
+    const mediaIds = Array.from({ length: 9 }, (_, i) => `m${i}`);
+    const { ids, failures } = await postThread(client, [
+      { text: '251010 생일', mediaIds, groupKey: 'g1' },
+    ]);
+    expect(failures).toEqual([]);
+    expect(ids).toEqual(['id1', 'id2', 'id3']);
+    expect(calls.map(c => c.payload.media?.media_ids)).toEqual([
+      ['m0', 'm1', 'm2', 'm3'],
+      ['m4', 'm5', 'm6', 'm7'],
+      ['m8'],
+    ]);
+    // 쪼갠 조각들은 스레드로 이어진다
+    expect(calls[0].payload.reply).toBeUndefined();
+    expect(calls[1].payload.reply?.in_reply_to_tweet_id).toBe('id1');
+    expect(calls[2].payload.reply?.in_reply_to_tweet_id).toBe('id2');
+  });
+
+  it('분할 후 다음 그룹은 마지막 조각에 이어지지 않고 독립 트윗', async () => {
+    const { client, calls } = limitedClient(4);
+    await postThread(client, [
+      { text: 'A', mediaIds: ['m0', 'm1', 'm2', 'm3', 'm4'], groupKey: 'g1' },
+      { text: 'B', mediaIds: ['n0'], groupKey: 'g2' },
+    ]);
+    expect(calls[2].payload.reply).toBeUndefined();
+  });
+
+  it('미디어가 4개 이하인데 실패하면 재시도하지 않는다 (원인이 다름)', async () => {
+    const calls: { text: string; payload: TweetPayload }[] = [];
+    const client = {
+      v2: {
+        tweet: async (text: string, payload: TweetPayload) => {
+          calls.push({ text, payload });
+          throw { code: 400, data: { status: 400, detail: 'duplicate content' } };
+        },
+      },
+    } as unknown as TwitterApi;
+    const { ids, failures } = await postThread(client, [
+      { text: 'A', mediaIds: ['m0', 'm1'], groupKey: 'g1' },
+    ]);
+    expect(ids).toEqual([]);
+    expect(failures).toEqual(['HTTP 400 duplicate content']);
+    expect(calls).toHaveLength(1); // 한 번만 시도
+  });
+
+  it('5xx는 쪼개도 안 풀리므로 분할하지 않는다', async () => {
+    const calls: { text: string; payload: TweetPayload }[] = [];
+    const client = {
+      v2: {
+        tweet: async (text: string, payload: TweetPayload) => {
+          calls.push({ text, payload });
+          throw { code: 503, data: { status: 503, detail: 'Service Unavailable' } };
+        },
+      },
+    } as unknown as TwitterApi;
+    const mediaIds = Array.from({ length: 8 }, (_, i) => `m${i}`);
+    const { ids, failures } = await postThread(client, [
+      { text: 'A', mediaIds, groupKey: 'g1' },
+    ]);
+    expect(ids).toEqual([]);
+    expect(failures).toEqual(['HTTP 503 Service Unavailable']);
+    expect(calls).toHaveLength(1);
   });
 });
 
